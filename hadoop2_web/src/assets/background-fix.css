@@ -1,0 +1,18 @@
+html,
+body,
+#app,
+.app,
+.main,
+.login-container,
+.home {
+  background-color: #f9f9f9 !important;
+}
+
+.main-nav .nav-link {
+  background-color: transparent;
+}
+
+.main-nav .nav-link:hover,
+.main-nav .nav-link.router-link-active {
+  background-color: var(--primary-light);
+} 

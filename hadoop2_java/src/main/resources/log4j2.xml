@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+  </Properties>
+  
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+    </Console>
+    
+    <!-- Disabled file logging -->
+    <!-- 
+    <RollingFile name="FileAppender" fileName="logs/application.log" 
+                 filePattern="logs/application-%d{yyyy-MM-dd}-%i.log">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <Policies>
+        <SizeBasedTriggeringPolicy size="10MB" />
+      </Policies>
+      <DefaultRolloverStrategy max="10"/>
+    </RollingFile>
+    -->
+    
+    <!-- Null appender to discard logs -->
+    <Null name="NullAppender" />
+  </Appenders>
+  
+  <Loggers>
+    <!-- Spring Framework -->
+    <Logger name="org.springframework" level="ERROR"/>
+    
+    <!-- Big Data Frameworks -->
+    <Logger name="org.apache.spark" level="ERROR"/>
+    <Logger name="org.spark_project" level="ERROR"/>
+    <Logger name="org.apache.hadoop" level="ERROR"/>
+    <Logger name="org.apache.hive" level="ERROR"/>
+    <Logger name="org.apache.kafka" level="INFO"/>
+    
+    <!-- Application Logging - 提高到INFO级别以便调试 -->
+    <Logger name="org.shiguang" level="INFO" additivity="false">
+      <AppenderRef ref="Console"/>
+    </Logger>
+    
+    <!-- JPA/Hibernate -->
+    <Logger name="org.hibernate" level="ERROR"/>
+    <Logger name="org.hibernate.SQL" level="ERROR"/>
+    
+    <!-- Root Logger -->
+    <Root level="ERROR">
+      <AppenderRef ref="Console"/>
+    </Root>
+  </Loggers>
+</Configuration> 

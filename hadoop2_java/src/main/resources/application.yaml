@@ -1,0 +1,31 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  # Tomcat请求大小限制
+  tomcat:
+    max-http-form-post-size: 20MB
+    max-swallow-size: 20MB
+
+spring:
+  # 激活的配置文件
+  profiles:
+    active: dev
+  
+# 安全配置
+security:
+  # CORS配置
+  cors:
+    allowed-origins: "*"
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    max-age: 3600
+
+
+
+
+
+
+
+
+

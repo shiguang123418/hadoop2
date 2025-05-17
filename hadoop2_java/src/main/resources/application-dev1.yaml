@@ -1,0 +1,107 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  # 使用MySQL数据库
+  datasource:
+    url: jdbc:mysql://14.103.176.218:3336/agriculture_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: y1
+    password: 082415
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # Hikari连接池配置
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 60000
+      max-lifetime: 1800000
+
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+# 日志配置
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.shiguang: DEBUG
+    # 禁用Derby相关警告
+    org.apache.tomcat.util.scan.StandardJarScanner: ERROR
+
+# Hadoop配置
+hadoop:
+  config:
+    fs:
+      defaultFS: hdfs://14.103.176.218:9000
+    dfs:
+      replication: 1
+      client:
+        use:
+          datanode:
+            hostname: false
+        socket-timeout: 120000
+        block:
+          write:
+            replace-datanode-on-failure:
+              policy: NEVER
+              enable: false
+        resolved:
+          remote:
+            ips: true
+            # 主机名映射配置
+            shiguang: 14.103.176.218
+            localhost: 14.103.176.218
+            # 根据需要添加更多主机名映射
+        datanode-address.use.hostnames: false
+        namenode-address.use.hostnames: false
+        use.legacy.blockreader: true
+      datanode:
+        use:
+          datanode:
+            hostname: false
+      permissions:
+        enabled: false
+      safemode:
+        extension: 0
+      support.append: true
+    ipc:
+      client:
+        connect:
+          timeout: 120000
+          max.retries: 10
+          retry.interval: 5000
+    hadoop.security.token.service.use_ip: true
+    hdfs:
+      user: root
+      impl: org.apache.hadoop.hdfs.DistributedFileSystem
+    file:
+      impl: org.apache.hadoop.fs.LocalFileSystem
+    hadoop:
+      job:
+        ugi: root
+  # 是否启用模拟数据 (当HDFS不可用时)
+  mock:
+    enabled: true
+  user: root
+
+# Hive配置
+hive:
+  jdbc:
+    url: jdbc:hive2://14.103.176.218:10000/default
+    username: root
+    password: 
+    driver: org.apache.hive.jdbc.HiveDriver
+
+# JWT配置
+jwt:
+  secret: fZ1Pn2I9wR5tG8hJ0qY3xA6vB7mC4kD2lE9oF1uH3iJ7yK5zL8xM0nN3oO6pP9qQ
+  expirationMs: 86400000  # 24小时

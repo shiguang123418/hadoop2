@@ -1,0 +1,136 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  # 使用MySQL数据库
+  datasource:
+    url: jdbc:mysql://192.168.1.192:3306/agriculture_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: y1
+    password: 082415
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # Hikari连接池配置
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 60000
+      max-lifetime: 1800000
+
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  # 允许循环依赖
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
+      location: ${java.io.tmpdir}
+  
+
+# 日志配置
+logging:
+  level:
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.shiguang: INFO
+    # 禁用Derby相关警告
+    org.apache.tomcat.util.scan.StandardJarScanner: ERROR
+    # Spark和Hadoop日志级别设置为ERROR，减少不必要的日志
+    org.apache.spark: ERROR
+    org.apache.hadoop: ERROR
+    org.spark_project: ERROR
+    # 将Kafka日志级别设置为ERROR，减少噪音
+    org.apache.kafka: ERROR
+
+# Hadoop配置
+hadoop:
+  enabled: true  # 启用真实的Hadoop
+  config:
+    fs:
+      defaultFS: hdfs://192.168.1.192:9000
+    dfs:
+      replication: 1
+    hdfs:
+      user: root
+  user: root
+
+# Hive配置
+hive:
+  enabled: true  # 启用真实的Hive
+  jdbc:
+    url: jdbc:hive2://192.168.1.192:10000/default
+    username: root
+    password: 
+    driver: org.apache.hive.jdbc.HiveDriver
+
+# JWT配置 - 不要在生产中使用这个密钥，应通过环境变量或外部配置注入
+jwt:
+  # 在生产环境中，应使用环境变量设置密钥: ${JWT_SECRET}
+  secret: ${JWT_SECRET:fZ1Pn2I9wR5tG8hJ0qY3xA6vB7mC4kD2lE9oF1uH3iJ7yK5zL8xM0nN3oO6pP9qQ}
+  expirationMs: 86400000  # 24小时
+
+# Spark配置
+spark:
+  enabled: true  # 明确启用Spark
+  use-mock: true  # 启用模拟Spark，避免Java 21兼容性问题
+  app:
+    name: 农业数据分析Spark应用
+  master: local[2]  # 使用2个本地线程，更可靠
+  checkpoint:
+    dir: /tmp/spark-checkpoint
+  streaming:
+    batch-duration: 5000  # 毫秒
+  config:
+    # 关闭Spark UI以减少资源消耗
+    spark.ui.enabled: false
+    # 设置日志级别为ERROR
+    spark.driver.extraJavaOptions: -Dlog4j.logger.org=ERROR -Dlog4j2.disable.jmx=true
+    spark.executor.extraJavaOptions: -Dlog4j.logger.org=ERROR -Dlog4j2.disable.jmx=true
+    # 类加载器优先级，解决依赖冲突
+    spark.driver.userClassPathFirst: true
+    spark.executor.userClassPathFirst: true
+
+# Kafka配置
+kafka:
+  enabled: true  # 启用Kafka
+  bootstrap-servers: 192.168.1.192:9092  # 确认你的Kafka服务器地址是否正确
+  consumer:
+    group-id: agricultural-data-group
+    auto-offset-reset: earliest
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    # 设置更高的超时时间
+    request.timeout.ms: 40000
+    # 其他可选配置
+    max.poll.records: 500
+    max.poll.interval.ms: 300000
+  topics:
+    sensor-data: agriculture-sensor-data
+    weather-data: agriculture-weather-data
+    market-data: agriculture-market-data
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    # 提高可靠性
+    acks: 1
+    retries: 3
+    # 提高性能
+    batch.size: 16384
+    linger.ms: 1
+    buffer.memory: 33554432
+  streaming:
+    auto-start: true  # 启用自动启动Kafka流处理
