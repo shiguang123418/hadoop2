@@ -14,7 +14,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.shiguang.service.HdfsService;
-import org.shiguang.service.MockDataService;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,7 +45,6 @@ public class ProductionController {
     private static final String CSV_FILE_PATH = "/user/data/agriculture/product_regressiondb.csv";
     
     private final HdfsService hdfsService;
-    private final MockDataService mockDataService;
     private final Configuration hadoopConfig;
     private final FileSystem fileSystem;
     
@@ -74,21 +72,14 @@ public class ProductionController {
             String filePath = "/user/data/agriculture/crops.csv";
             List<String> crops = readCropsFromHdfs(filePath);
             
-            if (crops.isEmpty() && mockDataService.isMockEnabled()) {
-                logger.info("使用模拟数据替代HDFS数据");
-                crops = mockDataService.getMockCrops();
+            if (crops.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("error", "No crops data found in HDFS"));
             }
             
             return ResponseEntity.ok(crops);
         } catch (Exception e) {
             logger.error("获取作物类型时出错", e);
-            
-            if (mockDataService.isMockEnabled()) {
-                logger.info("由于错误，切换到模拟数据");
-                return ResponseEntity.ok(mockDataService.getMockCrops());
-            } else {
-                return ResponseEntity.status(500).body(Map.of("error", "获取作物类型失败: " + e.getMessage()));
-            }
+            return ResponseEntity.status(500).body(Map.of("error", "获取作物类型失败: " + e.getMessage()));
         }
     }
     
@@ -122,9 +113,8 @@ public class ProductionController {
             }
             
             if (rainfall.isEmpty()) {
-                // 如果没有找到数据，返回模拟数据
-                logger.info("未找到作物'{}'的数据，返回模拟数据", crop);
-                return ResponseEntity.ok(mockDataService.getMockProductionData(crop));
+                logger.info("未找到作物'{}'的数据", crop);
+                return ResponseEntity.status(404).body(Map.of("error", "No data found for crop: " + crop));
             }
             
             Map<String, Object> result = new HashMap<>();
@@ -137,11 +127,10 @@ public class ProductionController {
             
         } catch (IOException e) {
             logger.error("读取HDFS CSV文件失败", e);
-            // 返回模拟数据
-            return ResponseEntity.ok(mockDataService.getMockProductionData(crop));
+            return ResponseEntity.status(500).body(Map.of("error", "读取HDFS文件失败: " + e.getMessage()));
         } catch (NumberFormatException e) {
             logger.error("解析数值失败", e);
-            return ResponseEntity.internalServerError().body("数据格式错误: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "数据格式错误: " + e.getMessage()));
         }
     }
     
@@ -172,9 +161,8 @@ public class ProductionController {
             }
             
             if (cropProduction.isEmpty()) {
-                // 如果没有读取到数据，返回模拟数据
-                logger.info("未找到产量数据，返回模拟数据");
-                return ResponseEntity.ok(mockDataService.getMockAverageProduction());
+                logger.info("未找到产量数据");
+                return ResponseEntity.status(404).body(Map.of("error", "No production data found"));
             }
             
             // 计算每种作物的平均产量
@@ -202,11 +190,10 @@ public class ProductionController {
             
         } catch (IOException e) {
             logger.error("读取HDFS CSV文件失败", e);
-            // 返回模拟数据
-            return ResponseEntity.ok(mockDataService.getMockAverageProduction());
+            return ResponseEntity.status(500).body(Map.of("error", "读取HDFS文件失败: " + e.getMessage()));
         } catch (NumberFormatException e) {
             logger.error("解析数值失败", e);
-            return ResponseEntity.internalServerError().body("数据格式错误: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "数据格式错误: " + e.getMessage()));
         }
     }
     
@@ -239,9 +226,8 @@ public class ProductionController {
             }
             
             if (records.isEmpty()) {
-                // 如果没有找到数据，返回模拟数据
-                logger.info("未找到作物'{}'的最佳生长条件数据，返回模拟数据", crop);
-                return ResponseEntity.ok(mockDataService.getMockOptimalConditions(crop));
+                logger.info("未找到作物'{}'的最佳生长条件数据", crop);
+                return ResponseEntity.status(404).body(Map.of("error", "No optimal conditions data found for crop: " + crop));
             }
             
             // 按产量排序，找出产量最高的记录
@@ -253,16 +239,16 @@ public class ProductionController {
             
         } catch (IOException e) {
             logger.error("读取HDFS CSV文件失败", e);
-            // 返回模拟数据
-            return ResponseEntity.ok(mockDataService.getMockOptimalConditions(crop));
+            return ResponseEntity.status(500).body(Map.of("error", "读取HDFS文件失败: " + e.getMessage()));
         } catch (NumberFormatException e) {
             logger.error("解析数值失败", e);
-            return ResponseEntity.internalServerError().body("数据格式错误: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "数据格式错误: " + e.getMessage()));
         }
     }
     
     /**
      * 诊断HDFS连接状态
+     * 记录当前HDFS配置信息和连接状态，供调试使用
      */
     private void diagnoseHdfsConnection() {
         try {
@@ -312,7 +298,12 @@ public class ProductionController {
             logger.error("HDFS连接诊断失败: {}", e.getMessage(), e);
         }
     }
-
+    
+    /**
+     * 从HDFS中读取作物列表
+     * @param filePath 文件路径
+     * @return 作物列表
+     */
     private List<String> readCropsFromHdfs(String filePath) {
         List<String> crops = new ArrayList<>();
         try {

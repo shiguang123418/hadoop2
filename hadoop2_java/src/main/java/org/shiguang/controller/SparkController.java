@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/spark")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class SparkController {
 
     private static final Logger logger = LoggerFactory.getLogger(SparkController.class);

@@ -9,8 +9,21 @@ class KafkaAnalyticsService {
    * 基础API路径
    */
   constructor() {
+    // 初始化服务器设置
+    this.currentServer = 'main';
+    
     // 配置API基础路径
-    this.baseUrl = apiConfig.baseURL;
+    if (apiConfig.directConnection && apiConfig.servers && apiConfig.servers[this.currentServer]) {
+      // 直连模式：使用服务器URL
+      const serverUrl = apiConfig.servers[this.currentServer];
+      this.baseUrl = `${serverUrl}/api`;
+      console.log(`使用直连模式，API基础路径: ${this.baseUrl}`);
+    } else {
+      // 代理模式：使用相对路径
+      this.baseUrl = apiConfig.baseURL || '/api';
+      console.log(`使用代理模式，API基础路径: ${this.baseUrl}`);
+    }
+    
     this.kafkaUrl = `${this.baseUrl}/kafka`;
     this.producerUrl = `${this.baseUrl}/producer`;
     this.analyticsUrl = `${this.baseUrl}/analytics`;
@@ -401,8 +414,8 @@ class KafkaAnalyticsService {
    * @returns {boolean} 切换是否成功
    */
   switchServer(serverType = 'main') {
-    if (!apiConfig.servers[serverType]) {
-      console.error(`未知服务器类型: ${serverType}`);
+    if (!apiConfig.servers || !apiConfig.servers[serverType]) {
+      console.error(`未知服务器类型或服务器配置未定义: ${serverType}`);
       return false;
     }
     
@@ -420,15 +433,25 @@ class KafkaAnalyticsService {
       this.analyticsUrl = `${this.baseUrl}/analytics`;
       this.testUrl = `${this.baseUrl}/test`;
       
+      console.log(`已更新API路径: ${this.baseUrl}`);
+      
       // 如果有WebSocket连接,需要重新连接
       if (this.wsConnection) {
-        const callbacks = [...this.wsCallbacks];
+        console.log('检测到已有WebSocket连接，将重新连接...');
+        const callbacks = [...(this.wsCallbacks || [])];
         this.closeWebSocket();
         // 稍后重连
         setTimeout(() => {
-          this.connectWebSocket(callbacks[0]);
+          console.log('重新连接WebSocket...');
+          if (callbacks.length > 0) {
+            this.connectWebSocket(callbacks[0]);
+          } else {
+            this.connectWebSocket();
+          }
         }, 500);
       }
+    } else {
+      console.log('代理模式下切换服务器，不需要更新客户端API路径');
     }
     
     return true;
@@ -449,18 +472,41 @@ class KafkaAnalyticsService {
       // 构建WebSocket URL
       let wsUrl;
       if (apiConfig.directConnection) {
+        // 直连模式：使用服务器配置中的URL
+        if (!apiConfig.servers || !apiConfig.servers[this.currentServer || 'main']) {
+          console.error('直连模式下服务器配置未定义！');
+          return false;
+        }
         const server = apiConfig.servers[this.currentServer || 'main'];
-        // 将http转换为ws
+        // 将http://转换为ws://
         wsUrl = server.replace('http://', 'ws://') + '/api/ws/kafka';
+        console.log('使用直连模式连接WebSocket:', wsUrl);
       } else {
-        // 使用相对路径,浏览器会自动补全
-        wsUrl = 'ws://' + window.location.host + '/api/ws/kafka';
+        // 代理模式：使用相对路径，让浏览器自动转换协议
+        wsUrl = window.location.protocol.replace('http', 'ws') + '//' + window.location.host + '/api/ws/kafka';
+        console.log('使用代理模式连接WebSocket:', wsUrl);
       }
       
       console.log('连接WebSocket:', wsUrl);
       
-      // 创建WebSocket连接
-      this.wsConnection = new WebSocket(wsUrl);
+      // 增加一个重连计数器，尝试不同的URL格式
+      if (!this.reconnectAttempts) {
+        this.reconnectAttempts = 0;
+      }
+      
+      // 如果重连次数超过3次，尝试带上SockJS后缀
+      if (this.reconnectAttempts >= 3) {
+        // 尝试使用SockJS格式
+        if (!wsUrl.endsWith('/sockjs')) {
+          wsUrl = wsUrl + '/sockjs';
+          console.log('尝试SockJS连接:', wsUrl);
+        }
+      }
+      
+      // 创建原生WebSocket连接
+      const ws = new WebSocket(wsUrl);
+      this.wsConnection = ws;
+      this.wsCallbacks = this.wsCallbacks || [];
       
       // 添加回调
       if (callback) {
@@ -468,11 +514,13 @@ class KafkaAnalyticsService {
       }
       
       // 设置事件处理
-      this.wsConnection.onopen = (event) => {
+      ws.onopen = (event) => {
         console.log('WebSocket连接已建立');
+        // 重置重连计数
+        this.reconnectAttempts = 0;
       };
       
-      this.wsConnection.onmessage = (event) => {
+      ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (this.debug) {
@@ -486,29 +534,50 @@ class KafkaAnalyticsService {
         }
       };
       
-      this.wsConnection.onerror = (error) => {
+      ws.onerror = (error) => {
         console.error('WebSocket错误:', error);
+        this.reconnectAttempts++;
       };
       
-      this.wsConnection.onclose = (event) => {
+      ws.onclose = (event) => {
         console.log('WebSocket连接已关闭:', event.code, event.reason);
+        this.reconnectAttempts++;
+        
+        // 如果连接被关闭，且重连次数小于5，尝试重连
+        if (this.reconnectAttempts < 5) {
+          console.log(`WebSocket连接关闭，${5 - this.reconnectAttempts}秒后尝试重连...`);
+          setTimeout(() => {
+            this.connectWebSocket(callback);
+          }, 5000);
+        }
       };
       
       // 等待连接建立
       return new Promise((resolve) => {
-        this.wsConnection.onopen = () => {
+        const originalOnOpen = ws.onopen;
+        ws.onopen = (event) => {
+          console.log('WebSocket连接打开成功');
+          if (originalOnOpen) originalOnOpen(event);
           resolve(true);
         };
         
-        this.wsConnection.onerror = () => {
+        const originalOnError = ws.onerror;
+        ws.onerror = (err) => {
+          console.error('WebSocket连接失败:', err);
+          if (originalOnError) originalOnError(err);
           resolve(false);
         };
         
         // 超时处理
-        setTimeout(() => resolve(false), 5000);
+        setTimeout(() => {
+          if (ws.readyState !== WebSocket.OPEN) {
+            console.warn('WebSocket连接超时');
+            resolve(false);
+          }
+        }, 5000);
       });
     } catch (e) {
-      console.error('WebSocket连接失败:', e);
+      console.error('WebSocket连接初始化失败:', e);
       return false;
     }
   }

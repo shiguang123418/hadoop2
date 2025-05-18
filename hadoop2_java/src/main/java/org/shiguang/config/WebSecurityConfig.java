@@ -33,8 +33,8 @@ public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${security.cors.allowed-origins:*}")
-    private String allowedOrigins;
+    @Value("${security.cors.allowed-origin-patterns:*}")
+    private String allowedOriginPatterns;
 
     @Value("${security.cors.allowed-methods:GET,POST,PUT,DELETE,OPTIONS}")
     private String allowedMethods;
@@ -57,15 +57,19 @@ public class WebSecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             // 设置授权请求
             .authorizeHttpRequests(auth -> auth
-                // 公开端点
-                .requestMatchers(
+                // 公开端点 - 使用antMatchers替代requestMatchers (Spring Security 5.x)
+                .antMatchers(
                     "/auth/login",
                     "/profile/info",
                     "/actuator/**",
-                    "/swagger-ui/**", "/v3/api-docs/**",
-                    "/weather/cities", "/api/weather/cities",
-                    "/weather", "/api/weather",
-                    "/production/crops", "/api/production/crops"
+                    "/swagger-ui/**",
+                    "/weather/cities",
+                    "/weather",
+                    "/production/crops",
+                    // 添加Kafka相关端点
+                    "/kafka/**",
+                    "/analytics/**",
+                    "/test/hello"
                 ).permitAll()
                 // 其他请求需要认证
                 .anyRequest().authenticated()
@@ -100,11 +104,8 @@ public class WebSecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        if ("*".equals(allowedOrigins)) {
-            configuration.setAllowedOriginPatterns(List.of("*"));
-        } else {
-            configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        }
+        // 直接设置允许的Origin patterns，而不尝试使用allowedOrigins
+        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOriginPatterns.split(",")));
         
         configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
         configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));

@@ -8,12 +8,10 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.shiguang.config.KafkaEnabledCondition;
 import org.shiguang.model.SensorData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -25,7 +23,6 @@ import java.util.UUID;
  * Kafka生产者工具类，用于生成测试数据
  */
 @Component
-@Conditional(KafkaEnabledCondition.class)
 public class KafkaProducerUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaProducerUtil.class);

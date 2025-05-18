@@ -1,7 +1,3 @@
-server:
-  port: 8080
-  servlet:
-    context-path: /api
 
 spring:
   # 使用MySQL数据库
@@ -32,6 +28,9 @@ spring:
   main:
     allow-circular-references: true
     allow-bean-definition-overriding: true
+    banner-mode: off
+    log-startup-info: false
+  
   # 文件上传配置
   servlet:
     multipart:
@@ -39,6 +38,10 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
       location: ${java.io.tmpdir}
+  
+  # 禁用自动配置导入防止Spring查找默认配置文件
+  config:
+    import: "optional:"
   
 
 # 日志配置
@@ -55,6 +58,8 @@ logging:
     org.spark_project: ERROR
     # 将Kafka日志级别设置为ERROR，减少噪音
     org.apache.kafka: ERROR
+  config: classpath:log4j2.xml
+  root: OFF
 
 # Hadoop配置
 hadoop:
@@ -85,21 +90,25 @@ jwt:
 
 # Spark配置
 spark:
-  enabled: true  # 明确启用Spark
-  use-mock: true  # 启用模拟Spark，避免Java 21兼容性问题
+  enabled: true
   app:
     name: 农业数据分析Spark应用
-  master: local[2]  # 使用2个本地线程，更可靠
+  master: spark://shiguang:7077  # 连接到Spark集群而不是本地模式
   checkpoint:
     dir: /tmp/spark-checkpoint
   streaming:
     batch-duration: 5000  # 毫秒
   config:
-    # 关闭Spark UI以减少资源消耗
-    spark.ui.enabled: false
-    # 设置日志级别为ERROR
-    spark.driver.extraJavaOptions: -Dlog4j.logger.org=ERROR -Dlog4j2.disable.jmx=true
-    spark.executor.extraJavaOptions: -Dlog4j.logger.org=ERROR -Dlog4j2.disable.jmx=true
+    # 启用Spark UI和历史服务器
+    spark.ui.enabled: true
+    spark.eventLog.enabled: true
+    spark.eventLog.dir: file:///tmp/spark-events
+    spark.history.fs.logDirectory: file:///tmp/spark-events
+    # 部署模式设置
+    spark.submit.deployMode: cluster
+    # Java 17 兼容性设置
+    spark.driver.extraJavaOptions: -Dlog4j.logger.org=ERROR -Dlog4j2.disable.jmx=true -Dorg.apache.spark.internal.Logging.outputLogger=SLF4J --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED
+    spark.executor.extraJavaOptions: -Dlog4j.logger.org=ERROR -Dlog4j2.disable.jmx=true -Dorg.apache.spark.internal.Logging.outputLogger=SLF4J --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED
     # 类加载器优先级，解决依赖冲突
     spark.driver.userClassPathFirst: true
     spark.executor.userClassPathFirst: true
@@ -107,7 +116,8 @@ spark:
 # Kafka配置
 kafka:
   enabled: true  # 启用Kafka
-  bootstrap-servers: 192.168.1.192:9092  # 确认你的Kafka服务器地址是否正确
+  # 添加正确格式的bootstrap.servers配置
+  bootstrap.servers: 192.168.1.192:9092  # Spark Kafka使用的格式
   consumer:
     group-id: agricultural-data-group
     auto-offset-reset: earliest

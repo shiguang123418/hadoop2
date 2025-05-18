@@ -8,7 +8,7 @@
           <router-link to="/" :class="{ 'active': $route.path === '/' }">首页</router-link>
           <router-link to="/data-upload" v-if="isLoggedIn" :class="{ 'active': $route.path === '/data-upload' }">上传数据</router-link>
           <router-link to="/data-analysis" v-if="isLoggedIn" :class="{ 'active': $route.path === '/data-analysis' }">数据分析</router-link>
-          <router-link to="/spark-dashboard" v-if="isLoggedIn" :class="['highlight-link', { 'active': $route.path === '/spark-dashboard' }]">农业传感器监控</router-link>
+          <router-link to="/spark-dashboard" v-if="isLoggedIn" :class="{ 'active': $route.path === '/spark-dashboard', 'highlight-link': $route.path === '/spark-dashboard' }">农业传感器监控</router-link>
           <router-link to="/spark-analysis" v-if="isLoggedIn" :class="{ 'active': $route.path === '/spark-analysis' }">Spark分析</router-link>
           <router-link to="/spark-streaming" v-if="isLoggedIn" :class="{ 'active': $route.path === '/spark-streaming' }">实时监控</router-link>
           <router-link to="/data-visualization" v-if="isLoggedIn" :class="{ 'active': $route.path === '/data-visualization' }">数据可视化</router-link>

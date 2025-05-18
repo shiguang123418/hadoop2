@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.cors.CorsUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/kafka")
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class KafkaStreamingController {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaStreamingController.class);

@@ -38,13 +38,13 @@
         <router-link to="/data-upload" class="feature-link">了解更多</router-link>
       </div>
       
-      <div class="feature-card highlight-card">
-        <div class="feature-icon-wrapper highlight-icon">
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
           <i class="feature-icon sensor-feature-icon"></i>
         </div>
         <h3>农业传感器监控</h3>
         <p>结合Kafka和Spark Streaming，实时监控和分析农业传感器数据，提供直观的可视化界面。</p>
-        <router-link to="/spark-dashboard" class="feature-link highlight-link">查看监控平台</router-link>
+        <router-link to="/spark-dashboard" class="feature-link">查看监控平台</router-link>
       </div>
       
       <div class="feature-card">
@@ -241,11 +241,6 @@ export default {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
 }
 
-.highlight-card {
-  border: 2px solid #4CAF50;
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
-}
-
 .feature-icon-wrapper {
   width: 70px;
   height: 70px;
@@ -255,11 +250,6 @@ export default {
   align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
-}
-
-.highlight-icon {
-  background-color: rgba(76, 175, 80, 0.2);
-  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.1);
 }
 
 .feature-icon {
@@ -320,15 +310,6 @@ export default {
 
 .feature-link:hover::after {
   transform: scaleX(1);
-}
-
-.feature-link.highlight-link {
-  color: #ff6f00;
-  font-weight: bold;
-}
-
-.feature-link.highlight-link::after {
-  background-color: #ff6f00;
 }
 
 @media (max-width: 768px) {

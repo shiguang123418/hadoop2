@@ -21,7 +21,6 @@ import java.util.Properties;
  * Hadoop配置类
  */
 @org.springframework.context.annotation.Configuration
-@Conditional(HadoopEnabledCondition.class)
 @Slf4j
 public class HadoopConfig {
 

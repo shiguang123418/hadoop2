@@ -14,7 +14,6 @@ import java.sql.SQLException;
  * Hive配置类
  */
 @Configuration
-@Conditional(HiveEnabledCondition.class)
 @Slf4j
 public class HiveConfig {
 

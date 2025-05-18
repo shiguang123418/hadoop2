@@ -169,7 +169,10 @@ export default {
         crop: null
       },
       refreshTimer: null,
-      testResult: null
+      testResult: null,
+      wsConnected: false,
+      connectionStatus: '未连接',
+      lastUpdated: null
     };
   },
   computed: {
@@ -181,12 +184,13 @@ export default {
   },
   mounted() {
     this.loadData();
-    this.startAutoRefresh();
+    this.connectWebSocket();
     window.addEventListener('resize', this.resizeCharts);
   },
   beforeUnmount() {
     this.stopAutoRefresh();
     this.destroyCharts();
+    this.disconnectWebSocket();
     window.removeEventListener('resize', this.resizeCharts);
   },
   methods: {
@@ -525,6 +529,139 @@ export default {
     formatPercentage(value) {
       if (value === undefined || value === null) return '0.00';
       return Number(value).toFixed(2);
+    },
+    
+    /**
+     * 建立WebSocket连接
+     */
+    async connectWebSocket() {
+      try {
+        console.log('SensorDataDashboard: 正在连接WebSocket...');
+        const connected = await KafkaAnalyticsService.connectWebSocket(this.handleWebSocketMessage);
+        
+        this.wsConnected = connected;
+        this.connectionStatus = connected ? '已连接' : '连接失败';
+        this.updateConnectionStatus();
+        
+        console.log('SensorDataDashboard: WebSocket连接状态:', this.connectionStatus);
+      } catch (err) {
+        console.error('SensorDataDashboard: WebSocket连接错误:', err);
+        this.wsConnected = false;
+        this.connectionStatus = '连接错误';
+        this.updateConnectionStatus();
+      }
+    },
+    
+    /**
+     * 断开WebSocket连接
+     */
+    disconnectWebSocket() {
+      KafkaAnalyticsService.closeWebSocket();
+      this.wsConnected = false;
+      this.connectionStatus = '已断开';
+      this.updateConnectionStatus();
+    },
+    
+    /**
+     * 处理WebSocket消息
+     */
+    handleWebSocketMessage(data) {
+      console.log('SensorDataDashboard: 收到WebSocket消息:', data);
+      this.lastUpdated = new Date();
+      
+      try {
+        if (data.type === 'connection') {
+          this.wsConnected = data.connected;
+          this.connectionStatus = data.connected ? '已连接' : '连接失败';
+          this.updateConnectionStatus();
+        } else if (data.type === 'status') {
+          // 处理状态更新
+          console.log('接收到流处理状态更新:', data.active);
+        } else if (data.type === 'sensor_reading') {
+          // 处理新的传感器数据
+          if (data.readings) {
+            this.processWebSocketReadings(data.readings);
+          } else if (data.reading) {
+            this.processWebSocketReadings([data.reading]);
+          }
+        } else if (data.type === 'summary') {
+          // 更新摘要数据
+          if (data.summary) {
+            this.summary = data.summary;
+          }
+        } else if (data.type === 'anomaly') {
+          // 处理异常数据
+          if (data.anomalies) {
+            this.processAnomalies(data.anomalies);
+          }
+        }
+      } catch (err) {
+        console.error('SensorDataDashboard: 处理WebSocket消息时出错:', err);
+      }
+      
+      this.updateConnectionStatus();
+    },
+    
+    /**
+     * 处理WebSocket传感器数据
+     */
+    processWebSocketReadings(readings) {
+      if (!readings || readings.length === 0) return;
+      
+      // 合并最新数据
+      this.latestReadings = [...readings, ...this.latestReadings].slice(0, 10);
+      
+      // 通知父组件数据已更新
+      this.$emit('data-updated', {
+        latestReadings: this.latestReadings
+      });
+    },
+    
+    /**
+     * 处理WebSocket异常数据
+     */
+    processAnomalies(anomalies) {
+      if (!anomalies || anomalies.length === 0) return;
+      
+      // 合并异常数据
+      this.anomalies = [...anomalies, ...this.anomalies].slice(0, 10);
+      
+      // 通知父组件数据已更新
+      this.$emit('data-updated', {
+        anomalies: this.anomalies
+      });
+    },
+    
+    /**
+     * 更新连接状态并通知父组件
+     */
+    updateConnectionStatus() {
+      // 通知父组件连接状态变化
+      this.$emit('connection-status-change', {
+        connected: this.wsConnected,
+        status: this.connectionStatus,
+        lastUpdated: this.lastUpdated
+      });
+    },
+  },
+  watch: {
+    wsConnected(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.$emit('connection-status-change', {
+          connected: this.wsConnected,
+          status: this.connectionStatus,
+          lastUpdated: this.lastUpdated
+        });
+      }
+    },
+    connectionStatus(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.$emit('connection-status-change', {
+          connected: this.wsConnected,
+          status: this.connectionStatus,
+          lastUpdated: this.lastUpdated
+        });
+      }
     }
   }
 };

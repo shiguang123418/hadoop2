@@ -19,6 +19,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/analytics")
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class SensorAnalyticsController {
 
     private static final Logger logger = LoggerFactory.getLogger(SensorAnalyticsController.class);

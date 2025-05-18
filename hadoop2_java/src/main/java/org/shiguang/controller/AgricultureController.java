@@ -22,7 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/agriculture")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Slf4j
 public class AgricultureController {
 

@@ -65,4 +65,21 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
     @Query("SELECT sr FROM SensorReading sr WHERE sr.timestamp = " +
            "(SELECT MAX(s.timestamp) FROM SensorReading s WHERE s.sensorId = sr.sensorId)")
     List<SensorReading> findLatestReadings();
+    
+    /**
+     * 统计异常读数的数量
+     */
+    long countByAnomalyIsTrue();
+    
+    /**
+     * 统计不同区域的数量
+     */
+    @Query("SELECT COUNT(DISTINCT sr.region) FROM SensorReading sr")
+    long countDistinctRegions();
+    
+    /**
+     * 统计不同作物类型的数量
+     */
+    @Query("SELECT COUNT(DISTINCT sr.cropType) FROM SensorReading sr")
+    long countDistinctCropTypes();
 } 
