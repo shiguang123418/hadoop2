@@ -8,6 +8,7 @@ import WeatherChart from '../components/WeatherChart.vue'
 import SparkAnalysis from '../views/SparkAnalysis.vue'
 import SparkDashboard from '../views/SparkDashboard.vue'
 import SparkStreaming from '../views/SparkStreaming.vue'
+import WebSocketTest from '../components/WebSocketTest.vue'
 import AuthService from '../services/auth'
 
 // 创建路由实例
@@ -27,6 +28,12 @@ const router = createRouter({
     { 
       path: '/data-upload', 
       component: DataUpload, 
+      meta: { requiresAuth: true }
+    },
+    { 
+      path: '/hdfs-explorer', 
+      component: () => import('../views/HDFSExplorerView.vue'),
+      name: 'hdfs-explorer',
       meta: { requiresAuth: true }
     },
     { 
@@ -66,6 +73,12 @@ const router = createRouter({
       path: '/spark-streaming',
       component: SparkStreaming,
       name: 'spark-streaming',
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/ws-test',
+      component: WebSocketTest,
+      name: 'websocket-test',
       meta: { requiresAuth: true }
     }
   ]

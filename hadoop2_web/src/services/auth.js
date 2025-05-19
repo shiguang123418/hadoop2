@@ -1,9 +1,22 @@
 import axios from 'axios';
+import apiConfig from '@/config/api.config';
 
 /**
  * 身份验证服务
  */
 class AuthService {
+  constructor() {
+    // 配置API基础路径
+    if (apiConfig.directConnection && apiConfig.servers && apiConfig.servers.main) {
+      // 直连模式：使用服务器URL
+      const serverUrl = apiConfig.servers.main;
+      this.baseUrl = `${serverUrl}/api/auth`;
+    } else {
+      // 代理模式：使用相对路径
+      this.baseUrl = `${apiConfig.baseURL || '/api'}/auth`;
+    }
+  }
+  
   /**
    * 获取当前登录用户
    */
@@ -43,7 +56,7 @@ class AuthService {
       console.log('AuthService: 尝试登录', { username });
       
       // 使用正确的登录端点
-      const response = await axios.post('/auth/login', { username, password }, {
+      const response = await axios.post(`${this.baseUrl}/login`, { username, password }, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -63,6 +76,20 @@ class AuthService {
       return response.data;
     } catch (error) {
       console.error('AuthService: 登录失败', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 注册
+   * @param {Object} userData 用户数据
+   */
+  async register(userData) {
+    try {
+      const response = await axios.post(`${this.baseUrl}/register`, userData);
+      return response.data;
+    } catch (error) {
+      console.error('AuthService: 注册失败', error);
       throw error;
     }
   }

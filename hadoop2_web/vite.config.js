@@ -22,7 +22,7 @@ export default defineConfig({
     cors: true, // 设置没有访问限制
     proxy: {
       '/api': {
-        target: 'http://192.168.1.192:8080', // 后端服务器地址
+        target: 'http://localhost:8080', // 后端服务器地址
         changeOrigin: true,
         secure: false,
         ws: true, // 启用WebSocket代理

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 独立测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button.disconnect {
+            background-color: #f44336;
+        }
+        select, input {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+            font-family: monospace;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket 独立测试页面</h1>
+    
+    <div class="container">
+        <h2>连接设置</h2>
+        <div>
+            <label for="host">主机名:</label>
+            <input type="text" id="host" value="localhost">
+        </div>
+        <div>
+            <label for="port">端口:</label>
+            <input type="number" id="port" value="8080">
+        </div>
+        <div>
+            <label for="path">路径:</label>
+            <input type="text" id="path" value="/kafka">
+        </div>
+        <div>
+            <button id="connectBtn">连接</button>
+            <button id="disconnectBtn" class="disconnect" disabled>断开</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>发送消息</h2>
+        <div>
+            <select id="messageType">
+                <option value="ping">Ping</option>
+                <option value="subscribe">订阅</option>
+                <option value="getData">获取数据</option>
+                <option value="custom">自定义</option>
+            </select>
+        </div>
+        <div id="customMsgDiv" style="display:none;">
+            <label for="customMsg">自定义消息 (JSON):</label>
+            <textarea id="customMsg" rows="4" style="width:100%;">{"type":"custom","message":"Hello WebSocket"}</textarea>
+        </div>
+        <div>
+            <button id="sendBtn" disabled>发送消息</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>连接状态: <span id="status">未连接</span></h2>
+        <div>
+            <button id="clearLogBtn">清空日志</button>
+        </div>
+        <div id="log" class="log"></div>
+    </div>
+    
+    <script>
+        // DOM元素
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+        const statusSpan = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        const hostInput = document.getElementById('host');
+        const portInput = document.getElementById('port');
+        const pathInput = document.getElementById('path');
+        const messageTypeSelect = document.getElementById('messageType');
+        const customMsgDiv = document.getElementById('customMsgDiv');
+        const customMsgTextarea = document.getElementById('customMsg');
+        
+        let socket = null;
+        
+        // 日志函数
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = type;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `${timestamp}: ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        // 连接WebSocket
+        function connect() {
+            try {
+                const host = hostInput.value;
+                const port = portInput.value;
+                const path = pathInput.value;
+                const url = `ws://${host}:${port}${path}`;
+                
+                log(`尝试连接到: ${url}`);
+                statusSpan.textContent = '正在连接...';
+                
+                socket = new WebSocket(url);
+                
+                socket.onopen = function(e) {
+                    log('连接已建立!', 'success');
+                    statusSpan.textContent = '已连接';
+                    
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    sendBtn.disabled = false;
+                    
+                    // 发送一个初始的ping消息
+                    const pingMsg = JSON.stringify({
+                        type: 'ping',
+                        timestamp: Date.now()
+                    });
+                    
+                    try {
+                        socket.send(pingMsg);
+                        log(`自动发送Ping: ${pingMsg}`, 'info');
+                    } catch(e) {
+                        log(`发送Ping失败: ${e.message}`, 'error');
+                    }
+                };
+                
+                socket.onmessage = function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        log(`收到消息: ${JSON.stringify(data, null, 2)}`, 'success');
+                    } catch(e) {
+                        log(`收到消息: ${e.data}`, 'success');
+                    }
+                };
+                
+                socket.onclose = function(e) {
+                    const cleanClose = e.wasClean ? 'success' : 'error';
+                    log(`连接已关闭: 代码=${e.code}, 原因=${e.reason || '未知'}`, cleanClose);
+                    statusSpan.textContent = '已断开';
+                    
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                    sendBtn.disabled = true;
+                    socket = null;
+                };
+                
+                socket.onerror = function(e) {
+                    log('WebSocket连接错误', 'error');
+                    statusSpan.textContent = '错误';
+                    console.error('WebSocket错误:', e);
+                };
+            } catch(err) {
+                log(`连接错误: ${err.message}`, 'error');
+                statusSpan.textContent = '错误';
+            }
+        }
+        
+        // 断开连接
+        function disconnect() {
+            if(socket) {
+                log('正在断开连接...');
+                socket.close(1000, '用户主动断开连接');
+            }
+        }
+        
+        // 发送消息
+        function sendMessage() {
+            if(!socket || socket.readyState !== WebSocket.OPEN) {
+                log('WebSocket未连接，无法发送消息', 'error');
+                return;
+            }
+            
+            let message;
+            
+            if(messageTypeSelect.value === 'custom') {
+                try {
+                    // 确保自定义消息是有效的JSON
+                    const jsonObj = JSON.parse(customMsgTextarea.value);
+                    message = JSON.stringify(jsonObj);
+                } catch(e) {
+                    log(`无效的JSON格式: ${e.message}`, 'error');
+                    return;
+                }
+            } else if(messageTypeSelect.value === 'ping') {
+                message = JSON.stringify({
+                    type: 'ping',
+                    timestamp: Date.now()
+                });
+            } else if(messageTypeSelect.value === 'subscribe') {
+                message = JSON.stringify({
+                    type: 'subscribe',
+                    topics: ['agriculture-sensor-data']
+                });
+            } else if(messageTypeSelect.value === 'getData') {
+                message = JSON.stringify({
+                    type: 'getData',
+                    limit: 5
+                });
+            }
+            
+            try {
+                socket.send(message);
+                log(`发送消息: ${message}`, 'info');
+            } catch(e) {
+                log(`发送失败: ${e.message}`, 'error');
+            }
+        }
+        
+        // 消息类型变更
+        function onMessageTypeChange() {
+            if(messageTypeSelect.value === 'custom') {
+                customMsgDiv.style.display = 'block';
+            } else {
+                customMsgDiv.style.display = 'none';
+            }
+        }
+        
+        // 清空日志
+        function clearLog() {
+            logDiv.innerHTML = '';
+            log('日志已清空');
+        }
+        
+        // 事件侦听器
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+        sendBtn.addEventListener('click', sendMessage);
+        clearLogBtn.addEventListener('click', clearLog);
+        messageTypeSelect.addEventListener('change', onMessageTypeChange);
+        
+        // 初始化
+        log('测试页面已加载，请配置连接设置并点击连接按钮');
+    </script>
+</body>
+</html> 

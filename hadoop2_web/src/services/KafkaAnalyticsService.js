@@ -469,41 +469,33 @@ class KafkaAnalyticsService {
     }
     
     try {
-      // 构建WebSocket URL
-      let wsUrl;
-      if (apiConfig.directConnection) {
-        // 直连模式：使用服务器配置中的URL
-        if (!apiConfig.servers || !apiConfig.servers[this.currentServer || 'main']) {
-          console.error('直连模式下服务器配置未定义！');
-          return false;
-        }
-        const server = apiConfig.servers[this.currentServer || 'main'];
-        // 将http://转换为ws://
-        wsUrl = server.replace('http://', 'ws://') + '/api/ws/kafka';
-        console.log('使用直连模式连接WebSocket:', wsUrl);
-      } else {
-        // 代理模式：使用相对路径，让浏览器自动转换协议
-        wsUrl = window.location.protocol.replace('http', 'ws') + '//' + window.location.host + '/api/ws/kafka';
-        console.log('使用代理模式连接WebSocket:', wsUrl);
-      }
+      console.log('准备连接WebSocket...');
       
-      console.log('连接WebSocket:', wsUrl);
+      // 使用与后端相同的端口8080进行WebSocket连接
+      // 从当前URL获取服务器IP或主机名
+      const serverIP = window.location.hostname;
+      const wsUrl = `ws://${serverIP}:8080/kafka`;
       
-      // 增加一个重连计数器，尝试不同的URL格式
-      if (!this.reconnectAttempts) {
-        this.reconnectAttempts = 0;
-      }
-      
-      // 如果重连次数超过3次，尝试带上SockJS后缀
-      if (this.reconnectAttempts >= 3) {
-        // 尝试使用SockJS格式
-        if (!wsUrl.endsWith('/sockjs')) {
-          wsUrl = wsUrl + '/sockjs';
-          console.log('尝试SockJS连接:', wsUrl);
-        }
-      }
+      console.log(`尝试连接到独立WebSocket服务器: ${wsUrl}`);
+      return this.tryConnectToWebSocket(wsUrl, callback);
+    } catch (e) {
+      console.error('WebSocket连接初始化失败:', e);
+      return false;
+    }
+  }
+  
+  /**
+   * 尝试连接到指定的WebSocket URL
+   * @param {string} wsUrl WebSocket URL
+   * @param {Function} callback 数据回调函数
+   * @returns {Promise<boolean>} 连接成功返回true
+   */
+  async tryConnectToWebSocket(wsUrl, callback) {
+    try {
+      console.log(`正在尝试连接WebSocket: ${wsUrl}`);
       
       // 创建原生WebSocket连接
+      // 禁用WebSocket协议自动检测，直接使用原始协议
       const ws = new WebSocket(wsUrl);
       this.wsConnection = ws;
       this.wsCallbacks = this.wsCallbacks || [];
@@ -515,27 +507,54 @@ class KafkaAnalyticsService {
       
       // 设置事件处理
       ws.onopen = (event) => {
-        console.log('WebSocket连接已建立');
+        console.log('WebSocket连接已成功建立!');
+        console.log('WebSocket连接信息:', {
+          readyState: ws.readyState,
+          protocol: ws.protocol,
+          binaryType: ws.binaryType,
+          url: ws.url
+        });
+        
         // 重置重连计数
         this.reconnectAttempts = 0;
+        
+        // 发送一个ping消息以验证连接是否真正工作
+        try {
+          ws.send(JSON.stringify({
+            type: 'ping',
+            timestamp: Date.now(),
+            client: '浏览器客户端'
+          }));
+          console.log('已发送ping测试消息');
+        } catch (err) {
+          console.warn('发送ping消息失败:', err);
+        }
       };
       
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (this.debug) {
-            console.log('WebSocket收到数据:', data);
+          console.log('WebSocket收到数据:', data); // 始终打印第一条消息用于调试
+          
+          if (data.type === 'pong') {
+            console.log('收到pong响应，连接正常工作');
+          }
+          
+          // 之后的消息只有在调试模式下才输出
+          if (this.debug && data.type !== 'pong') {
+            console.log('WebSocket数据内容:', data);
           }
           
           // 调用所有回调
           this.wsCallbacks.forEach(cb => cb(data));
         } catch (e) {
           console.error('解析WebSocket数据失败:', e);
+          console.log('原始数据:', event.data);
         }
       };
       
       ws.onerror = (error) => {
-        console.error('WebSocket错误:', error);
+        console.error('WebSocket连接错误:', error);
         this.reconnectAttempts++;
       };
       
@@ -545,10 +564,14 @@ class KafkaAnalyticsService {
         
         // 如果连接被关闭，且重连次数小于5，尝试重连
         if (this.reconnectAttempts < 5) {
-          console.log(`WebSocket连接关闭，${5 - this.reconnectAttempts}秒后尝试重连...`);
+          const delay = Math.min(5000, 1000 * this.reconnectAttempts);
+          console.log(`WebSocket连接关闭，${delay/1000}秒后尝试重连...`);
           setTimeout(() => {
+            // 下次尝试使用不同的URL
             this.connectWebSocket(callback);
-          }, 5000);
+          }, delay);
+        } else {
+          console.error('WebSocket重连尝试已达最大次数，放弃连接');
         }
       };
       
@@ -556,7 +579,7 @@ class KafkaAnalyticsService {
       return new Promise((resolve) => {
         const originalOnOpen = ws.onopen;
         ws.onopen = (event) => {
-          console.log('WebSocket连接打开成功');
+          console.log('WebSocket连接打开成功 - readyState:', ws.readyState);
           if (originalOnOpen) originalOnOpen(event);
           resolve(true);
         };

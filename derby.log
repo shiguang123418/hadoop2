@@ -1,0 +1,13 @@
+----------------------------------------------------------------
+Mon May 19 13:51:17 CST 2025:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.14.2.0 - (1828579): instance a816c00e-0196-e718-b1a4-000014e1df48 
+on database directory memory:/develop/workspare/项目/hadoop2/13d1cce0-ad4e-490d-b991-d636bebbe2d4 with class loader org.springframework.boot.loader.LaunchedURLClassLoader@cb5822 
+Loaded from jar:file:/develop/workspare/项目/hadoop2/hadoop2_java/hdfs_hive/target/hdfs-hive-module-0.0.1-boot.jar!/BOOT-INF/lib/derby-10.14.2.0.jar!/
+java.vendor=Oracle Corporation
+java.runtime.version=11.0.27+8-LTS-232
+user.dir=/develop/workspare/项目/hadoop2
+os.name=Linux
+os.arch=amd64
+os.version=6.11.0-25-generic
+derby.system.home=null
+Database Class Loader started - derby.database.classpath=''

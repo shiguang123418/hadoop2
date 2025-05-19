@@ -10,15 +10,24 @@
             <i class="action-icon upload-icon"></i>
             开始上传数据
           </router-link>
-          <router-link to="/spark-dashboard" class="btn btn-highlight">
-            <i class="action-icon dashboard-icon"></i>
-            农业传感器监控平台
+          <router-link to="/hdfs-explorer" class="btn btn-highlight">
+            <i class="action-icon file-icon"></i>
+            HDFS文件浏览器
           </router-link>
           <router-link to="/data-analysis" class="btn btn-outline">
             <i class="action-icon chart-icon"></i>
             查看数据分析
           </router-link>
         </div>
+      </div>
+    </div>
+    
+    <!-- 服务状态 -->
+    <div class="status-section">
+      <ServiceStatus v-if="isLoggedIn"/>
+      <div v-else class="login-prompt">
+        <p>登录后可查看服务状态</p>
+        <router-link to="/login" class="login-btn">登录</router-link>
       </div>
     </div>
     
@@ -69,8 +78,28 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue';
+import ServiceStatus from '@/components/ServiceStatus.vue';
+
 export default {
-  name: 'HomePage'
+  name: 'HomePage',
+  components: {
+    ServiceStatus
+  },
+  setup() {
+    // 状态变量
+    const isLoggedIn = ref(false);
+    
+    // 初始化时检查登录状态
+    onMounted(() => {
+      // 通过检查localStorage判断登录状态
+      isLoggedIn.value = localStorage.getItem('token') != null;
+    });
+    
+    return {
+      isLoggedIn
+    };
+  }
 }
 </script>
 
@@ -186,6 +215,10 @@ export default {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M5 20h14v-2H5v2zm0-10h4v6h6v-6h4l-7-7-7 7z'/%3E%3C/svg%3E");
 }
 
+.file-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23333333'%3E%3Cpath d='M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z'/%3E%3C/svg%3E");
+}
+
 .dashboard-icon {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23333333'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z'/%3E%3C/svg%3E");
 }
@@ -213,6 +246,36 @@ export default {
   background: linear-gradient(to right, #4CAF50, #8BC34A);
   margin: 0 auto;
   border-radius: 2px;
+}
+
+/* 服务状态部分 */
+.status-section {
+  margin: 2rem auto;
+  max-width: 1200px;
+  padding: 0 1rem;
+}
+
+.login-prompt {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.login-btn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #4CAF50;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.login-btn:hover {
+  background-color: #388E3C;
 }
 
 /* 功能卡片 */

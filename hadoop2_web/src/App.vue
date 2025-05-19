@@ -7,6 +7,7 @@
         <div class="nav-links">
           <router-link to="/" :class="{ 'active': $route.path === '/' }">首页</router-link>
           <router-link to="/data-upload" v-if="isLoggedIn" :class="{ 'active': $route.path === '/data-upload' }">上传数据</router-link>
+          <router-link to="/hdfs-explorer" v-if="isLoggedIn" :class="{ 'active': $route.path === '/hdfs-explorer' }">HDFS浏览器</router-link>
           <router-link to="/data-analysis" v-if="isLoggedIn" :class="{ 'active': $route.path === '/data-analysis' }">数据分析</router-link>
           <router-link to="/spark-dashboard" v-if="isLoggedIn" :class="{ 'active': $route.path === '/spark-dashboard', 'highlight-link': $route.path === '/spark-dashboard' }">农业传感器监控</router-link>
           <router-link to="/spark-analysis" v-if="isLoggedIn" :class="{ 'active': $route.path === '/spark-analysis' }">Spark分析</router-link>
@@ -14,6 +15,7 @@
           <router-link to="/data-visualization" v-if="isLoggedIn" :class="{ 'active': $route.path === '/data-visualization' }">数据可视化</router-link>
           <router-link to="/crop-analysis" v-if="isLoggedIn" :class="{ 'active': $route.path === '/crop-analysis' }">产量预测</router-link>
           <router-link to="/login" v-if="!isLoggedIn" :class="{ 'active': $route.path === '/login' }">登录</router-link>
+          <router-link to="/ws-test" v-if="isLoggedIn" :class="{ 'active': $route.path === '/ws-test' }">WebSocket测试</router-link>
           <a href="#" @click.prevent="logout" v-if="isLoggedIn">退出</a>
         </div>
       </nav>

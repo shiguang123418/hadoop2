@@ -32,8 +32,8 @@ const config = {
   },
   
   // 是否直接连接后端（绕过代理）
-  // 设置为false时，将通过Vite代理访问后端
-  directConnection: false,
+  // 设置为true时，将直接连接到servers中配置的地址
+  directConnection: true,
   
 };
 
