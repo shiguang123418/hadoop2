@@ -4,11 +4,6 @@ import DataUpload from '../views/DataUpload.vue'
 import DataAnalysis from '../views/DataAnalysis.vue'
 import DataVisualization from '../views/DataVisualization.vue'
 import Login from '../views/Login.vue'
-import WeatherChart from '../components/WeatherChart.vue'
-import SparkAnalysis from '../views/SparkAnalysis.vue'
-import SparkDashboard from '../views/SparkDashboard.vue'
-import SparkStreaming from '../views/SparkStreaming.vue'
-import WebSocketTest from '../components/WebSocketTest.vue'
 import AuthService from '../services/auth'
 
 // 创建路由实例
@@ -48,37 +43,8 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     { 
-      path: '/weather-chart', 
-      component: WeatherChart,
-      meta: { requiresAuth: true }
-    },
-    { 
       path: '/crop-analysis', 
       component: () => import('../views/CropAnalysis.vue'),
-      meta: { requiresAuth: true }
-    },
-    { 
-      path: '/spark-analysis', 
-      component: SparkAnalysis,
-      name: 'spark-analysis',
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/spark-dashboard',
-      component: SparkDashboard,
-      name: 'spark-dashboard',
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/spark-streaming',
-      component: SparkStreaming,
-      name: 'spark-streaming',
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/ws-test',
-      component: WebSocketTest,
-      name: 'websocket-test',
       meta: { requiresAuth: true }
     }
   ]

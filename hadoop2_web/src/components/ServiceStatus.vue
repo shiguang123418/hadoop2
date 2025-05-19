@@ -73,8 +73,8 @@ export default {
     const checkHdfsStatus = async () => {
       try {
         const response = await HDFSService.getStatus();
-        hdfsStatus.value = response.data.connected;
-        hdfsUri.value = response.data.uri || '';
+        hdfsStatus.value = response.connected;
+        hdfsUri.value = response.uri || '';
         hdfsError.value = '';
       } catch (err) {
         console.error('获取HDFS状态失败:', err);
@@ -88,8 +88,8 @@ export default {
     const checkHiveStatus = async () => {
       try {
         const response = await HiveService.getStatus();
-        hiveStatus.value = response.data.connected;
-        hiveUrl.value = response.data.url || '';
+        hiveStatus.value = response.connected;
+        hiveUrl.value = response.url || '';
         hiveError.value = '';
       } catch (err) {
         console.error('获取Hive状态失败:', err);
@@ -144,7 +144,7 @@ export default {
             const response = await HDFSService.listFiles('/');
             diagnosticResults.value.push({
               status: 'success',
-              message: `HDFS根目录列表获取成功，包含 ${response.data.length} 个项目`
+              message: `HDFS根目录列表获取成功，包含 ${response.length} 个项目`
             });
           } catch (err) {
             diagnosticResults.value.push({
@@ -177,7 +177,7 @@ export default {
             const response = await HiveService.getDatabases();
             diagnosticResults.value.push({
               status: 'success',
-              message: `Hive数据库列表获取成功，包含 ${response.data.length} 个数据库`
+              message: `Hive数据库列表获取成功，包含 ${response.length} 个数据库`
             });
           } catch (err) {
             diagnosticResults.value.push({

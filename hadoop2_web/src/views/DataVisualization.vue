@@ -139,7 +139,9 @@
       </div>
       
       <div class="weather-chart-wrapper">
-        <WeatherChart />
+        <div class="weather-placeholder">
+          <p>气象数据组件已移除</p>
+        </div>
       </div>
     </div>
     
@@ -159,13 +161,11 @@
   
 <script>
 import Chart from 'chart.js/auto'
-import WeatherChart from '@/components/WeatherChart.vue'
 import ProductRegressionChart from '@/components/ProductRegressionChart.vue'
   
 export default {
   name: 'DataVisualization',
   components: {
-    WeatherChart,
     ProductRegressionChart
   },
   data() {
@@ -847,6 +847,24 @@ export default {
 
 .section-header p {
   color: #666;
+  margin: 0;
+}
+
+.weather-placeholder {
+  background-color: #f5f5f5;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  color: #666;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weather-placeholder p {
+  font-size: 1.1rem;
   margin: 0;
 }
 </style>

@@ -28,15 +28,15 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // 创建默认管理员用户
-        createUserIfNotExists("admin", "admin123", "admin@example.com", "管理员",
+        createUserIfNotExists("admin", "082415", "admin@example.com", "管理员",
                 Arrays.asList("ROLE_ADMIN", "ROLE_USER"));
 
         // 创建默认普通用户
-        createUserIfNotExists("user", "user123", "user@example.com", "普通用户",
+        createUserIfNotExists("user", "082415", "user@example.com", "普通用户",
                 Arrays.asList("ROLE_USER"));
                 
         // 创建测试用户 y1/123456
-        createUserIfNotExists("y1", "123456", "y1@example.com", "测试用户",
+        createUserIfNotExists("y1", "082415", "y1@example.com", "测试用户",
                 Arrays.asList("ROLE_USER"));
     }
 

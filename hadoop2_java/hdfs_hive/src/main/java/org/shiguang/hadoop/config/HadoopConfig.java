@@ -20,7 +20,7 @@ import java.util.Map;
 @PropertySource(value = "classpath:hadoop-config.properties", ignoreResourceNotFound = true)
 public class HadoopConfig {
 
-    @Value("${hadoop.hdfs.uri:hdfs://localhost:9000}")
+    @Value("${hadoop.hdfs.uri:hdfs://192.168.1.192:9000}")
     private String hdfsUri;
 
     @Value("${hadoop.hdfs.user:hadoop}")
@@ -41,7 +41,7 @@ public class HadoopConfig {
     @Value("${hadoop.hdfs.block.size:67108864}")
     private long blockSize; // 默认64MB
 
-    @Value("${hive.url:jdbc:hive2://localhost:10000}")
+    @Value("${hive.url:jdbc:hive2://192.168.1.192:10000}")
     private String hiveUrl;
 
     @Value("${hive.driver:org.apache.hive.jdbc.HiveDriver}")
@@ -89,7 +89,7 @@ public class HadoopConfig {
     @Bean
     public FileSystem fileSystem() throws IOException, URISyntaxException, InterruptedException {
         try {
-            return FileSystem.get(new URI(hdfsUri), hadoopConfiguration(), hdfsUser);
+        return FileSystem.get(new URI(hdfsUri), hadoopConfiguration(), hdfsUser);
         } catch (IOException | URISyntaxException | InterruptedException e) {
             System.err.println("创建HDFS FileSystem失败: " + e.getMessage());
             throw e;

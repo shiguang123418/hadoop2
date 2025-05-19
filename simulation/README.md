@@ -53,7 +53,7 @@ docker-compose down
 ./start_simulation.sh
 
 # 自定义Kafka服务器和发送间隔
-./start_simulation.sh --bootstrap-servers localhost:9092 --interval 2.0
+./start_simulation.sh --bootstrap-servers 192.168.1.192:9092 --interval 2.0
 
 # 停止数据模拟器
 ./stop_simulation.sh
@@ -69,7 +69,7 @@ python sensor_data_producer.py
 python sensor_data_producer.py --count 10 --interval 2
 
 # 指定不同的Kafka服务器
-python sensor_data_producer.py --bootstrap-servers localhost:9092
+python sensor_data_producer.py --bootstrap-servers 192.168.1.192:9092
 
 # 指定不同的主题
 python sensor_data_producer.py --topic custom-topic
@@ -127,8 +127,8 @@ kafka:
 
 ```bash
 # 列出所有主题
-docker exec -it kafka kafka-topics.sh --list --bootstrap-server localhost:9092
+docker exec -it kafka kafka-topics.sh --list --bootstrap-server 192.168.1.192:9092
 
 # 创建新主题
-docker exec -it kafka kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 3 --topic agriculture-sensor-data
+docker exec -it kafka kafka-topics.sh --create --bootstrap-server 192.168.1.192:9092 --replication-factor 1 --partitions 3 --topic agriculture-sensor-data
 ``` 

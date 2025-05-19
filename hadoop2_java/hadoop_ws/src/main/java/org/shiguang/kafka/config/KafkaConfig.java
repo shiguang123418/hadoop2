@@ -18,7 +18,7 @@ import java.util.Map;
 @PropertySource(value = "classpath:kafka-config.properties", ignoreResourceNotFound = true)
 public class KafkaConfig {
 
-    @Value("${kafka.bootstrap.servers:localhost:9092}")
+    @Value("${kafka.bootstrap.servers:192.168.1.192:9092}")
     private String bootstrapServers;
 
     @Value("${kafka.default.topic.partitions:3}")

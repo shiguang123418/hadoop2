@@ -74,11 +74,11 @@ hadoop_ws/
 
 ```properties
 # HDFS配置
-hadoop.hdfs.uri=hdfs://localhost:9000
+hadoop.hdfs.uri=hdfs://192.168.1.192:9000
 hadoop.hdfs.user=hadoop
 
 # Hive配置
-hive.url=jdbc:hive2://localhost:10000
+hive.url=jdbc:hive2://192.168.1.192:10000
 hive.driver=org.apache.hive.jdbc.HiveDriver
 hive.username=
 hive.password=
@@ -91,7 +91,7 @@ hive.database=default
 
 ```properties
 # Kafka基本配置
-kafka.bootstrap.servers=localhost:9092
+kafka.bootstrap.servers=192.168.1.192:9092
 kafka.group.id=agri-big-data-group
 
 # 主题配置

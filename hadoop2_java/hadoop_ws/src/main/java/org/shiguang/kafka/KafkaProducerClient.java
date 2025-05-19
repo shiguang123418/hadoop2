@@ -19,7 +19,7 @@ import java.util.concurrent.Future;
 @Component
 public class KafkaProducerClient {
 
-    @Value("${kafka.bootstrap.servers:localhost:9092}")
+    @Value("${kafka.bootstrap.servers:192.168.1.192:9092}")
     private String bootstrapServers;
 
     private KafkaProducer<String, String> producer;

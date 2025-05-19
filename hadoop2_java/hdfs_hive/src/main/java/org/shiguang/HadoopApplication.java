@@ -21,8 +21,8 @@ public class HadoopApplication {
         
         System.out.println("====== HDFS和Hive接口模块已启动 ======");
         System.out.println("REST API接口：");
-        System.out.println("- HDFS API: http://localhost:8080/api/hdfs");
-        System.out.println("- Hive API: http://localhost:8080/api/hive");
+        System.out.println("- HDFS API: http://192.168.1.192:8080/api/hdfs");
+        System.out.println("- Hive API: http://192.168.1.192:8080/api/hive");
         System.out.println("\n可用控制台服务：");
         System.out.println("1. HDFS文件操作");
         System.out.println("2. Hive查询");

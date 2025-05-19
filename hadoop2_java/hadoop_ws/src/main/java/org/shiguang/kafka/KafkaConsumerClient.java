@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 @Component
 public class KafkaConsumerClient {
 
-    @Value("${kafka.bootstrap.servers:localhost:9092}")
+    @Value("${kafka.bootstrap.servers:192.168.1.192:9092}")
     private String bootstrapServers;
 
     @Value("${kafka.group.id:default-group}")

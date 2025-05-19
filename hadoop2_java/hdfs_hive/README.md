@@ -23,7 +23,7 @@ mvn spring-boot:run
 ```json
 {
   "connected": true,
-  "uri": "hdfs://localhost:9000"
+  "uri": "hdfs://192.168.1.192:9000"
 }
 ```
 
@@ -36,7 +36,7 @@ mvn spring-boot:run
 ```json
 [
   {
-    "path": "hdfs://localhost:9000/user/data/file1.txt",
+    "path": "hdfs://192.168.1.192:9000/user/data/file1.txt",
     "name": "file1.txt",
     "isDirectory": false,
     "length": 1024,
@@ -46,7 +46,7 @@ mvn spring-boot:run
     "permission": "rw-r--r--"
   },
   {
-    "path": "hdfs://localhost:9000/user/data/folder1",
+    "path": "hdfs://192.168.1.192:9000/user/data/folder1",
     "name": "folder1",
     "isDirectory": true,
     "length": 0,
@@ -147,7 +147,7 @@ mvn spring-boot:run
 ```json
 {
   "connected": true,
-  "url": "jdbc:hive2://localhost:10000/default"
+  "url": "jdbc:hive2://192.168.1.192:10000/default"
 }
 ```
 

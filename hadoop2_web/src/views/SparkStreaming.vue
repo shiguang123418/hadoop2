@@ -91,8 +91,8 @@
 </template>
 
 <script>
-import KafkaAnalyticsService from '../services/KafkaAnalyticsService';
-import SensorDataDashboard from '../components/SensorDataDashboard.vue';
+import KafkaAnalyticsService from '@/services/KafkaAnalyticsService';
+import SensorDataDashboard from '@/components/SensorDataDashboard.vue';
 import { format } from 'date-fns';
 
 export default {

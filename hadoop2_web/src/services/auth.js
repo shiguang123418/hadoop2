@@ -1,20 +1,13 @@
 import axios from 'axios';
-import apiConfig from '@/config/api.config';
 
 /**
  * 身份验证服务
  */
 class AuthService {
   constructor() {
-    // 配置API基础路径
-    if (apiConfig.directConnection && apiConfig.servers && apiConfig.servers.main) {
-      // 直连模式：使用服务器URL
-      const serverUrl = apiConfig.servers.main;
-      this.baseUrl = `${serverUrl}/api/auth`;
-    } else {
-      // 代理模式：使用相对路径
-      this.baseUrl = `${apiConfig.baseURL || '/api'}/auth`;
-    }
+    // 使用全局配置的API URL
+    const baseURL = window.API_BASE_URL || 'http://192.168.1.192:8080/api';
+    this.baseUrl = `${baseURL}/auth`;
   }
   
   /**
@@ -53,9 +46,7 @@ class AuthService {
    */
   async login(username, password) {
     try {
-      console.log('AuthService: 尝试登录', { username });
-      
-      // 使用正确的登录端点
+      console.log(`发送登录请求到: ${this.baseUrl}/login`);
       const response = await axios.post(`${this.baseUrl}/login`, { username, password }, {
         withCredentials: true,
         headers: {
@@ -63,8 +54,6 @@ class AuthService {
           'Accept': 'application/json'
         }
       });
-      
-      console.log('AuthService: 登录响应', response.data);
       
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
@@ -75,7 +64,7 @@ class AuthService {
       }
       return response.data;
     } catch (error) {
-      console.error('AuthService: 登录失败', error);
+      console.error('登录失败:', error.response?.data?.message || error.message);
       throw error;
     }
   }
@@ -89,7 +78,7 @@ class AuthService {
       const response = await axios.post(`${this.baseUrl}/register`, userData);
       return response.data;
     } catch (error) {
-      console.error('AuthService: 注册失败', error);
+      console.error('注册失败:', error.response?.data?.message || error.message);
       throw error;
     }
   }

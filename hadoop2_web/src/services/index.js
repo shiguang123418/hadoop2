@@ -11,19 +11,13 @@ import AuthService from './auth';
 // 大数据服务
 import HDFSService from './HDFSService';
 import HiveService from './HiveService';
-import KafkaService from './kafka';
-import KafkaAnalyticsService from './KafkaAnalyticsService';
-import WeatherService from './WeatherService';
 
 // 导出所有服务
 export {
   ApiService,
   AuthService,
   HDFSService,
-  HiveService,
-  KafkaService,
-  KafkaAnalyticsService,
-  WeatherService
+  HiveService
 };
 
 // 导出服务单例
@@ -31,8 +25,5 @@ export default {
   api: ApiService,
   auth: AuthService,
   hdfs: HDFSService,
-  hive: HiveService,
-  kafka: KafkaService,
-  analytics: KafkaAnalyticsService,
-  weather: WeatherService
+  hive: HiveService
 }; 

@@ -49,7 +49,7 @@ class SensorDataProducer:
         初始化Kafka生产者
         
         Args:
-            bootstrap_servers (str): Kafka服务器地址，例如 "localhost:9092"
+            bootstrap_servers (str): Kafka服务器地址，例如 "192.168.1.192:9092"
             topic (str): Kafka主题名称
         """
         self.bootstrap_servers = bootstrap_servers

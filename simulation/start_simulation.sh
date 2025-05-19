@@ -24,7 +24,7 @@ show_help() {
     echo "  -h, --help                      显示此帮助信息"
     echo ""
     echo "示例:"
-    echo "  $0 --bootstrap-servers localhost:9092 --interval 2.0"
+    echo "  $0 --bootstrap-servers 192.168.1.192:9092 --interval 2.0"
 }
 
 # 解析命令行参数

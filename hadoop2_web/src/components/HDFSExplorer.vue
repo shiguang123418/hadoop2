@@ -169,16 +169,23 @@ export default {
     
     // 初始化
     onMounted(async () => {
-      await refreshStatus();
-      await browseToPath();
+      try {
+        await refreshStatus();
+        if (connected.value) {
+          await browseToPath();
+        }
+      } catch (e) {
+        console.error("初始化HDFS浏览器失败:", e);
+      }
     });
     
     // 刷新HDFS连接状态
     const refreshStatus = async () => {
       try {
         const response = await HDFSService.getStatus();
-        connected.value = response.data.connected;
-        hdfsUri.value = response.data.uri || '';
+        console.log("HDFS Status Response:", response);
+        connected.value = response.connected;
+        hdfsUri.value = response.uri || '';
       } catch (err) {
         console.error('获取HDFS状态失败:', err);
         connected.value = false;
@@ -192,12 +199,22 @@ export default {
         currentPath.value = '/';
       }
       
+      // 处理路径，移除HDFS URL前缀
+      const cleanPath = cleanHdfsPath(currentPath.value);
+      currentPath.value = cleanPath; // 更新为干净的路径
+
       loading.value = true;
       error.value = null;
       
       try {
-        const response = await HDFSService.listFiles(currentPath.value);
-        files.value = response.data;
+        if (!connected.value) {
+          throw new Error("HDFS未连接，无法浏览目录");
+        }
+        
+        console.log("正在请求HDFS目录:", cleanPath);
+        const response = await HDFSService.listFiles(cleanPath);
+        console.log("HDFS List Response:", response);
+        files.value = response;
       } catch (err) {
         console.error('获取文件列表失败:', err);
         error.value = err.response?.data?.error || err.message;
@@ -216,7 +233,8 @@ export default {
     const handleFileClick = (file) => {
       if (file.isDirectory) {
         // 如果是目录，进入该目录
-        currentPath.value = file.path;
+        // 使用相对路径而不是完整的HDFS路径
+        currentPath.value = cleanHdfsPath(file.path);
         browseToPath();
       }
     };
@@ -225,10 +243,39 @@ export default {
     const goToParentDir = () => {
       if (isRootDir.value) return;
       
-      const pathParts = currentPath.value.split('/').filter(p => p);
+      // 处理路径，确保使用干净的相对路径
+      const cleanPath = cleanHdfsPath(currentPath.value);
+      const pathParts = cleanPath.split('/').filter(p => p);
       pathParts.pop();
       currentPath.value = pathParts.length > 0 ? '/' + pathParts.join('/') : '/';
       browseToPath();
+    };
+    
+    // 清理HDFS路径，移除URL前缀
+    const cleanHdfsPath = (path) => {
+      // 检查路径是否包含hdfs:// URL前缀
+      if (path.includes('hdfs:')) {
+        // 提取URL后面的实际路径部分
+        const match = path.match(/^hdfs:\/\/[^\/]+(.*)$/);
+        if (match && match[1]) {
+          return match[1] || '/';
+        }
+      }
+      
+      // 如果路径包含完整主机名，也提取路径部分
+      if (path.includes('://')) {
+        const match = path.match(/^.*:\/\/[^\/]+(.*)$/);
+        if (match && match[1]) {
+          return match[1] || '/';
+        }
+      }
+      
+      // 确保路径至少以/开头
+      if (!path.startsWith('/')) {
+        return '/' + path;
+      }
+      
+      return path;
     };
     
     // 创建文件夹
@@ -236,7 +283,9 @@ export default {
       if (!newFolderName.value) return;
       
       try {
-        const path = `${currentPath.value}/${newFolderName.value}`.replace(/\/\//g, '/');
+        // 使用干净的路径
+        const cleanPath = cleanHdfsPath(currentPath.value); 
+        const path = `${cleanPath}/${newFolderName.value}`.replace(/\/\//g, '/');
         await HDFSService.createDirectory(path);
         showNewFolderDialog.value = false;
         newFolderName.value = '';
@@ -261,7 +310,9 @@ export default {
       uploadProgress.value = 0;
       
       try {
-        const targetPath = `${currentPath.value}/${selectedFile.value.name}`.replace(/\/\//g, '/');
+        // 使用清理后的路径
+        const cleanPath = cleanHdfsPath(currentPath.value);
+        const targetPath = `${cleanPath}/${selectedFile.value.name}`.replace(/\/\//g, '/');
         await HDFSService.uploadFile(
           selectedFile.value, 
           targetPath,
@@ -283,8 +334,12 @@ export default {
     // 下载文件
     const downloadFile = async (file) => {
       try {
-        const response = await HDFSService.downloadFile(file.path);
-        HDFSService.saveFile(response.data, file.name);
+        // 使用清理后的路径
+        const cleanPath = cleanHdfsPath(file.path);
+        console.log("正在下载文件:", cleanPath);
+        const response = await HDFSService.downloadFile(cleanPath);
+        console.log("下载文件响应:", response);
+        HDFSService.saveFile(response, file.name);
       } catch (err) {
         console.error('下载文件失败:', err);
         alert(`下载文件失败: ${err.response?.data?.error || err.message}`);
@@ -298,7 +353,9 @@ export default {
       }
       
       try {
-        await HDFSService.deleteFile(file.path, file.isDirectory);
+        // 使用清理后的路径
+        const cleanPath = cleanHdfsPath(file.path);
+        await HDFSService.deleteFile(cleanPath, file.isDirectory);
         refreshCurrentPath();
       } catch (err) {
         console.error('删除失败:', err);

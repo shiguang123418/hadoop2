@@ -32,11 +32,19 @@ class HDFSService extends ApiService {
    * @returns {Promise} 创建结果
    */
   createDirectory(path, permission) {
-    const params = { path };
-    if (permission) {
-      params.permission = permission;
+    // 确保路径开头有斜杠
+    if (!path.startsWith('/')) {
+      path = '/' + path;
     }
-    return this.post('/mkdir', null, { params });
+    
+    // 创建请求数据对象
+    const requestData = { path };
+    if (permission) {
+      requestData.permission = permission;
+    }
+    
+    // 使用请求体而不是URL参数发送路径信息
+    return this.post('/mkdir', requestData);
   }
   
   /**

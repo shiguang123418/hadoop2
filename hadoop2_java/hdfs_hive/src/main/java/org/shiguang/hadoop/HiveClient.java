@@ -2,6 +2,8 @@ package org.shiguang.hadoop;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -16,8 +18,9 @@ import java.util.Map;
  */
 @Component
 public class HiveClient {
+    private static final Logger logger = LoggerFactory.getLogger(HiveClient.class);
 
-    @Value("${hive.url:jdbc:hive2://localhost:10000}")
+    @Value("${hive.url:jdbc:hive2://192.168.1.192:10000}")
     private String hiveUrl;
 
     @Value("${hive.username:}")
@@ -32,15 +35,20 @@ public class HiveClient {
     @Value("${hive.connection.timeout:30}")
     private int connectionTimeout;
 
+    @Value("${hive.connection.required:false}")
+    private boolean connectionRequired;
+
     private Connection connection;
+    private boolean connected = false;
 
     @PostConstruct
-    public void init() throws SQLException {
+    public void init() {
         try {
             // 注册Hive JDBC驱动
             Class.forName("org.apache.hive.jdbc.HiveDriver");
             
             // 建立连接
+            logger.info("尝试连接Hive: {}/{}", hiveUrl, database);
             if (username != null && !username.isEmpty()) {
                 connection = DriverManager.getConnection(hiveUrl + "/" + database, username, password);
             } else {
@@ -49,12 +57,40 @@ public class HiveClient {
             
             // 设置连接超时
             if (connection.isValid(connectionTimeout)) {
-                System.out.println("Hive连接成功: " + hiveUrl + "/" + database);
+                connected = true;
+                logger.info("Hive连接成功: {}/{}", hiveUrl, database);
             } else {
                 throw new SQLException("Hive连接超时: " + hiveUrl + "/" + database);
             }
         } catch (ClassNotFoundException e) {
-            throw new SQLException("Hive JDBC驱动未找到", e);
+            logger.error("Hive JDBC驱动未找到", e);
+            if (connectionRequired) {
+                throw new RuntimeException("Hive JDBC驱动未找到", e);
+            }
+        } catch (SQLException e) {
+            logger.error("Hive连接失败: {}", e.getMessage());
+            if (connectionRequired) {
+                throw new RuntimeException("无法连接到Hive，应用无法启动", e);
+            } else {
+                logger.warn("Hive不可用，应用将以有限功能运行");
+            }
+        }
+    }
+
+    /**
+     * 检查Hive连接状态
+     * @return 是否已连接
+     */
+    public boolean isConnected() {
+        if (!connected || connection == null) {
+            return false;
+        }
+        
+        try {
+            return connection.isValid(connectionTimeout);
+        } catch (SQLException e) {
+            logger.error("检查Hive连接失败", e);
+            return false;
         }
     }
 
@@ -296,11 +332,23 @@ public class HiveClient {
      * @throws SQLException 如果连接无效
      */
     private void validateConnection() throws SQLException {
+        if (!connected || connection == null) {
+            throw new SQLException("Hive未连接，无法执行操作");
+        }
+        
         try {
-            if (connection == null || connection.isClosed() || !connection.isValid(connectionTimeout)) {
-                init(); // 重新初始化连接
+            if (connection.isClosed() || !connection.isValid(connectionTimeout)) {
+                try {
+                    init(); // 尝试重新初始化连接
+                    if (!isConnected()) {
+                        throw new SQLException("无法重新建立Hive连接");
+                    }
+                } catch (Exception e) {
+                    throw new SQLException("Hive连接已关闭或无效，重新连接失败", e);
+                }
             }
         } catch (SQLException e) {
+            logger.error("Hive连接验证失败", e);
             throw new SQLException("Hive连接已关闭或无效，无法执行操作", e);
         }
     }
@@ -310,11 +358,10 @@ public class HiveClient {
         if (connection != null) {
             try {
                 connection.close();
-                System.out.println("Hive连接已关闭");
+                logger.info("Hive连接已关闭");
             } catch (SQLException e) {
                 // 记录关闭连接失败的错误
-                System.err.println("关闭Hive连接失败: " + e.getMessage());
-                e.printStackTrace();
+                logger.error("关闭Hive连接失败: {}", e.getMessage());
             }
         }
     }

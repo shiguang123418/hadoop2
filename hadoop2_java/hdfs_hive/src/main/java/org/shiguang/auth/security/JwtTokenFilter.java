@@ -2,6 +2,8 @@ package org.shiguang.auth.security;
 
 import io.jsonwebtoken.JwtException;
 import org.shiguang.auth.service.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -16,10 +18,16 @@ import java.io.IOException;
 @Component
 public class JwtTokenFilter extends OncePerRequestFilter {
 
-    private final AuthService authService;
+    @Autowired
+    private ApplicationContext applicationContext;
+    
+    private AuthService authService;
 
-    public JwtTokenFilter(AuthService authService) {
-        this.authService = authService;
+    private AuthService getAuthService() {
+        if (authService == null) {
+            authService = applicationContext.getBean(AuthService.class);
+        }
+        return authService;
     }
 
     @Override
@@ -29,7 +37,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         
         try {
             if (token != null) {
-                Authentication auth = authService.getAuthentication(token);
+                Authentication auth = getAuthService().getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         } catch (JwtException e) {
