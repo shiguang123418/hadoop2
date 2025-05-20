@@ -22,13 +22,13 @@ export default defineConfig({
     cors: true, // 设置没有访问限制
     proxy: {
       '/api': {
-        target: 'http://192.168.1.192:8080', // 后端服务器地址
+        target: 'http://localhost:8080', // 后端服务器地址
         changeOrigin: true,
         secure: false,
         ws: true, // 启用WebSocket代理
         // 调试时可以查看代理的请求
         configure: (proxy, options) => {
-          console.log('代理配置已加载: /api -> http://192.168.1.192:8080');
+          console.log('代理配置已加载: /api -> http://192.168.110.32:8080');
           // 可以添加代理事件监听以调试
           proxy.on('proxyReq', function(proxyReq, req, res, options) {
             console.log('代理请求:', req.method, req.url, '-> 转发到:', options.target + req.url);

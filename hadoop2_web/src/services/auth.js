@@ -6,7 +6,7 @@ import axios from 'axios';
 class AuthService {
   constructor() {
     // 使用全局配置的API URL
-    const baseURL = window.API_BASE_URL || 'http://192.168.1.192:8080/api';
+    const baseURL = window.API_BASE_URL || 'http://localhost:8080/api';
     this.baseUrl = `${baseURL}/auth`;
   }
   

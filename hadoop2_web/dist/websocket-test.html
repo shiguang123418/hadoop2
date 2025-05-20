@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 测试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .disconnect {
+            background-color: #f44336;
+        }
+        .disconnect:hover {
+            background-color: #d32f2f;
+        }
+        .send {
+            background-color: #2196F3;
+        }
+        .send:hover {
+            background-color: #0b7dda;
+        }
+        .log {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .error {
+            color: #f44336;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .info {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket 连接测试工具</h1>
+    
+    <div class="container">
+        <div class="input-group">
+            <label for="websocket-url">WebSocket URL:</label>
+            <input type="text" id="websocket-url" placeholder="例如: ws://192.168.1.192:8080/api/ws/kafka" value="ws://192.168.1.192:8080/api/ws/kafka">
+        </div>
+        
+        <button id="connect-btn">连接</button>
+        <button id="disconnect-btn" class="disconnect" disabled>断开连接</button>
+        
+        <div class="input-group">
+            <label for="message">发送消息:</label>
+            <input type="text" id="message" placeholder='例如: {"type": "ping"}' value='{"type": "ping"}'>
+        </div>
+        
+        <button id="send-btn" class="send" disabled>发送</button>
+        
+        <h3>测试链接:</h3>
+        <div>
+            <button id="test-url1" class="info">测试 ws://192.168.1.192:8080/api/ws/kafka</button>
+            <button id="test-url2" class="info">测试 ws://192.168.1.192:8080/ws/kafka</button>
+            <button id="test-url3" class="info">测试 ws://192.168.1.192:8080/api/ws/kafka/sockjs</button>
+        </div>
+        
+        <h3>日志:</h3>
+        <div class="log" id="log"></div>
+    </div>
+    
+    <script>
+        let socket = null;
+        
+        // 记录日志
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        // 连接WebSocket
+        function connectWebSocket(url) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                log('已经有一个活跃的连接，请先断开', 'error');
+                return;
+            }
+            
+            log(`正在连接到: ${url}`);
+            
+            try {
+                socket = new WebSocket(url);
+                
+                socket.onopen = function(event) {
+                    log('连接已建立', 'success');
+                    document.getElementById('connect-btn').disabled = true;
+                    document.getElementById('disconnect-btn').disabled = false;
+                    document.getElementById('send-btn').disabled = false;
+                };
+                
+                socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`收到消息: ${JSON.stringify(data)}`, 'info');
+                    } catch (e) {
+                        log(`收到消息: ${event.data}`, 'info');
+                    }
+                };
+                
+                socket.onerror = function(error) {
+                    log(`错误: ${error.message || '连接失败'}`, 'error');
+                };
+                
+                socket.onclose = function(event) {
+                    log(`连接已关闭，代码: ${event.code}, 原因: ${event.reason || '未知'}`, 'error');
+                    document.getElementById('connect-btn').disabled = false;
+                    document.getElementById('disconnect-btn').disabled = true;
+                    document.getElementById('send-btn').disabled = true;
+                    socket = null;
+                };
+            } catch (e) {
+                log(`创建WebSocket时出错: ${e.message}`, 'error');
+            }
+        }
+        
+        // 断开连接
+        function disconnectWebSocket() {
+            if (socket) {
+                log('断开连接中...');
+                socket.close();
+            } else {
+                log('没有活跃的连接', 'error');
+            }
+        }
+        
+        // 发送消息
+        function sendMessage(message) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                try {
+                    socket.send(message);
+                    log(`发送消息: ${message}`, 'info');
+                } catch (e) {
+                    log(`发送消息时出错: ${e.message}`, 'error');
+                }
+            } else {
+                log('WebSocket未连接，无法发送消息', 'error');
+            }
+        }
+        
+        // 初始化按钮事件
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('connect-btn').addEventListener('click', function() {
+                const url = document.getElementById('websocket-url').value;
+                connectWebSocket(url);
+            });
+            
+            document.getElementById('disconnect-btn').addEventListener('click', function() {
+                disconnectWebSocket();
+            });
+            
+            document.getElementById('send-btn').addEventListener('click', function() {
+                const message = document.getElementById('message').value;
+                sendMessage(message);
+            });
+            
+            document.getElementById('test-url1').addEventListener('click', function() {
+                document.getElementById('websocket-url').value = 'ws://192.168.1.192:8080/api/ws/kafka';
+            });
+            
+            document.getElementById('test-url2').addEventListener('click', function() {
+                document.getElementById('websocket-url').value = 'ws://192.168.1.192:8080/ws/kafka';
+            });
+            
+            document.getElementById('test-url3').addEventListener('click', function() {
+                document.getElementById('websocket-url').value = 'ws://192.168.1.192:8080/api/ws/kafka/sockjs';
+            });
+            
+            // 记录页面已加载
+            log('WebSocket测试工具已加载，请点击"连接"按钮开始测试', 'info');
+        });
+    </script>
+</body>
+</html> 

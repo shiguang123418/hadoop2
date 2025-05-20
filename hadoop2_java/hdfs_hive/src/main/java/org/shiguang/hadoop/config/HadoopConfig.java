@@ -20,7 +20,7 @@ import java.util.Map;
 @PropertySource(value = "classpath:hadoop-config.properties", ignoreResourceNotFound = true)
 public class HadoopConfig {
 
-    @Value("${hadoop.hdfs.uri:hdfs://192.168.1.192:9000}")
+    @Value("${hadoop.hdfs.uri}")
     private String hdfsUri;
 
     @Value("${hadoop.hdfs.user:hadoop}")
