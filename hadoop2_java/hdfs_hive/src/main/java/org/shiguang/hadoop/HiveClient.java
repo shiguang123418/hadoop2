@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Hive客户端，提供与Hive交互的功能
@@ -364,5 +365,349 @@ public class HiveClient {
                 logger.error("关闭Hive连接失败: {}", e.getMessage());
             }
         }
+    }
+
+    /**
+     * 执行聚合分析查询
+     * @param tableName 表名
+     * @param aggregateColumn 需要聚合的列
+     * @param aggregateFunction 聚合函数（COUNT, SUM, AVG, MAX, MIN）
+     * @param groupByColumn 分组列（可选）
+     * @param whereClause WHERE子句（可选）
+     * @param limit 结果限制数（可选）
+     * @return 聚合分析结果
+     * @throws SQLException 如果发生SQL错误
+     */
+    public List<Map<String, Object>> executeAggregateQuery(
+            String tableName, 
+            String aggregateColumn, 
+            String aggregateFunction, 
+            String groupByColumn, 
+            String whereClause, 
+            Integer limit) throws SQLException {
+        
+        validateConnection();
+        
+        // 构建SQL
+        StringBuilder sqlBuilder = new StringBuilder("SELECT ");
+        
+        // 如果有分组列，添加到SELECT子句
+        if (groupByColumn != null && !groupByColumn.trim().isEmpty()) {
+            sqlBuilder.append(groupByColumn).append(", ");
+        }
+        
+        // 添加聚合函数
+        sqlBuilder.append(aggregateFunction).append("(")
+                .append(aggregateColumn)
+                .append(") AS aggregated_value");
+        
+        // 添加FROM子句
+        sqlBuilder.append(" FROM ").append(tableName);
+        
+        // 添加WHERE子句（如果有）
+        if (whereClause != null && !whereClause.trim().isEmpty()) {
+            sqlBuilder.append(" WHERE ").append(whereClause);
+        }
+        
+        // 添加GROUP BY子句（如果有分组列）
+        if (groupByColumn != null && !groupByColumn.trim().isEmpty()) {
+            sqlBuilder.append(" GROUP BY ").append(groupByColumn);
+        }
+        
+        // 添加ORDER BY子句，按聚合值降序排序
+        sqlBuilder.append(" ORDER BY aggregated_value DESC");
+        
+        // 添加LIMIT子句（如果有）
+        if (limit != null && limit > 0) {
+            sqlBuilder.append(" LIMIT ").append(limit);
+        }
+        
+        String sql = sqlBuilder.toString();
+        logger.info("执行聚合分析查询: {}", sql);
+        
+        return executeQuery(sql);
+    }
+    
+    /**
+     * 执行时间序列分析
+     * @param tableName 表名
+     * @param timeColumn 时间列
+     * @param valueColumn 值列
+     * @param interval 时间间隔（例如：'1 day', '1 month', '1 year'）
+     * @param aggregateFunction 聚合函数
+     * @param whereClause WHERE子句（可选）
+     * @param limit 结果限制数（可选）
+     * @return 时间序列分析结果
+     * @throws SQLException 如果发生SQL错误
+     */
+    public List<Map<String, Object>> executeTimeSeriesAnalysis(
+            String tableName,
+            String timeColumn,
+            String valueColumn,
+            String interval,
+            String aggregateFunction,
+            String whereClause,
+            Integer limit) throws SQLException {
+        
+        validateConnection();
+        
+        // 构建SQL - 注意：这里使用了Hive的时间函数，可能需要根据Hive版本进行调整
+        StringBuilder sqlBuilder = new StringBuilder("SELECT ");
+        
+        // 添加时间分组
+        sqlBuilder.append("TRUNC(").append(timeColumn).append(", '").append(interval).append("') AS time_group, ");
+        
+        // 添加聚合函数
+        sqlBuilder.append(aggregateFunction).append("(")
+                .append(valueColumn)
+                .append(") AS aggregated_value");
+        
+        // 添加FROM子句
+        sqlBuilder.append(" FROM ").append(tableName);
+        
+        // 添加WHERE子句（如果有）
+        if (whereClause != null && !whereClause.trim().isEmpty()) {
+            sqlBuilder.append(" WHERE ").append(whereClause);
+        }
+        
+        // 添加GROUP BY和ORDER BY子句
+        sqlBuilder.append(" GROUP BY TRUNC(").append(timeColumn).append(", '").append(interval).append("')");
+        sqlBuilder.append(" ORDER BY time_group");
+        
+        // 添加LIMIT子句（如果有）
+        if (limit != null && limit > 0) {
+            sqlBuilder.append(" LIMIT ").append(limit);
+        }
+        
+        String sql = sqlBuilder.toString();
+        logger.info("执行时间序列分析: {}", sql);
+        
+        return executeQuery(sql);
+    }
+    
+    /**
+     * 统计列值分布
+     * @param tableName 表名
+     * @param columnName 列名
+     * @param limit 结果限制数
+     * @return 列值分布统计
+     * @throws SQLException 如果发生SQL错误
+     */
+    public List<Map<String, Object>> analyzeColumnDistribution(
+            String tableName,
+            String columnName,
+            Integer limit) throws SQLException {
+        
+        validateConnection();
+        
+        String sql = "SELECT " + columnName + ", COUNT(*) AS count " +
+                    "FROM " + tableName + " " +
+                    "GROUP BY " + columnName + " " +
+                    "ORDER BY count DESC";
+        
+        if (limit != null && limit > 0) {
+            sql += " LIMIT " + limit;
+        }
+        
+        logger.info("分析列值分布: {}", sql);
+        return executeQuery(sql);
+    }
+    
+    /**
+     * 计算列的基本统计信息
+     * @param tableName 表名
+     * @param columnName 列名
+     * @return 基本统计信息
+     * @throws SQLException 如果发生SQL错误
+     */
+    public Map<String, Object> calculateColumnStatistics(
+            String tableName,
+            String columnName) throws SQLException {
+        
+        validateConnection();
+        
+        String sql = "SELECT " +
+                    "COUNT(" + columnName + ") AS count, " +
+                    "AVG(" + columnName + ") AS avg, " +
+                    "STDDEV(" + columnName + ") AS stddev, " +
+                    "MIN(" + columnName + ") AS min, " +
+                    "MAX(" + columnName + ") AS max " +
+                    "FROM " + tableName;
+        
+        logger.info("计算列统计信息: {}", sql);
+        List<Map<String, Object>> results = executeQuery(sql);
+        
+        if (results.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        return results.get(0);
+    }
+    
+    /**
+     * 执行相关性分析（两列之间）
+     * @param tableName 表名
+     * @param column1 列1
+     * @param column2 列2
+     * @return 相关性分析结果（简化版）
+     * @throws SQLException 如果发生SQL错误
+     */
+    public Map<String, Object> calculateCorrelation(
+            String tableName,
+            String column1,
+            String column2) throws SQLException {
+        
+        validateConnection();
+        
+        // 在Hive中计算相关系数（使用协方差/标准差）
+        String sql = "SELECT " +
+                    "AVG(" + column1 + " * " + column2 + ") - (AVG(" + column1 + ") * AVG(" + column2 + ")) AS covariance, " +
+                    "STDDEV(" + column1 + ") AS stddev1, " +
+                    "STDDEV(" + column2 + ") AS stddev2 " +
+                    "FROM " + tableName;
+        
+        logger.info("计算相关性: {}", sql);
+        List<Map<String, Object>> results = executeQuery(sql);
+        
+        if (results.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> data = results.get(0);
+        
+        Double covariance = (Double) data.get("covariance");
+        Double stddev1 = (Double) data.get("stddev1");
+        Double stddev2 = (Double) data.get("stddev2");
+        
+        if (covariance != null && stddev1 != null && stddev2 != null && stddev1 > 0 && stddev2 > 0) {
+            Double correlation = covariance / (stddev1 * stddev2);
+            result.put("correlation", correlation);
+        } else {
+            result.put("correlation", null);
+        }
+        
+        result.put("column1", column1);
+        result.put("column2", column2);
+        
+        return result;
+    }
+    
+    /**
+     * 生成列的直方图数据
+     * @param tableName 表名
+     * @param columnName 列名
+     * @param numBuckets 分桶数
+     * @return 直方图数据
+     * @throws SQLException 如果发生SQL错误
+     */
+    public List<Map<String, Object>> generateHistogram(
+            String tableName,
+            String columnName,
+            int numBuckets) throws SQLException {
+        
+        validateConnection();
+        
+        // 首先获取列的最小值和最大值
+        String minMaxSql = "SELECT MIN(" + columnName + ") AS min_val, MAX(" + columnName + ") AS max_val FROM " + tableName;
+        List<Map<String, Object>> minMaxResult = executeQuery(minMaxSql);
+        
+        if (minMaxResult.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        Map<String, Object> minMax = minMaxResult.get(0);
+        double minVal = ((Number) minMax.get("min_val")).doubleValue();
+        double maxVal = ((Number) minMax.get("max_val")).doubleValue();
+        
+        // 计算桶宽度
+        double bucketWidth = (maxVal - minVal) / numBuckets;
+        
+        List<Map<String, Object>> histogramData = new ArrayList<>();
+        
+        for (int i = 0; i < numBuckets; i++) {
+            double lowerBound = minVal + (i * bucketWidth);
+            double upperBound = minVal + ((i + 1) * bucketWidth);
+            
+            String bucketSql = "SELECT COUNT(*) AS bucket_count FROM " + tableName + " WHERE " +
+                              columnName + " >= " + lowerBound + " AND " +
+                              columnName + " < " + (i == numBuckets - 1 ? maxVal + 1 : upperBound);
+            
+            List<Map<String, Object>> bucketResult = executeQuery(bucketSql);
+            
+            if (!bucketResult.isEmpty()) {
+                Map<String, Object> bucket = new LinkedHashMap<>();
+                bucket.put("bucket", i + 1);
+                bucket.put("lower_bound", lowerBound);
+                bucket.put("upper_bound", i == numBuckets - 1 ? maxVal : upperBound);
+                bucket.put("count", bucketResult.get(0).get("bucket_count"));
+                histogramData.add(bucket);
+            }
+        }
+        
+        return histogramData;
+    }
+    
+    /**
+     * 执行数据透视分析
+     * @param tableName 表名 
+     * @param rowDimension 行维度（分组列）
+     * @param colDimension 列维度（分组列）
+     * @param aggregateColumn 聚合列
+     * @param aggregateFunction 聚合函数
+     * @param limit 结果限制数
+     * @return 透视表数据
+     * @throws SQLException 如果发生SQL错误
+     */
+    public List<Map<String, Object>> executePivotAnalysis(
+            String tableName,
+            String rowDimension,
+            String colDimension,
+            String aggregateColumn,
+            String aggregateFunction,
+            Integer limit) throws SQLException {
+        
+        validateConnection();
+        
+        // 在Hive中，实现透视表需要使用条件聚合和CASE WHEN语句
+        // 首先，获取所有唯一的列维度值
+        String colValuesSql = "SELECT DISTINCT " + colDimension + " FROM " + tableName + " ORDER BY " + colDimension;
+        List<Map<String, Object>> colValues = executeQuery(colValuesSql);
+        
+        // 构建透视SQL
+        StringBuilder pivotSql = new StringBuilder("SELECT " + rowDimension);
+        
+        // 为每个列维度值添加条件聚合
+        for (Map<String, Object> colValue : colValues) {
+            String colVal = colValue.values().iterator().next().toString();
+            pivotSql.append(", ")
+                   .append(aggregateFunction)
+                   .append("(CASE WHEN ")
+                   .append(colDimension)
+                   .append(" = '")
+                   .append(colVal.replace("'", "''")) // 转义单引号
+                   .append("' THEN ")
+                   .append(aggregateColumn)
+                   .append(" END) AS `")
+                   .append(colVal.replace("`", "``")) // 转义反引号
+                   .append("`");
+        }
+        
+        // 完成SQL
+        pivotSql.append(" FROM ")
+               .append(tableName)
+               .append(" GROUP BY ")
+               .append(rowDimension)
+               .append(" ORDER BY ")
+               .append(rowDimension);
+        
+        if (limit != null && limit > 0) {
+            pivotSql.append(" LIMIT ").append(limit);
+        }
+        
+        String sql = pivotSql.toString();
+        logger.info("执行透视分析: {}", sql);
+        
+        return executeQuery(sql);
     }
 } 

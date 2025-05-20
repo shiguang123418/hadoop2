@@ -31,13 +31,13 @@ security:
       secret-key: MzK4xNjQ5MDIzODckMTY0OTAyMzg3Jib20kMTYNDkwMjM4JiYzJDE2NDkwMjM4a27nczNzJiJjb20kMTY0OTAyMzg3QHNzY2jYW4
       expire-length: 86400000 # 24小时，单位：毫秒
 
-# HDFS配置
-hadoop:
-  config-file: hadoop-config.properties
-
 # 日志配置
 logging:
   level:
     org.springframework: INFO
     org.shiguang: DEBUG
     org.apache.hadoop: WARN 
+
+
+# Debug mode
+debug: true 

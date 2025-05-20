@@ -1,8 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../views/HomePage.vue'
-import DataUpload from '../views/DataUpload.vue'
-import DataAnalysis from '../views/DataAnalysis.vue'
-import DataVisualization from '../views/DataVisualization.vue'
 import Login from '../views/Login.vue'
 import AuthService from '../services/auth'
 
@@ -21,25 +18,21 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     { 
-      path: '/data-upload', 
-      component: DataUpload, 
-      meta: { requiresAuth: true }
-    },
-    { 
       path: '/hdfs-explorer', 
       component: () => import('../views/HDFSExplorerView.vue'),
       name: 'hdfs-explorer',
       meta: { requiresAuth: true }
     },
     { 
-      path: '/data-analysis', 
-      component: DataAnalysis, 
-      name: 'hive-console',
+      path: '/hive-explorer', 
+      component: () => import('../views/HiveExplorerView.vue'),
+      name: 'hive-explorer',
       meta: { requiresAuth: true }
     },
     { 
-      path: '/data-visualization', 
-      component: DataVisualization,
+      path: '/hive-analytics', 
+      component: () => import('../views/HiveAnalyticsView.vue'),
+      name: 'hive-analytics',
       meta: { requiresAuth: true }
     },
     { 

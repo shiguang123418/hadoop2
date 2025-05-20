@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -190,8 +191,37 @@ public class HiveController {
             } else {
                 schema = hiveClient.getTableSchema(table);
             }
-            logger.info("获取表结构成功, 列数: {}", schema.size());
-            return ResponseEntity.ok(schema);
+            
+            // 转换Hive DESCRIBE结果为标准格式
+            List<Map<String, Object>> formattedSchema = new ArrayList<>();
+            for (Map<String, Object> col : schema) {
+                if (col.isEmpty()) {
+                    continue;
+                }
+                
+                Map<String, Object> formattedCol = new HashMap<>();
+                // 尝试从Hive响应中提取列信息
+                if (col.containsKey("col_name") && col.containsKey("data_type")) {
+                    formattedCol.put("name", col.get("col_name"));
+                    formattedCol.put("type", col.get("data_type"));
+                    formattedCol.put("comment", col.get("comment") != null ? col.get("comment") : "");
+                } else {
+                    // 如果是其他格式，尝试按顺序提取
+                    Object[] values = col.values().toArray();
+                    if (values.length > 0) {
+                        formattedCol.put("name", values[0]);
+                        formattedCol.put("type", values.length > 1 ? values[1] : "");
+                        formattedCol.put("comment", values.length > 2 ? values[2] : "");
+                    }
+                }
+                
+                if (!formattedCol.isEmpty()) {
+                    formattedSchema.add(formattedCol);
+                }
+            }
+            
+            logger.info("获取表结构成功, 列数: {}", formattedSchema.size());
+            return ResponseEntity.ok(formattedSchema);
         } catch (Exception e) {
             logger.error("获取表结构失败", e);
             Map<String, String> error = new HashMap<>();
@@ -322,6 +352,256 @@ public class HiveController {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
+     * 执行聚合分析
+     */
+    @PostMapping("/analyze/aggregate")
+    public ResponseEntity<?> executeAggregateAnalysis(@RequestBody Map<String, Object> request) {
+        logger.info("执行聚合分析: {}", request);
+        
+        try {
+            if (!hiveClient.isConnected()) {
+                logger.error("执行聚合分析失败: Hive未连接");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Hive未连接，服务不可用"));
+            }
+            
+            String tableName = (String) request.get("tableName");
+            String aggregateColumn = (String) request.get("aggregateColumn");
+            String aggregateFunction = (String) request.get("aggregateFunction");
+            String groupByColumn = (String) request.get("groupByColumn");
+            String whereClause = (String) request.get("whereClause");
+            Integer limit = request.get("limit") != null ? ((Number) request.get("limit")).intValue() : null;
+            
+            if (tableName == null || aggregateColumn == null || aggregateFunction == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "必须提供表名、聚合列和聚合函数"));
+            }
+            
+            List<Map<String, Object>> results = hiveClient.executeAggregateQuery(
+                tableName, aggregateColumn, aggregateFunction, groupByColumn, whereClause, limit);
+            
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            logger.error("执行聚合分析失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * 执行时间序列分析
+     */
+    @PostMapping("/analyze/timeseries")
+    public ResponseEntity<?> executeTimeSeriesAnalysis(@RequestBody Map<String, Object> request) {
+        logger.info("执行时间序列分析: {}", request);
+        
+        try {
+            if (!hiveClient.isConnected()) {
+                logger.error("执行时间序列分析失败: Hive未连接");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Hive未连接，服务不可用"));
+            }
+            
+            String tableName = (String) request.get("tableName");
+            String timeColumn = (String) request.get("timeColumn");
+            String valueColumn = (String) request.get("valueColumn");
+            String interval = (String) request.get("interval");
+            String aggregateFunction = (String) request.get("aggregateFunction");
+            String whereClause = (String) request.get("whereClause");
+            Integer limit = request.get("limit") != null ? ((Number) request.get("limit")).intValue() : null;
+            
+            if (tableName == null || timeColumn == null || valueColumn == null || 
+                interval == null || aggregateFunction == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "必须提供表名、时间列、值列、时间间隔和聚合函数"));
+            }
+            
+            List<Map<String, Object>> results = hiveClient.executeTimeSeriesAnalysis(
+                tableName, timeColumn, valueColumn, interval, aggregateFunction, whereClause, limit);
+            
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            logger.error("执行时间序列分析失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * 分析列值分布
+     */
+    @PostMapping("/analyze/distribution")
+    public ResponseEntity<?> analyzeColumnDistribution(@RequestBody Map<String, Object> request) {
+        logger.info("分析列值分布: {}", request);
+        
+        try {
+            if (!hiveClient.isConnected()) {
+                logger.error("分析列值分布失败: Hive未连接");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Hive未连接，服务不可用"));
+            }
+            
+            String tableName = (String) request.get("tableName");
+            String columnName = (String) request.get("columnName");
+            Integer limit = request.get("limit") != null ? ((Number) request.get("limit")).intValue() : null;
+            
+            if (tableName == null || columnName == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "必须提供表名和列名"));
+            }
+            
+            List<Map<String, Object>> results = hiveClient.analyzeColumnDistribution(
+                tableName, columnName, limit);
+            
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            logger.error("分析列值分布失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * 计算列统计信息
+     */
+    @PostMapping("/analyze/statistics")
+    public ResponseEntity<?> calculateColumnStatistics(@RequestBody Map<String, Object> request) {
+        logger.info("计算列统计信息: {}", request);
+        
+        try {
+            if (!hiveClient.isConnected()) {
+                logger.error("计算列统计信息失败: Hive未连接");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Hive未连接，服务不可用"));
+            }
+            
+            String tableName = (String) request.get("tableName");
+            String columnName = (String) request.get("columnName");
+            
+            if (tableName == null || columnName == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "必须提供表名和列名"));
+            }
+            
+            Map<String, Object> results = hiveClient.calculateColumnStatistics(
+                tableName, columnName);
+            
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            logger.error("计算列统计信息失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * 计算相关性
+     */
+    @PostMapping("/analyze/correlation")
+    public ResponseEntity<?> calculateCorrelation(@RequestBody Map<String, Object> request) {
+        logger.info("计算列相关性: {}", request);
+        
+        try {
+            if (!hiveClient.isConnected()) {
+                logger.error("计算列相关性失败: Hive未连接");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Hive未连接，服务不可用"));
+            }
+            
+            String tableName = (String) request.get("tableName");
+            String column1 = (String) request.get("column1");
+            String column2 = (String) request.get("column2");
+            
+            if (tableName == null || column1 == null || column2 == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "必须提供表名和两个列名"));
+            }
+            
+            Map<String, Object> results = hiveClient.calculateCorrelation(
+                tableName, column1, column2);
+            
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            logger.error("计算列相关性失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * 生成直方图数据
+     */
+    @PostMapping("/analyze/histogram")
+    public ResponseEntity<?> generateHistogram(@RequestBody Map<String, Object> request) {
+        logger.info("生成直方图数据: {}", request);
+        
+        try {
+            if (!hiveClient.isConnected()) {
+                logger.error("生成直方图数据失败: Hive未连接");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Hive未连接，服务不可用"));
+            }
+            
+            String tableName = (String) request.get("tableName");
+            String columnName = (String) request.get("columnName");
+            Integer numBuckets = request.get("numBuckets") != null ? 
+                ((Number) request.get("numBuckets")).intValue() : 10;
+            
+            if (tableName == null || columnName == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "必须提供表名和列名"));
+            }
+            
+            List<Map<String, Object>> results = hiveClient.generateHistogram(
+                tableName, columnName, numBuckets);
+            
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            logger.error("生成直方图数据失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * 执行透视分析
+     */
+    @PostMapping("/analyze/pivot")
+    public ResponseEntity<?> executePivotAnalysis(@RequestBody Map<String, Object> request) {
+        logger.info("执行透视分析: {}", request);
+        
+        try {
+            if (!hiveClient.isConnected()) {
+                logger.error("执行透视分析失败: Hive未连接");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Hive未连接，服务不可用"));
+            }
+            
+            String tableName = (String) request.get("tableName");
+            String rowDimension = (String) request.get("rowDimension");
+            String colDimension = (String) request.get("colDimension");
+            String aggregateColumn = (String) request.get("aggregateColumn");
+            String aggregateFunction = (String) request.get("aggregateFunction");
+            Integer limit = request.get("limit") != null ? ((Number) request.get("limit")).intValue() : null;
+            
+            if (tableName == null || rowDimension == null || colDimension == null || 
+                aggregateColumn == null || aggregateFunction == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "必须提供表名、行维度、列维度、聚合列和聚合函数"));
+            }
+            
+            List<Map<String, Object>> results = hiveClient.executePivotAnalysis(
+                tableName, rowDimension, colDimension, aggregateColumn, aggregateFunction, limit);
+            
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            logger.error("执行透视分析失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
         }
     }
 } 

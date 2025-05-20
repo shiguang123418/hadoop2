@@ -166,6 +166,129 @@ class HiveService extends ApiService {
     
     return result;
   }
+  
+  /**
+   * 执行聚合分析
+   * @param {string} tableName 表名
+   * @param {string} aggregateColumn 聚合列
+   * @param {string} aggregateFunction 聚合函数
+   * @param {string} groupByColumn 分组列
+   * @param {string} whereClause WHERE条件
+   * @param {number} limit 限制数
+   * @returns {Promise} 分析结果
+   */
+  executeAggregateAnalysis(tableName, aggregateColumn, aggregateFunction, groupByColumn, whereClause, limit) {
+    return this.post('/analyze/aggregate', {
+      tableName,
+      aggregateColumn,
+      aggregateFunction,
+      groupByColumn,
+      whereClause,
+      limit
+    });
+  }
+  
+  /**
+   * 执行时间序列分析
+   * @param {string} tableName 表名
+   * @param {string} timeColumn 时间列
+   * @param {string} valueColumn 值列
+   * @param {string} interval 时间间隔
+   * @param {string} aggregateFunction 聚合函数
+   * @param {string} whereClause WHERE条件
+   * @param {number} limit 限制数
+   * @returns {Promise} 分析结果
+   */
+  executeTimeSeriesAnalysis(tableName, timeColumn, valueColumn, interval, aggregateFunction, whereClause, limit) {
+    return this.post('/analyze/timeseries', {
+      tableName,
+      timeColumn,
+      valueColumn,
+      interval,
+      aggregateFunction,
+      whereClause,
+      limit
+    });
+  }
+  
+  /**
+   * 分析列值分布
+   * @param {string} tableName 表名
+   * @param {string} columnName 列名
+   * @param {number} limit 限制数
+   * @returns {Promise} 分析结果
+   */
+  analyzeColumnDistribution(tableName, columnName, limit) {
+    return this.post('/analyze/distribution', {
+      tableName,
+      columnName,
+      limit
+    });
+  }
+  
+  /**
+   * 计算列统计信息
+   * @param {string} tableName 表名
+   * @param {string} columnName 列名
+   * @returns {Promise} 统计结果
+   */
+  calculateColumnStatistics(tableName, columnName) {
+    return this.post('/analyze/statistics', {
+      tableName,
+      columnName
+    });
+  }
+  
+  /**
+   * 计算相关性
+   * @param {string} tableName 表名
+   * @param {string} column1 列1
+   * @param {string} column2 列2
+   * @returns {Promise} 相关性结果
+   */
+  calculateCorrelation(tableName, column1, column2) {
+    return this.post('/analyze/correlation', {
+      tableName,
+      column1,
+      column2
+    });
+  }
+  
+  /**
+   * 生成直方图数据
+   * @param {string} tableName 表名
+   * @param {string} columnName 列名
+   * @param {number} numBuckets 桶数
+   * @returns {Promise} 直方图数据
+   */
+  generateHistogram(tableName, columnName, numBuckets = 10) {
+    return this.post('/analyze/histogram', {
+      tableName,
+      columnName,
+      numBuckets
+    });
+  }
+  
+  /**
+   * 执行透视分析
+   * @param {string} tableName 表名
+   * @param {string} rowDimension 行维度
+   * @param {string} colDimension 列维度
+   * @param {string} aggregateColumn 聚合列
+   * @param {string} aggregateFunction 聚合函数
+   * @param {number} limit 限制数
+   * @returns {Promise} 透视表数据
+   */
+  executePivotAnalysis(tableName, rowDimension, colDimension, aggregateColumn, aggregateFunction, limit) {
+    return this.post('/analyze/pivot', {
+      tableName,
+      rowDimension,
+      colDimension,
+      aggregateColumn,
+      aggregateFunction,
+      limit
+    });
+  }
 }
 
 // 导出单例

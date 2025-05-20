@@ -1,24 +1,65 @@
-/* color palette from <https://github.com/vuejs/theme> */
+/* 农业大数据平台的主题变量 */
 :root {
-  --primary-color: #3498db;
-  --primary-light: #ebf5fb;
-  --primary-dark: #2980b9;
-  --secondary-color: #2ecc71;
-  --secondary-light: #eafaf1;
-  --secondary-dark: #27ae60;
-  --accent-color: #f39c12;
-  --text-color: #2c3e50;
-  --text-light: #7f8c8d;
-  --bg-color: #f9f9f9;
-  --bg-light: #ffffff;
-  --bg-dark: #ecf0f1;
-  --border-color: #e0e6ed;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --border-radius: 8px;
-  --transition: all 0.3s ease;
+  /* 主题颜色 - 以绿色为主色调，象征农业和生长 */
+  --primary-color: #4CAF50;     /* 主色：自然绿 */
+  --primary-dark: #388E3C;      /* 深绿色，用于悬停状态 */
+  --primary-light: #C8E6C9;     /* 浅绿色，用于背景和强调 */
+  
+  --accent-color: #FFEB3B;      /* 明亮的辅助色：黄色，代表丰收 */
+  --accent-dark: #FBC02D;       /* 深黄色 */
+  --accent-light: #FFF9C4;      /* 浅黄色 */
+  
+  /* 文本颜色 */
+  --text-color: #333333;        /* 主文本颜色 */
+  --text-light: #666666;        /* 次要文本 */
+  --text-muted: #999999;        /* 弱化文本 */
+  
+  /* 背景颜色 */
+  --bg-light: #ffffff;          /* 主背景 */
+  --bg-gray: #f5f5f5;           /* 灰色背景 */
+  --bg-dark: #e0e0e0;           /* 深色背景 */
+  
+  /* 状态颜色 */
+  --success-color: #4CAF50;     /* 成功状态 */
+  --warning-color: #FF9800;     /* 警告状态 */
+  --error-color: #F44336;       /* 错误状态 */
+  --info-color: #2196F3;        /* 信息状态 */
+  
+  /* 边框和阴影 */
+  --border-color: #e0e0e0;      /* 边框颜色 */
+  --border-radius: 8px;         /* 通用边框圆角 */
+  --border-radius-sm: 4px;      /* 小型边框圆角 */
+  --border-radius-lg: 12px;     /* 大型边框圆角 */
+  
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);       /* 小阴影 */
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);       /* 中等阴影 */
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);      /* 大阴影 */
+  
+  /* 动画 */
+  --transition-fast: all 0.2s ease;                /* 快速过渡 */
+  --transition: all 0.3s ease;                     /* 标准过渡 */
+  --transition-slow: all 0.5s ease;                /* 慢速过渡 */
+  
+  /* 间距 */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  
+  /* 字体 */
   --font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-md: 1rem;         /* 16px */
+  --font-size-lg: 1.125rem;     /* 18px */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+  
+  /* 布局 */
+  --max-width: 1280px;          /* 内容最大宽度 */
+  --header-height: 60px;        /* 头部高度 */
+  --footer-height: 60px;        /* 页脚高度 */
 }
 
 /* semantic color variables for this project */
@@ -55,44 +96,54 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  font-weight: normal;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
 }
 
 body {
   min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
-  transition:
-    color 0.5s,
-    background-color 0.5s;
+  color: var(--text-color);
+  background-color: var(--bg-light);
   line-height: 1.6;
   font-family: var(--font-family);
-  font-size: 15px;
+  font-size: var(--font-size-md);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
+/* 排版样式 */
 h1, h2, h3, h4, h5, h6 {
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-medium);
   line-height: 1.2;
+  color: var(--text-color);
 }
 
 h1 {
   font-size: 2.25rem;
+  font-weight: var(--font-weight-bold);
 }
 
 h2 {
   font-size: 1.8rem;
+  font-weight: var(--font-weight-bold);
 }
 
 h3 {
   font-size: 1.5rem;
 }
 
+h4 {
+  font-size: 1.25rem;
+}
+
 p {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 a {
@@ -105,69 +156,41 @@ a:hover {
   color: var(--primary-dark);
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
-}
-
-input, textarea, select {
-  font-family: inherit;
-  font-size: 1rem;
-}
-
-.card {
-  background: var(--bg-light);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  transition: var(--transition);
-}
-
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-3px);
-}
-
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
+/* 按钮样式 */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--primary-color);
-  color: white;
-  padding: 0.6rem 1.2rem;
-  border: none;
+  padding: 0.5rem 1.25rem;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-md);
   border-radius: var(--border-radius);
-  font-size: 1rem;
-  font-weight: 500;
+  border: none;
   cursor: pointer;
   transition: var(--transition);
+  text-decoration: none;
 }
 
-.btn:hover {
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
   background-color: var(--primary-dark);
   transform: translateY(-2px);
-}
-
-.btn:active {
-  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary {
-  background-color: var(--secondary-color);
+  background-color: var(--accent-color);
+  color: var(--text-color);
 }
 
 .btn-secondary:hover {
-  background-color: var(--secondary-dark);
+  background-color: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-outline {
@@ -179,29 +202,117 @@ input, textarea, select {
 .btn-outline:hover {
   background-color: var(--primary-color);
   color: white;
+  transform: translateY(-2px);
 }
 
+.btn-sm {
+  padding: 0.25rem 0.75rem;
+  font-size: var(--font-size-sm);
+}
+
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: var(--font-size-lg);
+}
+
+/* 表单样式 */
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .form-label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .form-control {
   width: 100%;
   padding: 0.75rem 1rem;
+  font-size: var(--font-size-md);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
-  background-color: var(--bg-light);
   transition: var(--transition);
 }
 
 .form-control:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+/* 卡片样式 */
+.card {
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-lg);
+  transition: var(--transition);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+/* 布局工具类 */
+.container {
+  max-width: var(--max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+}
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+
+.py-sm { padding-top: var(--space-sm); padding-bottom: var(--space-sm); }
+.py-md { padding-top: var(--space-md); padding-bottom: var(--space-md); }
+.py-lg { padding-top: var(--space-lg); padding-bottom: var(--space-lg); }
+
+.px-sm { padding-left: var(--space-sm); padding-right: var(--space-sm); }
+.px-md { padding-left: var(--space-md); padding-right: var(--space-md); }
+.px-lg { padding-left: var(--space-lg); padding-right: var(--space-lg); }
+
+/* 状态颜色 */
+.text-success { color: var(--success-color); }
+.text-warning { color: var(--warning-color); }
+.text-error { color: var(--error-color); }
+.text-info { color: var(--info-color); }
+
+.bg-success { background-color: var(--success-color); color: white; }
+.bg-warning { background-color: var(--warning-color); color: white; }
+.bg-error { background-color: var(--error-color); color: white; }
+.bg-info { background-color: var(--info-color); color: white; }
+
+/* 响应式断点 */
+@media (max-width: 1024px) {
+  :root {
+    --font-size-md: 0.95rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-size-md: 0.9rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+  }
 }
