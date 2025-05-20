@@ -23,16 +23,16 @@ public class HadoopConfig {
     @Value("${hadoop.hdfs.uri}")
     private String hdfsUri;
 
-    @Value("${hadoop.hdfs.user:hadoop}")
+    @Value("${hadoop.hdfs.user}")
     private String hdfsUser;
 
-    @Value("${hadoop.hdfs.impl:org.apache.hadoop.hdfs.DistributedFileSystem}")
+    @Value("${hadoop.hdfs.impl}")
     private String hdfsImpl;
 
-    @Value("${hadoop.hdfs.use.datanode.hostname:true}")
+    @Value("${hadoop.hdfs.use.datanode.hostname}")
     private boolean useDatanodeHostname;
 
-    @Value("${hadoop.hdfs.buffer.size:4096}")
+    @Value("${hadoop.hdfs.buffer.size}")
     private int bufferSize;
 
     @Value("${hadoop.hdfs.replication:3}")
@@ -41,13 +41,13 @@ public class HadoopConfig {
     @Value("${hadoop.hdfs.block.size:67108864}")
     private long blockSize; // 默认64MB
 
-    @Value("${hive.url:jdbc:hive2://192.168.1.192:10000}")
+    @Value("${hive.url}")
     private String hiveUrl;
 
-    @Value("${hive.driver:org.apache.hive.jdbc.HiveDriver}")
+    @Value("${hive.driver}")
     private String hiveDriver;
 
-    @Value("${hive.username:}")
+    @Value("${hive.username}")
     private String hiveUsername;
 
     @Value("${hive.password:}")

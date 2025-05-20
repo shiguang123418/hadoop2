@@ -24,6 +24,36 @@ spring:
   main:
     allow-circular-references: true
 
+hadoop:
+  hdfs:
+    block:
+      size: 67108864
+    replication: 3
+    use:
+      datanode:
+        hostname: localhost
+    buffer:
+      size: 4096
+    uri: hdfs://localhost:9000
+    user: root
+    root-dir: /user/hadoop
+    connection:
+      required=false: false
+      required: false
+    impl: org.apache.hadoop.hdfs.DistributedFileSystem
+
+hive:
+  url: jdbc:hive2://192.168.1.192:10000
+  username: root
+  password:
+  database: default
+  driver: org.apache.hive.jdbc.HiveDriver
+  connection:
+    timeout: 30
+    required: false
+
+
+
 # JWT配置
 security:
   jwt:
@@ -31,13 +61,3 @@ security:
       secret-key: MzK4xNjQ5MDIzODckMTY0OTAyMzg3Jib20kMTYNDkwMjM4JiYzJDE2NDkwMjM4a27nczNzJiJjb20kMTY0OTAyMzg3QHNzY2jYW4
       expire-length: 86400000 # 24小时，单位：毫秒
 
-# 日志配置
-logging:
-  level:
-    org.springframework: INFO
-    org.shiguang: DEBUG
-    org.apache.hadoop: WARN 
-
-
-# Debug mode
-debug: true 

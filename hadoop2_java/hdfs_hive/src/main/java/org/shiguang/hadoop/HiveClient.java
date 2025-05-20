@@ -21,7 +21,7 @@ import java.util.LinkedHashMap;
 public class HiveClient {
     private static final Logger logger = LoggerFactory.getLogger(HiveClient.class);
 
-    @Value("${hive.url:jdbc:hive2://192.168.1.192:10000}")
+    @Value("${hive.url}")
     private String hiveUrl;
 
     @Value("${hive.username:}")

@@ -13,19 +13,69 @@
     <name>hdfs-hive-module</name>
     <description>Hadoop HDFS和Hive接口模块</description>
 
+
+    <repositories>
+        <repository>
+            <id>aliyun</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+        </repository>
+        <repository>
+            <id>tencent-cloud</id>
+            <url>http://mirrors.cloud.tencent.com/nexus/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>activiti-repos2</id>
+            <name>Activiti Repository 2</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>springsource-repos</id>
+            <name>SpringSource Repository</name>
+            <url>http://repo.spring.io/release/</url>
+        </repository>
+        <repository>
+            <id>central-repos</id>
+            <name>Central Repository</name>
+            <url>http://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>central-repos1</id>
+            <name>Central Repository 2</name>
+            <url>http://repo1.maven.org/maven2/</url>
+        </repository>
+        <repository>
+            <id>activiti-repos</id>
+            <name>Activiti Repository</name>
+            <url>https://maven.alfresco.com/nexus/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>oschina-repos</id>
+            <name>Oschina Releases</name>
+            <url>http://maven.oschina.net/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>thinkgem-repos2</id>
+            <name>ThinkGem Repository 2</name>
+            <url>https://raw.github.com/thinkgem/repository/master</url>
+        </repository>
+    </repositories>
+
+    <properties>
+        <!-- 保留一个mysql版本配置 -->
+        <mysql.version>8.0.28</mysql.version>
+        <log4j.version>2.17.1</log4j.version>
+    </properties> 
+
     <dependencies>
-        <!-- MySQL驱动 -->
-        <dependency>
+        
+        <!-- MySQL驱动 -->  
+        <dependency>   
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.28</version>
+            <version>${mysql.version}</version>
         </dependency>
-        
-        <!-- Spring Security -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
+
+
     </dependencies>
 
     <build>
@@ -36,7 +86,6 @@
                 <configuration>
                     <mainClass>org.shiguang.HadoopApplication</mainClass>
                     <layout>JAR</layout>
-                    <includeSystemScope>true</includeSystemScope>
                 </configuration>
                 <executions>
                     <execution>
@@ -49,4 +98,4 @@
         </plugins>
     </build>
 
-</project> 
+</project>

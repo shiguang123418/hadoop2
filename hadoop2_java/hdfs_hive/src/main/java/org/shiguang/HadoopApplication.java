@@ -13,9 +13,7 @@ import java.util.Scanner;
  * HDFS和Hive模块启动类
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"org.shiguang"})
 public class HadoopApplication {
-
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(HadoopApplication.class, args);
         
