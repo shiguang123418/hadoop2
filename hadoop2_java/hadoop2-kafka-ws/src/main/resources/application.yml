@@ -19,7 +19,7 @@ websocket:
 # Spark配置
 spark:
   app.name: AgricultureSensorProcessor
-  master: local[2]
+  master: local[2]  # 有效格式: local[n], spark://host:port, yarn, k8s://host:port
   serializer: org.apache.spark.serializer.KryoSerializer
   streaming.batch.duration: 5
 

@@ -100,6 +100,7 @@
 import * as echarts from 'echarts';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import wsConfig from '@/config/websocket.config';
 
 export default {
   name: 'SensorDashboard',
@@ -151,7 +152,7 @@ export default {
       maxDataPoints: 100,
       
       // WebSocket配置
-      wsUrl: 'ws://localhost:8085'
+      wsUrl: wsConfig.wsUrl
     };
   },
   mounted() {
@@ -171,6 +172,7 @@ export default {
   methods: {
     // WebSocket相关方法
     connectWebSocket() {
+      console.log(`正在连接WebSocket: ${this.wsUrl}`);
       this.socket = new WebSocket(this.wsUrl);
       
       this.socket.onopen = () => {
@@ -184,6 +186,7 @@ export default {
           this.handleWebSocketMessage(message);
         } catch (error) {
           console.error('解析WebSocket消息失败:', error);
+          console.log('原始消息:', event.data);
         }
       };
       
@@ -211,16 +214,60 @@ export default {
     },
     
     handleWebSocketMessage(message) {
+      // 如果消息是字符串，尝试再次解析
+      if (typeof message === 'string') {
+        try {
+          message = JSON.parse(message);
+        } catch (error) {
+          console.error('无法解析WebSocket字符串消息:', error);
+          return;
+        }
+      }
+      
       // 处理欢迎消息
       if (message.type === 'welcome') {
         console.log('收到欢迎消息');
         return;
       }
       
-      // 处理传感器数据
-      if (message.type === 'sensor_data' && Array.isArray(message.data)) {
-        this.processSensorData(message.data);
+      // 兼容直接发送的传感器数据格式 (直接是对象而不是数组)
+      if (message.sensor_id || message.sensorId) {
+        console.log('收到单个传感器数据');
+        this.processSensorData([this.normalizeSensorData(message)]);
+        return;
       }
+      
+      // 处理包装在data字段中的传感器数据
+      if (message.type === 'sensor_data' && Array.isArray(message.data)) {
+        console.log('收到传感器数据数组');
+        this.processSensorData(message.data.map(item => this.normalizeSensorData(item)));
+        return;
+      }
+      
+      // 处理直接发送的数组数据
+      if (Array.isArray(message)) {
+        console.log('直接收到数组数据');
+        this.processSensorData(message.map(item => this.normalizeSensorData(item)));
+        return;
+      }
+      
+      console.log('未知消息格式:', message);
+    },
+    
+    // 标准化传感器数据，处理不同的字段命名
+    normalizeSensorData(data) {
+      return {
+        sensorId: data.sensor_id || data.sensorId,
+        timestamp: data.timestamp,
+        sensorType: data.sensor_type || data.sensorType,
+        value: data.value,
+        unit: data.unit,
+        location: data.location,
+        farmId: data.farm_id || data.farmId,
+        cropType: data.crop_type || data.cropType,
+        region: data.region,
+        isAnomaly: data.is_anomaly === true || data.isAnomaly === true
+      };
     },
     
     processSensorData(data) {

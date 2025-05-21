@@ -12,6 +12,7 @@ import argparse
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 import logging
+import socket
 
 # 配置日志
 logging.basicConfig(
@@ -23,20 +24,20 @@ logger = logging.getLogger('sensor_data_producer')
 
 # 传感器类型与单位
 SENSOR_TYPES = {
-    "温度": "°C",
-    "湿度": "%",
-    "光照": "lux",
-    "土壤湿度": "%",
-    "pH值": "",
-    "二氧化碳": "ppm",
-    "风速": "m/s"
+    "temperature": "°C",
+    "humidity": "%",
+    "light_intensity": "lux",
+    "soil_moisture": "%",
+    "ph": "",
+    "co2": "ppm",
+    "wind_speed": "m/s"
 }
 
 # 区域
-REGIONS = ["华北", "华东", "华南", "西北", "西南", "东北", "华中"]
+REGIONS = ["north", "east", "south", "west", "central", "northeast", "southwest"]
 
 # 作物类型
-CROP_TYPES = ["小麦", "水稻", "玉米", "大豆", "棉花", "马铃薯", "甜菜"]
+CROP_TYPES = ["wheat", "rice", "corn", "soybean", "cotton", "potato", "tomato"]
 
 # 传感器ID前缀
 SENSOR_PREFIX = "SENSOR-"
@@ -55,6 +56,8 @@ class SensorDataProducer:
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
         self.producer = None
+        self.farm_ids = [f"farm_{i:03d}" for i in range(1, 6)]  # 农场ID列表
+        self.locations = [f"Field-{i:02d}" for i in range(1, 11)]  # 地点列表
         self.connect()
         
     def connect(self):
@@ -90,8 +93,12 @@ class SensorDataProducer:
         sensor_type = random.choice(list(SENSOR_TYPES.keys()))
         unit = SENSOR_TYPES[sensor_type]
         
-        # 随机生成传感器ID
-        sensor_id = f"{SENSOR_PREFIX}{random.randint(1000, 9999)}"
+        # 选择农场和位置
+        farm_id = random.choice(self.farm_ids)
+        location = random.choice(self.locations)
+        
+        # 为每个农场分配唯一的传感器ID
+        sensor_id = f"sensor_{farm_id}_{sensor_type}"
         
         # 随机选择区域和作物类型
         region = random.choice(REGIONS)
@@ -106,17 +113,22 @@ class SensorDataProducer:
         # 根据传感器类型和是否异常生成对应的值
         value = self.generate_value(sensor_type, is_anomaly)
         
-        # 构建数据
+        # 构建数据 (使用蛇形命名法，与Java后端一致)
         data = {
-            "sensorId": sensor_id,
-            "sensorType": sensor_type,
-            "region": region,
-            "cropType": crop_type,
-            "value": value,
+            "sensor_id": sensor_id,
+            "sensor_type": sensor_type,
             "timestamp": timestamp,
+            "value": value,
             "unit": unit,
-            "description": f"{sensor_type}传感器读数 - {region} - {crop_type}"
+            "location": location,
+            "farm_id": farm_id,
+            "crop_type": crop_type,
+            "region": region
         }
+        
+        # 设置异常标志，便于后端判断 (可省略，由backend计算)
+        if is_anomaly:
+            data["is_anomaly"] = True
         
         return data
     
@@ -133,24 +145,24 @@ class SensorDataProducer:
         """
         # 正常范围内的随机值
         normal_ranges = {
-            "温度": (10, 40),  # 10-40°C
-            "湿度": (30, 100),  # 30-100%
-            "光照": (1000, 100000),  # 1000-100000 lux
-            "土壤湿度": (20, 80),  # 20-80%
-            "pH值": (4, 10),  # 4-10
-            "二氧化碳": (300, 1500),  # 300-1500 ppm
-            "风速": (0, 20)  # 0-20 m/s
+            "temperature": (15, 28),      # 15-28°C
+            "humidity": (40, 70),         # 40-70%
+            "light_intensity": (400, 700), # 400-700 lux
+            "soil_moisture": (20, 45),    # 20-45%
+            "ph": (6.0, 7.5),             # 6.0-7.5
+            "co2": (350, 450),            # 350-450 ppm
+            "wind_speed": (0, 10)         # 0-10 m/s
         }
         
         # 异常范围的随机值
         anomaly_ranges = {
-            "温度": [(-10, 5), (45, 60)],
-            "湿度": [(0, 20), (101, 110)],
-            "光照": [(0, 500), (120000, 200000)],
-            "土壤湿度": [(0, 15), (85, 100)],
-            "pH值": [(0, 3), (11, 14)],
-            "二氧化碳": [(0, 200), (2000, 5000)],
-            "风速": [(25, 50)]
+            "temperature": [(-5, 5), (35, 45)],
+            "humidity": [(0, 20), (85, 100)],
+            "light_intensity": [(0, 200), (900, 1500)],
+            "soil_moisture": [(0, 10), (60, 100)],
+            "ph": [(3.0, 5.0), (8.0, 11.0)],
+            "co2": [(100, 200), (600, 1000)],
+            "wind_speed": [(15, 30)]
         }
         
         if not is_anomaly:
@@ -180,7 +192,7 @@ class SensorDataProducer:
         
         try:
             # 使用传感器ID作为key
-            key = data["sensorId"]
+            key = data["sensor_id"]
             future = self.producer.send(self.topic, key=key, value=data)
             
             # 等待发送结果
@@ -188,7 +200,7 @@ class SensorDataProducer:
             
             logger.info(
                 f"数据已发送到 {record_metadata.topic} [分区:{record_metadata.partition}] "
-                f"偏移量:{record_metadata.offset} 传感器:{data['sensorId']} 类型:{data['sensorType']} 值:{data['value']}{data['unit']}"
+                f"偏移量:{record_metadata.offset} 传感器:{data['sensor_id']} 类型:{data['sensor_type']} 值:{data['value']}{data['unit']}"
             )
             return True
         
@@ -244,12 +256,26 @@ class SensorDataProducer:
         finally:
             self.close()
 
+def get_local_ip():
+    """获取本机IP地址"""
+    try:
+        # 创建一个临时socket连接来获取本机IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "localhost"
+
 def main():
     """主函数，处理命令行参数并运行数据生产者"""
-    host="shiguang:9092"
+    # 默认服务器地址
+    default_host = "192.168.1.192:9092"
+    
     parser = argparse.ArgumentParser(description="农业传感器数据模拟生成器")
-    parser.add_argument("-b", "--bootstrap-servers", default=host,
-                        help="Kafka 服务器地址 ")
+    parser.add_argument("-b", "--bootstrap-servers", default=default_host,
+                        help=f"Kafka 服务器地址 (默认: {default_host})")
     parser.add_argument("-t", "--topic", default="agriculture-sensor-data",
                         help="Kafka 主题 (默认: agriculture-sensor-data)")
     parser.add_argument("-c", "--count", type=int, default=0,
@@ -260,6 +286,14 @@ def main():
                         help="异常值比例，0-1之间 (默认: 0.05)")
     
     args = parser.parse_args()
+    
+    # 显示配置信息
+    logger.info(f"使用以下配置：")
+    logger.info(f"Kafka服务器: {args.bootstrap_servers}")
+    logger.info(f"主题: {args.topic}")
+    logger.info(f"数据条数: {'持续发送' if args.count == 0 else args.count}")
+    logger.info(f"发送间隔: {args.interval}秒")
+    logger.info(f"异常值比例: {args.anomaly_rate * 100}%")
     
     try:
         producer = SensorDataProducer(args.bootstrap_servers, args.topic)
@@ -276,4 +310,5 @@ def main():
     finally:
         logger.info("程序结束")
 
-main() 
+if __name__ == "__main__":
+    main() 

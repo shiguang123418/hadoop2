@@ -67,7 +67,7 @@ spark:
   streaming:
     batch:
       duration: 5
-  master: ${app.host}
+  master: 192.168.1.192
   app:
     name: AgricultureSensorProcessor
   serializer: org.apache.spark.serializer.KryoSerializer

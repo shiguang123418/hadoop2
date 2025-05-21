@@ -22,6 +22,10 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PreDestroy;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * 农业传感器数据流处理器
@@ -44,6 +48,11 @@ public class AgricultureSensorProcessor {
     private SparkSession sparkSession;
     private final Map<String, Double> anomalyThresholds = new HashMap<>();
     private boolean isRunning = false;
+    private final Gson gson = new Gson();
+    
+    // Spark master URL格式验证的正则表达式
+    private static final Pattern LOCAL_PATTERN = Pattern.compile("local(\\[.*\\])?");
+    private static final Pattern SPARK_PATTERN = Pattern.compile("spark://([^:]+)(:\\d+)?");
     
     @Autowired
     private AppConfig config;
@@ -52,21 +61,77 @@ public class AgricultureSensorProcessor {
     private WebSocketSinkProvider webSocketSinkProvider;
 
     /**
+     * 验证Spark master URL格式
+     * @param master Spark master URL
+     * @return 验证后的合法master URL
+     */
+    private String validateMasterUrl(String master) {
+        if (master == null || master.trim().isEmpty()) {
+            System.out.println("Spark master URL为空，使用默认值local[2]");
+            return "local[2]";
+        }
+        
+        // 如果是IP地址或主机名但没有协议前缀，添加spark://协议
+        if (master.matches("\\d+\\.\\d+\\.\\d+\\.\\d+") || 
+            (!master.contains("://") && !LOCAL_PATTERN.matcher(master).matches())) {
+            String url = "spark://" + master + ":7077";
+            System.out.println("转换Spark master URL从 " + master + " 到 " + url);
+            return url;
+        }
+        
+        // 检查是否是有效的local模式
+        if (LOCAL_PATTERN.matcher(master).matches()) {
+            return master;
+        }
+        
+        // 检查是否是有效的spark://模式
+        if (SPARK_PATTERN.matcher(master).matches()) {
+            return master;
+        }
+        
+        // 检查是否是有效的yarn模式
+        if ("yarn".equals(master)) {
+            return master;
+        }
+        
+        // 检查是否是有效的kubernetes模式
+        if (master.startsWith("k8s://")) {
+            return master;
+        }
+        
+        // 未知格式，使用默认值
+        System.out.println("无效的Spark master URL: " + master + "，使用默认值local[2]");
+        return "local[2]";
+    }
+
+    /**
      * 初始化Spark配置
      */
     public void init() {
+        // 设置当前线程的类加载器，解决Spark类加载问题
+        Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+        
         // 加载异常阈值
         loadAnomalyThresholds();
+        
+        // 获取并验证Spark master URL
+        String rawMasterUrl = config.getString("spark.master", "local[2]");
+        String validMasterUrl = validateMasterUrl(rawMasterUrl);
         
         // 配置Spark
         SparkConf sparkConf = new SparkConf()
                 .setAppName(config.getString("spark.app.name", "AgricultureSensorProcessor"))
-                .setMaster(config.getString("spark.master", "local[2]"))
-                .set("spark.serializer", config.getString("spark.serializer", "org.apache.spark.serializer.KryoSerializer"));
+                .setMaster(validMasterUrl)
+                .set("spark.serializer", config.getString("spark.serializer", "org.apache.spark.serializer.KryoSerializer"))
+                // 添加配置解决类加载问题
+                .set("spark.driver.userClassPathFirst", "true")
+                .set("spark.executor.userClassPathFirst", "true");
+                
         
         int batchDuration = config.getInt("spark.streaming.batch.duration", 5);
         streamingContext = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
         
+        // 创建SparkSession，但暂时不使用SQL功能
         sparkSession = SparkSession.builder()
                 .config(sparkConf)
                 .getOrCreate();
@@ -115,33 +180,63 @@ public class AgricultureSensorProcessor {
                 ConsumerStrategies.Subscribe(topics, kafkaParams)
         );
 
-        // 处理流
+        // 处理流 - 使用传统的RDD API而不是DataFrame/SQL API
         kafkaStream.foreachRDD(rdd -> {
             if (!rdd.isEmpty()) {
-                // 从消费者记录中提取JSON字符串
-                Dataset<String> jsonStrings = sparkSession.createDataset(
-                        rdd.map(ConsumerRecord::value).collect(),
-                        Encoders.STRING()
-                );
+                // 收集JSON字符串
+                List<String> jsonStrings = rdd.map(ConsumerRecord::value).collect();
+                List<Map<String, Object>> processedData = new ArrayList<>();
                 
-                // 转换为DataFrame
-                Dataset<Row> sensorDataDF = sparkSession.read().json(jsonStrings);
-
-                // 验证模式并处理
-                if (validateSchema(sensorDataDF)) {
-                    // 检测异常
-                    Dataset<Row> processedData = detectAnomalies(sensorDataDF);
-                    
-                    // 转换为JSON字符串并发送到WebSocket
-                    List<String> jsonResults = processedData.toJSON().collectAsList();
-                    for (String json : jsonResults) {
-                        webSocketSinkProvider.broadcast(json);
+                // 手动解析和处理JSON
+                for (String json : jsonStrings) {
+                    try {
+                        // 解析JSON
+                        JsonObject jsonObject = JsonParser.parseString(json).getAsJsonObject();
+                        
+                        // 手动验证和提取字段
+                        if (validateJsonFields(jsonObject)) {
+                            Map<String, Object> sensorData = new HashMap<>();
+                            
+                            // 提取基本字段
+                            String sensorId = jsonObject.get("sensor_id").getAsString();
+                            String sensorType = jsonObject.get("sensor_type").getAsString();
+                            double value = jsonObject.get("value").getAsDouble();
+                            String timestamp = jsonObject.get("timestamp").getAsString();
+                            String unit = jsonObject.has("unit") ? jsonObject.get("unit").getAsString() : "";
+                            String location = jsonObject.has("location") ? jsonObject.get("location").getAsString() : "";
+                            String farmId = jsonObject.has("farm_id") ? jsonObject.get("farm_id").getAsString() : "";
+                            String cropType = jsonObject.has("crop_type") ? jsonObject.get("crop_type").getAsString() : "";
+                            String region = jsonObject.has("region") ? jsonObject.get("region").getAsString() : "";
+                            
+                            // 复制所有字段
+                            sensorData.put("sensor_id", sensorId);
+                            sensorData.put("sensor_type", sensorType);
+                            sensorData.put("value", value);
+                            sensorData.put("timestamp", timestamp);
+                            sensorData.put("unit", unit);
+                            sensorData.put("location", location);
+                            sensorData.put("farm_id", farmId);
+                            sensorData.put("crop_type", cropType);
+                            sensorData.put("region", region);
+                            
+                            // 检测异常
+                            boolean isAnomaly = detectAnomaly(sensorType, value);
+                            sensorData.put("is_anomaly", isAnomaly);
+                            
+                            processedData.add(sensorData);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("解析JSON出错: " + e.getMessage() + " for JSON: " + json);
                     }
-                    
-                    // 显示一些结果用于调试
-                    System.out.println("处理了 " + processedData.count() + " 条记录");
-                    processedData.show(10, false);
                 }
+                
+                // 发送处理后的数据到WebSocket
+                for (Map<String, Object> data : processedData) {
+                    String jsonResult = gson.toJson(data);
+                    webSocketSinkProvider.broadcast(jsonResult);
+                }
+                
+                System.out.println("处理了 " + processedData.size() + " 条记录");
             }
         });
 
@@ -163,49 +258,41 @@ public class AgricultureSensorProcessor {
     }
 
     /**
-     * 验证传入的数据是否符合预期模式
-     * @param dataFrame 数据帧
-     * @return 如果模式有效则为true
+     * 验证JSON字段是否包含所需的所有字段
+     * @param jsonObject JSON对象
+     * @return 如果包含所有必需字段则为true
      */
-    private boolean validateSchema(Dataset<Row> dataFrame) {
-        try {
-            // 检查是否存在所有必需的字段
-            for (StructField field : SENSOR_SCHEMA.fields()) {
-                if (!Arrays.asList(dataFrame.columns()).contains(field.name())) {
-                    System.err.println("缺少必需的字段: " + field.name());
-                    return false;
-                }
+    private boolean validateJsonFields(JsonObject jsonObject) {
+        String[] requiredFields = {"sensor_id", "sensor_type", "value", "timestamp"};
+        for (String field : requiredFields) {
+            if (!jsonObject.has(field)) {
+                return false;
             }
-            return true;
-        } catch (Exception e) {
-            System.err.println("模式验证错误: " + e.getMessage());
-            return false;
         }
+        return true;
     }
-
+    
     /**
-     * 检测传感器数据中的异常
-     * @param sensorData 传感器数据帧
-     * @return 带有异常检测结果的数据帧
+     * 检测传感器数据是否异常
+     * @param sensorType 传感器类型
+     * @param value 传感器值
+     * @return 如果是异常值则为true
      */
-    private Dataset<Row> detectAnomalies(Dataset<Row> sensorData) {
-        // 将数据帧注册为SQL临时视图
-        sensorData.createOrReplaceTempView("sensor_data");
-        
-        // 根据传感器类型查找超出范围的值
-        String anomalyDetectionSQL = 
-                "SELECT *, " +
-                "CASE " +
-                "  WHEN sensor_type = 'temperature' AND ABS(value) > " + anomalyThresholds.get("temperature") + " THEN true " +
-                "  WHEN sensor_type = 'humidity' AND (value < 0 OR value > 100 OR ABS(value - 50) > " + anomalyThresholds.get("humidity") + ") THEN true " +
-                "  WHEN sensor_type = 'soil_moisture' AND ABS(value - 30) > " + anomalyThresholds.get("soil_moisture") + " THEN true " +
-                "  WHEN sensor_type = 'light_intensity' AND ABS(value - 500) > " + anomalyThresholds.get("light_intensity") + " THEN true " +
-                "  WHEN sensor_type = 'co2' AND ABS(value - 400) > " + anomalyThresholds.get("co2") + " THEN true " +
-                "  ELSE false " +
-                "END AS is_anomaly " +
-                "FROM sensor_data";
-        
-        return sparkSession.sql(anomalyDetectionSQL);
+    private boolean detectAnomaly(String sensorType, double value) {
+        switch (sensorType) {
+            case "temperature":
+                return Math.abs(value) > anomalyThresholds.get("temperature");
+            case "humidity":
+                return value < 0 || value > 100 || Math.abs(value - 50) > anomalyThresholds.get("humidity");
+            case "soil_moisture":
+                return Math.abs(value - 30) > anomalyThresholds.get("soil_moisture");
+            case "light_intensity":
+                return Math.abs(value - 500) > anomalyThresholds.get("light_intensity");
+            case "co2":
+                return Math.abs(value - 400) > anomalyThresholds.get("co2");
+            default:
+                return false;
+        }
     }
 
     /**
