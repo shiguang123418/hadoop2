@@ -246,9 +246,10 @@ class SensorDataProducer:
 
 def main():
     """主函数，处理命令行参数并运行数据生产者"""
+    host="shiguang:9092"
     parser = argparse.ArgumentParser(description="农业传感器数据模拟生成器")
-    parser.add_argument("-b", "--bootstrap-servers", default="192.168.1.192:9092",
-                        help="Kafka 服务器地址 (默认: 192.168.1.192:9092)")
+    parser.add_argument("-b", "--bootstrap-servers", default=host,
+                        help="Kafka 服务器地址 ")
     parser.add_argument("-t", "--topic", default="agriculture-sensor-data",
                         help="Kafka 主题 (默认: agriculture-sensor-data)")
     parser.add_argument("-c", "--count", type=int, default=0,

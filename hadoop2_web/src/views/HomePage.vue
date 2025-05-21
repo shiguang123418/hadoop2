@@ -18,6 +18,10 @@
             <i class="action-icon chart-icon"></i>
             产量预测分析
           </router-link>
+          <router-link to="/sensor-dashboard" class="btn btn-outline" v-if="isLoggedIn">
+            <i class="action-icon sensor-icon"></i>
+            实时传感器监控
+          </router-link>
           <router-link to="/login" class="btn btn-login" v-if="!isLoggedIn">
             <i class="action-icon login-icon"></i>
             登录系统
@@ -61,7 +65,7 @@
         </div>
         <h3>实时数据监控</h3>
         <p>结合Kafka和Spark Streaming，实时监控和分析农业传感器数据，提供直观的可视化界面。</p>
-        <router-link to="/crop-analysis" class="feature-link">查看监控平台</router-link>
+        <router-link to="/sensor-dashboard" class="feature-link">查看实时监控</router-link>
       </div>
       
       <div class="feature-card">

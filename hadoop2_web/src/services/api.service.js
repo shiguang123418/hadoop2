@@ -1,8 +1,6 @@
 import axios from 'axios';
 import AuthService from './auth';
-
-// API base URL configuration - use relative URL to enable proxying
-const API_BASE_URL = window.API_BASE_URL || '/api'; 
+import apiConfig from '../config/api.config';
 
 /**
  * API服务基类 - 提供统一的API调用方法
@@ -15,7 +13,7 @@ class ApiService {
   constructor(basePath) {
     this.basePath = basePath;
     this.api = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: apiConfig.baseUrl,
       headers: {
         'Content-Type': 'application/json',
       }

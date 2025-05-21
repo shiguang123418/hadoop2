@@ -16,10 +16,13 @@
 
     <packaging>pom</packaging>
 
-
     <modules>
-        <module>hdfs_hive</module>
-        <module>hadoop_ws</module>
+        <module>hadoop2-common</module>
+        <module>hadoop2-pojo</module>
+        <module>hadoop2-server</module>
+        <module>hadoop2-hdfs</module>
+        <module>hadoop2-hive</module>
+        <module>hadoop2-kafka-ws</module>
     </modules>
 
     <repositories>
@@ -68,25 +71,56 @@
         </repository>
     </repositories>
 
-
-
     <properties>
-        <java.version>11</java.version>
+        <java.version>8</java.version>
         <hadoop.version>3.4.0</hadoop.version>
         <hive.version>3.1.2</hive.version>
         <spark.version>3.5.2</spark.version>
         <antlr.version>4.13.0</antlr.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.shiguang</groupId>
+                <artifactId>hadoop2-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.shiguang</groupId>
+                <artifactId>hadoop2-pojo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.shiguang</groupId>
+                <artifactId>hadoop2-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.shiguang</groupId>
+                <artifactId>hadoop2-hdfs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.shiguang</groupId>
+                <artifactId>hadoop2-hive</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.shiguang</groupId>
+                <artifactId>hadoop2-kafka-ws</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
-        <!-- 显式声明 ANTLR 依赖，确保统一版本 -->
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
             <version>${antlr.version}</version>
         </dependency>
         
-        <!-- 排除默认的Logback依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -98,7 +132,6 @@
             </exclusions>
         </dependency>
         
-        <!-- 添加Log4j2依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
@@ -143,7 +176,6 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
-
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-jasper</artifactId>
@@ -156,7 +188,6 @@
             </exclusions>
         </dependency>
 
-        <!-- Hadoop Dependencies -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
@@ -205,7 +236,6 @@
             </exclusions>
         </dependency>
 
-        <!-- Hive 依赖中添加更多排除 -->
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-jdbc</artifactId>
@@ -231,7 +261,6 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
-                <!-- 排除 ANTLR 老版本依赖 -->
                 <exclusion>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr-runtime</artifactId>
@@ -243,21 +272,18 @@
             </exclusions>
         </dependency>
 
-        <!-- Explicit Guava dependency -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>27.0-jre</version>
         </dependency>
 
-        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -276,7 +302,6 @@
             <version>1.3.2</version>
         </dependency>
 
-        <!-- JSON Web Token依赖 -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -297,8 +322,6 @@
             <scope>runtime</scope>
         </dependency>
 
-
-        <!-- Added missing dependency for log4j-slf4j-impl -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -310,7 +333,6 @@
             </exclusions>
         </dependency>
 
-        <!-- Apache Commons CSV -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
@@ -328,7 +350,6 @@
             </exclusions>
         </dependency>
 
-        <!-- Spark依赖 -->
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.12</artifactId>
@@ -346,7 +367,6 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
-                <!-- 排除 ANTLR 冲突版本 -->
                 <exclusion>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-runtime</artifactId>
@@ -371,7 +391,6 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
-                <!-- 排除 ANTLR 冲突版本 -->
                 <exclusion>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-runtime</artifactId>
@@ -396,7 +415,6 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
-                <!-- 排除 ANTLR 冲突版本 -->
                 <exclusion>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-runtime</artifactId>
@@ -421,7 +439,6 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
-                <!-- 排除 ANTLR 冲突版本 -->
                 <exclusion>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-runtime</artifactId>
@@ -433,12 +450,10 @@
             </exclusions>
         </dependency>
 
-        <!-- Kafka集成 -->
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming-kafka-0-10_2.12</artifactId>
             <version>${spark.version}</version>
-            <!-- 关键依赖：确保此依赖在运行时可访问，解决KafkaRDDPartition类找不到问题 -->
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
@@ -449,7 +464,6 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
-                <!-- 排除 ANTLR 冲突版本 -->
                 <exclusion>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-runtime</artifactId>
@@ -461,20 +475,16 @@
             </exclusions>
         </dependency>
 
-
-        <!-- SLF4J到Log4j2桥接器 -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
         </dependency>
 
-        <!-- Log4j2 API -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
         </dependency>
 
-        <!-- Log4j2 Core -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
@@ -494,33 +504,4 @@
 
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>org.shiguang.HadoopApplication</mainClass>
-                    <layout>JAR</layout>
-                    <classifier>boot</classifier>
-                    <includeSystemScope>true</includeSystemScope>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

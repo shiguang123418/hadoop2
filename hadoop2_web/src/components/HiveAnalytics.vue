@@ -34,30 +34,44 @@
     <!-- 分析类型选择 -->
     <div class="analytics-selection">
       <h3>选择分析类型</h3>
-      <div class="analytics-types">
-        <div 
-          v-for="type in analysisTypes" 
-          :key="type.id" 
-          class="analytics-type-item"
-          :class="{ active: currentAnalysisType === type.id }"
-          @click="selectAnalysisType(type.id)"
-        >
-          <i :class="['analytics-icon', type.icon]"></i>
-          <span>{{ type.name }}</span>
+      <div class="analytics-types-container">
+        <div class="analytics-dropdown">
+          <div class="analytics-dropdown-header" @click="toggleAnalyticsMenu">
+            <span>{{ currentAnalysisType ? getAnalysisTypeLabel() : '请选择分析类型' }}</span>
+            <i :class="['dropdown-icon', showAnalyticsMenu ? 'up' : 'down']"></i>
+          </div>
+          <div class="analytics-dropdown-content" v-show="showAnalyticsMenu">
+            <div 
+              v-for="type in analysisTypes" 
+              :key="type.id" 
+              class="analytics-dropdown-item"
+              :class="{ active: currentAnalysisType === type.id }"
+              @click="selectAnalysisType(type.id)"
+            >
+              <i :class="['analytics-icon', type.icon]"></i>
+              <span>{{ type.name }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="currentAnalysisType" class="selected-analysis-type">
+          <div class="selected-type-header">
+            <h4>{{ getAnalysisTypeLabel() }}</h4>
+            <div class="analysis-description">{{ getAnalysisDescription() }}</div>
+          </div>
         </div>
       </div>
     </div>
     
     <!-- 无选择时的提示 -->
-    <div v-if="!currentAnalysisType" class="empty-selection">
+    <div v-if="!currentAnalysisType && !showAnalyticsMenu" class="empty-selection">
       <p>请选择一种分析类型开始数据分析</p>
     </div>
     
     <!-- 分析配置和结果区域 -->
     <div v-if="currentAnalysisType" class="analysis-section">
       <div class="section-header">
-        <h3>{{ getAnalysisTypeLabel() }}</h3>
-        <button @click="currentAnalysisType = ''" class="back-btn">返回选择</button>
+        <button @click="currentAnalysisType = ''" class="back-btn">更改分析类型</button>
       </div>
       
       <!-- 加载动画 -->
@@ -292,14 +306,17 @@ export default {
     const currentTable = ref('');
     const tableSchema = ref([]);
     
+    // 分析类型下拉菜单控制
+    const showAnalyticsMenu = ref(false);
+    
     // 分析类型
     const analysisTypes = [
-      { id: 'aggregate', name: '聚合分析', icon: 'aggregate-icon' },
-      { id: 'timeseries', name: '时间序列分析', icon: 'timeseries-icon' },
-      { id: 'distribution', name: '列值分布', icon: 'distribution-icon' },
-      { id: 'statistics', name: '统计信息', icon: 'statistics-icon' },
-      { id: 'correlation', name: '相关性分析', icon: 'correlation-icon' },
-      { id: 'histogram', name: '直方图', icon: 'histogram-icon' }
+      { id: 'aggregate', name: '聚合分析', icon: 'aggregate-icon', description: '对数据进行分组和聚合计算，例如求和、平均值、计数等' },
+      { id: 'timeseries', name: '时间序列分析', icon: 'timeseries-icon', description: '分析数据随时间变化的趋势和模式' },
+      { id: 'distribution', name: '列值分布', icon: 'distribution-icon', description: '分析列中值的分布情况和频率' },
+      { id: 'statistics', name: '统计信息', icon: 'statistics-icon', description: '计算基本统计指标，如均值、中位数、标准差等' },
+      { id: 'correlation', name: '相关性分析', icon: 'correlation-icon', description: '分析两列数值之间的相关性' },
+      { id: 'histogram', name: '直方图', icon: 'histogram-icon', description: '将数值数据分成若干组并显示各组的频率分布' }
     ];
     const currentAnalysisType = ref('');
     
@@ -501,15 +518,27 @@ export default {
       }
     };
     
-    // 选择分析类型
-    const selectAnalysisType = (type) => {
-      currentAnalysisType.value = type;
+    // 分析类型下拉菜单开关
+    const toggleAnalyticsMenu = () => {
+      showAnalyticsMenu.value = !showAnalyticsMenu.value;
     };
     
-    // 获取当前分析类型标签
+    // 选择分析类型
+    const selectAnalysisType = (typeId) => {
+      currentAnalysisType.value = typeId;
+      showAnalyticsMenu.value = false; // 选择后自动关闭下拉菜单
+    };
+    
+    // 获取当前分析类型的标签
     const getAnalysisTypeLabel = () => {
       const type = analysisTypes.find(t => t.id === currentAnalysisType.value);
-      return type ? type.name : '';
+      return type ? type.name : '未选择分析类型';
+    };
+    
+    // 获取当前分析类型的描述
+    const getAnalysisDescription = () => {
+      const type = analysisTypes.find(t => t.id === currentAnalysisType.value);
+      return type ? type.description : '';
     };
     
     // 重置分析结果
@@ -867,8 +896,11 @@ export default {
       refreshDatabases,
       loadTables,
       loadTableSchema,
+      showAnalyticsMenu,
+      toggleAnalyticsMenu,
       selectAnalysisType,
       getAnalysisTypeLabel,
+      getAnalysisDescription,
       
       // 分析执行方法
       executeAggregateAnalysis,
@@ -879,7 +911,10 @@ export default {
       executeHistogramAnalysis,
       
       // 导出方法
-      exportResults
+      exportResults,
+      
+      // 重置分析结果
+      resetAnalysisResults
     };
   }
 };
@@ -969,39 +1004,111 @@ export default {
   margin-top: 20px;
 }
 
-.analytics-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  margin-top: 10px;
+.analytics-types-container {
+  width: 100%;
+  margin-bottom: 20px;
 }
 
-.analytics-type-item {
+.analytics-dropdown {
+  position: relative;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.analytics-dropdown-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  padding: 15px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
+  padding: 10px 15px;
+  background-color: #f0f2f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s;
-  width: 120px;
+  user-select: none;
 }
 
-.analytics-type-item:hover {
-  border-color: #409eff;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+.analytics-dropdown-header:hover {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
 }
 
-.analytics-type-item.active {
-  border-color: #409eff;
-  background-color: rgba(64, 158, 255, 0.1);
+.dropdown-icon {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+}
+
+.dropdown-icon.down {
+  border-top: 6px solid #666;
+  border-bottom: 0;
+}
+
+.dropdown-icon.up {
+  border-bottom: 6px solid #666;
+  border-top: 0;
+}
+
+.analytics-dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #d9d9d9;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.analytics-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.analytics-dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+.analytics-dropdown-item.active {
+  background-color: #e6f7ff;
+  color: #1890ff;
 }
 
 .analytics-icon {
-  font-size: 24px;
-  margin-bottom: 10px;
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.selected-analysis-type {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  border-left: 4px solid #1890ff;
+}
+
+.selected-type-header {
+  display: flex;
+  flex-direction: column;
+}
+
+.selected-type-header h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #1890ff;
+}
+
+.analysis-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
 }
 
 .empty-selection {
@@ -1011,28 +1118,17 @@ export default {
   font-size: 16px;
 }
 
-.aggregate-icon::before {
-  content: "📊";
-}
+/* Analytics Icons */
+.aggregate-icon::before { content: '📊'; }
+.timeseries-icon::before { content: '📈'; }
+.distribution-icon::before { content: '📋'; }
+.statistics-icon::before { content: '📉'; }
+.correlation-icon::before { content: '🔄'; }
+.histogram-icon::before { content: '📊'; }
 
-.timeseries-icon::before {
-  content: "📈";
-}
-
-.distribution-icon::before {
-  content: "🔢";
-}
-
-.statistics-icon::before {
-  content: "📉";
-}
-
-.correlation-icon::before {
-  content: "🔄";
-}
-
-.histogram-icon::before {
-  content: "📊";
+/* 原有的分析类型网格样式隐藏 */
+.analytics-types {
+  display: none;
 }
 
 /* 新增样式 */

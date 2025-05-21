@@ -10,6 +10,7 @@
           <router-link to="/hive-explorer" v-if="isLoggedIn" :class="{ 'active': $route.path === '/hive-explorer' }">Hive查询</router-link>
           <router-link to="/hive-analytics" v-if="isLoggedIn" :class="{ 'active': $route.path === '/hive-analytics' }">Hive分析</router-link>
           <router-link to="/crop-analysis" v-if="isLoggedIn" :class="{ 'active': $route.path === '/crop-analysis' }">产量预测</router-link>
+          <router-link to="/sensor-monitor" v-if="isLoggedIn" :class="{ 'active': $route.path === '/sensor-monitor' }">传感器监控</router-link>
           <router-link to="/login" v-if="!isLoggedIn" :class="{ 'active': $route.path === '/login' }">登录</router-link>
           <a href="#" @click.prevent="logout" v-if="isLoggedIn" class="logout-link">退出</a>
         </div>

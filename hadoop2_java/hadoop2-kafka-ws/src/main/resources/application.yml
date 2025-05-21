@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: agriculture-sensor-processor
+
+# Kafka配置
+kafka:
+  bootstrap.servers: localhost:9092
+  topic: agriculture-sensor-data
+  group.id: agriculture-sensor-group
+
+# WebSocket配置  
+websocket:
+  host: 0.0.0.0
+  port: 8090
+
+# Spark配置
+spark:
+  app.name: AgricultureSensorProcessor
+  master: local[2]
+  serializer: org.apache.spark.serializer.KryoSerializer
+  streaming.batch.duration: 5
+
+# 异常检测阈值
+anomaly:
+  threshold:
+    temperature: 5.0
+    humidity: 10.0
+    soil_moisture: 15.0
+    light_intensity: 200.0
+    co2: 100.0 

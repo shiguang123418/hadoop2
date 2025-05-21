@@ -39,6 +39,18 @@ const router = createRouter({
       path: '/crop-analysis', 
       component: () => import('../views/CropAnalysis.vue'),
       meta: { requiresAuth: true }
+    },
+    { 
+      path: '/sensor-monitor', 
+      component: () => import('../views/SensorMonitorView.vue'),
+      name: 'sensor-monitor',
+      meta: { requiresAuth: true }
+    },
+    { 
+      path: '/sensor-dashboard', 
+      component: () => import('../components/SensorDashboard.vue'),
+      name: 'sensor-dashboard',
+      meta: { requiresAuth: true }
     }
   ]
 })

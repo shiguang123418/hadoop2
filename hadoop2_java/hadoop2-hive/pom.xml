@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.shiguang</groupId>
+        <artifactId>agri-big-data</artifactId>
+        <version>0.0.1</version>
+    </parent>
+    
+    <artifactId>hadoop2-hive</artifactId>
+    <name>hadoop2-hive</name>
+    <description>农业大数据平台的Hive模块</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.shiguang</groupId>
+            <artifactId>hadoop2-common</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.shiguang</groupId>
+            <artifactId>hadoop2-pojo</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-jdbc</artifactId>
+            <version>${hive.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+    </dependencies>
+
+</project> 
