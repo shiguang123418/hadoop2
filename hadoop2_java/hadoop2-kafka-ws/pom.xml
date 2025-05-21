@@ -28,6 +28,19 @@
             <artifactId>kafka-clients</artifactId>
         </dependency>
         
+        <!-- 添加MySQL依赖 -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.30</version>
+        </dependency>
+        
+        <!-- 添加Spring Data JPA依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        
         <!-- Spark Core -->
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -122,7 +135,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <includeSystemScope>true</includeSystemScope>
                     <mainClass>org.shiguang.SensorProcessorApplication</mainClass>
                 </configuration>
             </plugin>

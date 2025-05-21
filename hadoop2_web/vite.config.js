@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue'
 
 // 默认API服务器配置
 // 注意：此处的配置应与api.config.js中保持一致
-const API_SERVER_HOST = '192.168.1.192';
+const API_SERVER_HOST = 'hadoop';
 const API_SERVER_PORT = '8080';
 
 // https://vite.dev/config/

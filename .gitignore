@@ -6,3 +6,5 @@ target/
 dist/
 .mvn/
 .DS_Store
+.env/
+.venv/

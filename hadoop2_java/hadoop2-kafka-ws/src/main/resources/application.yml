@@ -1,13 +1,29 @@
 server:
-  port: 8080
+  port: 8000
 
+app:
+  host: hadoop
 spring:
   application:
     name: agriculture-sensor-processor
+  # 添加MySQL数据库配置
+  datasource:
+    url: jdbc:mysql://${app.host}:3306/agri_big_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 082415
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
 
 # Kafka配置
 kafka:
-  bootstrap.servers: localhost:9092
+  bootstrap.servers: ${app.host}:9092
   topic: agriculture-sensor-data
   group.id: agriculture-sensor-group
 
@@ -19,7 +35,7 @@ websocket:
 # Spark配置
 spark:
   app.name: AgricultureSensorProcessor
-  master: local[2]  # 有效格式: local[n], spark://host:port, yarn, k8s://host:port
+  master: local[*] 
   serializer: org.apache.spark.serializer.KryoSerializer
   streaming.batch.duration: 5
 
@@ -30,4 +46,6 @@ anomaly:
     humidity: 10.0
     soil_moisture: 15.0
     light_intensity: 200.0
-    co2: 100.0 
+    co2: 100.0
+
+debug: false

@@ -4,11 +4,11 @@ server:
     context-path: /api
 
 app:
-  host: shiguang
+  host: hadoop
 
 spring:
   datasource:
-    url: jdbc:mysql://${app.host}:3306/agri_big_data?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${app.host}:3306/agri_big_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 082415
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -58,7 +58,7 @@ hive:
 
 kafka:
   bootstrap:
-      servers: shiguang:9092
+      servers: ${app.host}:9092
   group:
       id: agriculture-sensor-group
   topic: agriculture-sensor-data
@@ -67,7 +67,7 @@ spark:
   streaming:
     batch:
       duration: 5
-  master: 192.168.1.192
+  master: ${app.host}
   app:
     name: AgricultureSensorProcessor
   serializer: org.apache.spark.serializer.KryoSerializer
