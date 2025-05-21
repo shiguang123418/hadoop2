@@ -1,51 +1,85 @@
-server:
-  port: 8000
-
-app:
-  host: hadoop
+# 农业大数据可视化平台配置文件
 spring:
   application:
-    name: agriculture-sensor-processor
-  # 添加MySQL数据库配置
-  datasource:
-    url: jdbc:mysql://${app.host}:3306/agri_big_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: 082415
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    database-platform: org.hibernate.dialect.MySQL8Dialect
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
+    name: hadoop2-kafka-ws
+  profiles:
+    active: dev
 
+# 服务器配置
+server:
+  port: 8000
+  servlet:
+    context-path: /api
+
+app:
+  host: shiguang
 # Kafka配置
 kafka:
-  bootstrap.servers: ${app.host}:9092
+  bootstrap:
+    servers: ${app.host}:9092
   topic: agriculture-sensor-data
-  group.id: agriculture-sensor-group
+  group:
+    id: agriculture-sensor-group
 
-# WebSocket配置  
+# WebSocket配置
 websocket:
   host: 0.0.0.0
   port: 8090
 
 # Spark配置
 spark:
+  master: spark://${app.host}:7077
   app.name: AgricultureSensorProcessor
-  master: local[*] 
+  deploy-mode: client
+  # Kryo序列化配置
+  kryo:
+    enabled: true
+    registrator: org.shiguang.spark.KafkaKryoRegistrator
+  kryoserializer:
+    buffer:
+      max:
+        mb: 64
   serializer: org.apache.spark.serializer.KryoSerializer
-  streaming.batch.duration: 5
+  # 禁用推测性执行
+  speculation: false
+  # 类加载优先级
+  driver:
+    userClassPathFirst: true
+  executor:
+    userClassPathFirst: true
+  # 流处理配置
+  streaming:
+    batch:
+      duration: 5
 
-# 异常检测阈值
+# 异常检测阈值配置
 anomaly:
   threshold:
-    temperature: 5.0
-    humidity: 10.0
-    soil_moisture: 15.0
+    temperature: 35.0
+    humidity: 90.0
+    soil_moisture: 85.0
     light_intensity: 200.0
     co2: 100.0
 
-debug: false
+# 添加MySQL数据库配置
+datasource:
+  url: jdbc:mysql://${app.host}:3306/agri_big_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+  username: root
+  password: 082415
+  driver-class-name: com.mysql.cj.jdbc.Driver
+jpa:
+  hibernate:
+    ddl-auto: update
+  database-platform: org.hibernate.dialect.MySQL8Dialect
+  show-sql: false
+  properties:
+    hibernate:
+      format_sql: true
+
+# 日志级别
+logging:
+  level:
+    root: INFO
+    org.shiguang: INFO
+    org.apache.spark: WARN
+    org.apache.kafka: WARN

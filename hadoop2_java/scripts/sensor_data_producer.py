@@ -19,7 +19,7 @@ except ImportError:
     print("未安装kafka-python库。请运行: pip install kafka-python")
     sys.exit(1)
 # 修改默认地址
-host="hadoop"
+host="shiguang"
 
 # 命令行参数
 parser = argparse.ArgumentParser(description='农业传感器数据生成器')

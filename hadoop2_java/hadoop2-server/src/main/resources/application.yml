@@ -4,7 +4,7 @@ server:
     context-path: /api
 
 app:
-  host: hadoop
+  host: shiguang
 
 spring:
   datasource:
@@ -54,29 +54,6 @@ hive:
   connection:
     timeout: 30
     required: false
-
-
-kafka:
-  bootstrap:
-      servers: ${app.host}:9092
-  group:
-      id: agriculture-sensor-group
-  topic: agriculture-sensor-data
-
-spark:
-  streaming:
-    batch:
-      duration: 5
-  master: ${app.host}
-  app:
-    name: AgricultureSensorProcessor
-  serializer: org.apache.spark.serializer.KryoSerializer
-
-websocket:
-  host: 0.0.0.0
-  port: 8090
-  path: /ws/sensors
-
 
 
 # JWT配置
