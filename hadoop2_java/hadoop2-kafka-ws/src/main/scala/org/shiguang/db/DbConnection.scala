@@ -1,26 +1,36 @@
 package org.shiguang.db
 
-import org.shiguang.SparkConfig
-
+import org.shiguang.utils.{ConfigManager, ConfigKeys}
 import java.sql.{Connection, DriverManager}
 
 /**
  * 数据库连接工具类
  */
 object DbConnection {
-  private var config: SparkConfig = null
+  private var dbDriver: String = _
+  private var dbUrl: String = _
+  private var dbUser: String = _
+  private var dbPassword: String = _
+  
+  // 初始化数据库配置
+  private def initDbConfig(): Unit = {
+    if (dbDriver == null) {
+      dbDriver = ConfigManager.getString(ConfigKeys.Database.DRIVER)
+      dbUrl = ConfigManager.getString(ConfigKeys.Database.URL)
+      dbUser = ConfigManager.getString(ConfigKeys.Database.USER)
+      dbPassword = ConfigManager.getString(ConfigKeys.Database.PASSWORD)
+    }
+  }
   
   /**
    * 获取数据库连接
    */
   def getConnection(): Connection = {
-    if (config == null) {
-      config = SparkConfig.loadConfig()
-    }
+    initDbConfig()
     
     try {
-      Class.forName(config.dbDriver)
-      DriverManager.getConnection(config.dbUrl, config.dbUser, config.dbPassword)
+      Class.forName(dbDriver)
+      DriverManager.getConnection(dbUrl, dbUser, dbPassword)
     } catch {
       case e: Exception =>
         println(s"获取数据库连接时出错: ${e.getMessage}")

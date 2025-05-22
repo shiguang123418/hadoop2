@@ -2,18 +2,27 @@ package org.shiguang.websocket
 
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
+import java.io.Serializable
 
 import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.{WebSocketServer => JWebSocketServer}
+import org.shiguang.model.SensorData
+import org.json4s.DefaultFormats
 
 import scala.collection.JavaConverters._
+import org.json4s.DefaultFormats
+import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.Serialization
+import org.json4s.jackson.Serialization.write
 
 /**
  * WebSocket服务器，用于实时发送传感器数据到前端
  */
-class WebSocketServer(host: String, port: Int, path: String) extends JWebSocketServer(new InetSocketAddress(host, port)) {
-  private val connections = collection.mutable.Set[WebSocket]()
+class WebSocketServer(host: String, port: Int, path: String) extends JWebSocketServer(new InetSocketAddress(host, port)) with Serializable {
+  // 使用transient标记不应该被序列化的字段
+  @transient private val connections = collection.mutable.Set[WebSocket]()
   // 确保路径以斜杠开头
   private val normalizedPath = if (path.startsWith("/")) path else s"/$path"
 
@@ -96,4 +105,80 @@ class WebSocketServer(host: String, port: Int, path: String) extends JWebSocketS
    * 获取当前连接数
    */
   def getConnectionCount: Int = connections.size
+
+  /**
+   * 发送传感器数据到所有连接的客户端
+   */
+  def broadcastSensorData(sensorData: SensorData): Unit = {
+    import org.json4s._
+    implicit val formats = DefaultFormats
+
+    // 提取区域信息（从位置字段的第一部分获取）
+    val region = if (sensorData.location.contains("-")) {
+      sensorData.location.split("-").head
+    } else {
+      "未知区域"
+    }
+
+    // 根据位置信息确定作物类型
+    val cropType = if (sensorData.location.toLowerCase.contains("稻田")) "水稻" 
+                else if (sensorData.location.toLowerCase.contains("果园")) "柑橘"
+                else if (sensorData.location.toLowerCase.contains("菜地")) "蔬菜"
+                else if (sensorData.location.toLowerCase.contains("麦田")) "小麦"
+                else if (sensorData.location.toLowerCase.contains("葡萄")) "葡萄"
+                else if (sensorData.location.toLowerCase.contains("茶园")) "茶叶"
+                else if (sensorData.location.toLowerCase.contains("玉米")) "玉米"
+                else if (sensorData.location.toLowerCase.contains("棉田")) "棉花"
+                else "农作物"
+
+    // 创建更完整的JSON数据
+    val json = Map(
+      "sensorId" -> sensorData.sensorId,
+      "timestamp" -> sensorData.timestamp,
+      "temperature" -> sensorData.temperature,
+      "humidity" -> sensorData.humidity,
+      "soilMoisture" -> sensorData.soilMoisture,
+      "lightIntensity" -> sensorData.lightIntensity,
+      "location" -> sensorData.location,
+      "region" -> region,  // 确保区域字段正确
+      "cropType" -> cropType,  // 添加作物类型
+      "temperatureUnit" -> "°C",
+      "humidityUnit" -> "%", 
+      "soilMoistureUnit" -> "%",
+      "lightIntensityUnit" -> "lux",
+      "batteryLevel" -> sensorData.batteryLevel,
+      "batteryLevelUnit" -> "%",
+      // 检测各类型数据是否异常
+      "temperatureAnomaly" -> (sensorData.temperature < 10 || sensorData.temperature > 35),
+      "humidityAnomaly" -> (sensorData.humidity < 30 || sensorData.humidity > 80),
+      "soilMoistureAnomaly" -> (sensorData.soilMoisture < 15 || sensorData.soilMoisture > 60),
+      "lightIntensityAnomaly" -> (sensorData.lightIntensity < 300 || sensorData.lightIntensity > 900),
+      "batteryLevelAnomaly" -> (sensorData.batteryLevel < 20),
+      "isAnomalyDetected" -> (sensorData.temperature < 10 || sensorData.temperature > 35 || 
+                            sensorData.humidity < 30 || sensorData.humidity > 80 ||
+                            sensorData.soilMoisture < 15 || sensorData.soilMoisture > 60 ||
+                            sensorData.lightIntensity < 300 || sensorData.lightIntensity > 900 ||
+                            sensorData.batteryLevel < 20)
+    )
+    
+    // 转换为JSON字符串
+    val jsonStr = compact(render(Extraction.decompose(json)))
+    
+    // 同步对连接集合的访问
+    this.synchronized {
+      val activeConnections = connections.toSet  // 创建一个副本以避免并发修改
+      
+      // 广播消息到所有连接
+      val connCount = activeConnections.count(conn => {
+        if (conn.isOpen) {
+          conn.send(jsonStr)
+          true
+        } else {
+          false
+        }
+      })
+      
+      println(s"广播消息到 $connCount 个客户端")
+    }
+  }
 } 

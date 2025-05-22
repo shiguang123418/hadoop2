@@ -27,15 +27,59 @@
                                        \-> 异常检测 -> WebSocket -> 前端展示
 ```
 
-## 配置说明
+## 配置系统
 
-配置文件位于`src/main/resources/application.yml`，主要配置项包括：
+本项目使用了基于TypeSafe Config的多环境配置系统，支持开发、测试和生产环境的配置分离。
+
+### 配置文件
+
+主配置文件位于`src/main/resources/application.conf`，支持HOCON格式（Human-Optimized Config Object Notation）。
+
+### 配置管理
+
+配置由`ConfigManager`统一管理，支持以下特性：
+
+1. **多环境支持**：通过`ACTIVE_PROFILE`环境变量选择环境（dev、test、prod）
+2. **外部配置**：可通过`CONFIG_PATH`环境变量指定外部配置文件路径
+3. **层级配置**：使用层级结构组织配置，便于管理
+4. **配置隔离**：不同环境的配置完全隔离
+5. **配置键常量**：使用`ConfigKeys`类统一管理配置键，避免硬编码
+
+### 主要配置项
 
 - Kafka配置 (服务器、主题、消费组)
 - Spark配置 (主节点、序列化设置等)
 - WebSocket服务器配置
 - MySQL数据库配置
 - 异常检测阈值配置
+- 日志级别配置
+
+### 如何修改配置
+
+#### 方式一：修改配置文件
+
+直接编辑`src/main/resources/application.conf`文件。
+
+#### 方式二：使用环境变量
+
+可通过环境变量覆盖配置：
+
+```bash
+# 设置当前激活的环境
+export ACTIVE_PROFILE=prod
+
+# 指定外部配置文件（可选）
+export CONFIG_PATH=/path/to/external/config.conf
+
+# 启动应用
+java -jar target/hadoop2-kafka-ws-0.0.1.jar
+```
+
+#### 方式三：使用Java系统属性
+
+```bash
+java -DACTIVE_PROFILE=prod -jar target/hadoop2-kafka-ws-0.0.1.jar
+```
 
 ## 编译与运行
 

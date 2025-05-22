@@ -4,7 +4,7 @@ server:
     context-path: /api
 
 app:
-  host: shiguang
+  host: hadoop
 
 spring:
   datasource:
