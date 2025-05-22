@@ -1,85 +1,54 @@
-# 农业大数据可视化平台配置文件
-spring:
-  application:
-    name: hadoop2-kafka-ws
-  profiles:
-    active: dev
+# 农业大数据平台Kafka和WebSocket配置
 
-# 服务器配置
-server:
-  port: 8000
-  servlet:
-    context-path: /api
+# Spark配置
+spark:
+  master: spark://shiguang:7077
+  batch-interval: 5   # 批处理间隔（秒）
+  app-name: AgricultureSensorProcessor
+  streaming:
+    batch-duration: 5
+  kryo:
+    enabled: true
+    buffer-max-mb: 64
+  ui:
+    port: 4040
+    enabled: true
 
-app:
-  host: shiguang
 # Kafka配置
 kafka:
-  bootstrap:
-    servers: ${app.host}:9092
-  topic: agriculture-sensor-data
-  group:
-    id: agriculture-sensor-group
+  bootstrap-servers: shiguang:9092
+  topic: agriculture_sensors
+  group-id: agriculture_sensor_group
 
 # WebSocket配置
 websocket:
   host: 0.0.0.0
-  port: 8090
+  port: 8085
+  path: /ws/sensors
 
-# Spark配置
-spark:
-  master: spark://${app.host}:7077
-  app.name: AgricultureSensorProcessor
-  deploy-mode: client
-  # Kryo序列化配置
-  kryo:
-    enabled: true
-    registrator: org.shiguang.spark.KafkaKryoRegistrator
-  kryoserializer:
-    buffer:
-      max:
-        mb: 64
-  serializer: org.apache.spark.serializer.KryoSerializer
-  # 禁用推测性执行
-  speculation: false
-  # 类加载优先级
-  driver:
-    userClassPathFirst: true
-  executor:
-    userClassPathFirst: true
-  # 流处理配置
-  streaming:
-    batch:
-      duration: 5
-
-# 异常检测阈值配置
-anomaly:
-  threshold:
-    temperature: 35.0
-    humidity: 90.0
-    soil_moisture: 85.0
-    light_intensity: 200.0
-    co2: 100.0
-
-# 添加MySQL数据库配置
-datasource:
-  url: jdbc:mysql://${app.host}:3306/agri_big_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
-  username: root
+# 数据库配置
+database:
+  driver: com.mysql.cj.jdbc.Driver
+  url: jdbc:mysql://shiguang:3306/agri_big_data?useSSL=false&serverTimezone=Asia/Shanghai
+  user: root
   password: 082415
-  driver-class-name: com.mysql.cj.jdbc.Driver
-jpa:
-  hibernate:
-    ddl-auto: update
-  database-platform: org.hibernate.dialect.MySQL8Dialect
-  show-sql: false
-  properties:
-    hibernate:
-      format_sql: true
 
-# 日志级别
+# 异常阈值配置
+threshold:
+  temperature:
+    max: 40.0
+    min: 0.0
+  humidity:
+    max: 100.0
+    min: 0.0
+  soil-moisture:
+    max: 100.0
+    min: 0.0
+
+# 日志配置
 logging:
   level:
-    root: INFO
+    root: WARN
     org.shiguang: INFO
     org.apache.spark: WARN
-    org.apache.kafka: WARN
+    org.apache.kafka: WARN 

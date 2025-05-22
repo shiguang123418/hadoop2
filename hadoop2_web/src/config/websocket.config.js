@@ -6,7 +6,7 @@
 import apiConfig from './api.config';
 
 // WebSocket端口(应与Spring Boot中的websocket.port配置一致)
-const WS_PORT = '8090';
+const WS_PORT = '8085';
 
 // 默认配置
 const config = {
