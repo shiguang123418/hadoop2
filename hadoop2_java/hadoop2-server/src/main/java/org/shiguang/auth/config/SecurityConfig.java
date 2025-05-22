@@ -22,7 +22,7 @@ public class SecurityConfig extends BaseSecurityConfig {
     protected void configure(HttpSecurity http) throws Exception {
         // 先配置特定的规则
         http.authorizeRequests()
-            .antMatchers("/hdfs/**", "/hive/**").permitAll();
+            .antMatchers("/hdfs/**", "/hive/**", "/spark/**", "/kafka/**").permitAll();
         
         // 然后调用父类的配置方法来完成配置
         super.configure(http);

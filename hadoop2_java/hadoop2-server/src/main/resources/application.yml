@@ -4,7 +4,7 @@ server:
     context-path: /api
 
 app:
-  host: hadoop
+  host: shiguang
 
 spring:
   datasource:
@@ -64,3 +64,13 @@ security:
       expire-length: 86400000 # 24小时，单位：毫秒
 
 debug: false
+
+# Spark 配置
+spark:
+  master:
+    url: http://${app.host}:8081
+
+# Kafka 配置
+kafka:
+  host: ${app.host}
+  port: 9092

@@ -2,15 +2,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
     <parent>
         <groupId>org.shiguang</groupId>
         <artifactId>agri-big-data</artifactId>
         <version>0.0.1</version>
     </parent>
-
+    
     <artifactId>hadoop2-kafka-ws</artifactId>
     <name>hadoop2-kafka-ws</name>
-    <description>农业大数据平台的Kafka和WebSocket模块 - Scala实现</description>
+    <description>农业大数据平台的Kafka和WebSocket模块 - Spring Boot实现</description>
 
     <repositories>
         <repository>
@@ -58,38 +59,55 @@
         </repository>
     </repositories>
 
-
     <properties>
         <kafka.version>3.4.0</kafka.version>
-        <spring-boot.version>2.7.17</spring-boot.version>
-        <scala.version>2.12.15</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
         <spark.version>3.3.2</spark.version>
-        <java.version>1.8</java.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <scala.binary.version>2.12</scala.binary.version>
     </properties>
 
     <dependencies>
-        <!-- Scala相关依赖 -->
+        <!-- Spring Boot 核心依赖 -->
         <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scala.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         
+        <!-- Spring Boot Web 依赖 -->
         <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-compiler</artifactId>
-            <version>${scala.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         
+        <!-- Spring Boot WebSocket 依赖 -->
         <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-reflect</artifactId>
-            <version>${scala.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
-
+        
+        <!-- Spring Boot Data JPA 依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot Actuator 监控 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        
+        <!-- Spring for Apache Kafka -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        
         <!-- 添加MySQL依赖 -->
         <dependency>
             <groupId>mysql</groupId>
@@ -104,12 +122,6 @@
             <version>${kafka.version}</version>
         </dependency>
         
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${scala.binary.version}</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-
         <!-- Spark Core -->
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -137,200 +149,54 @@
             <version>${spark.version}</version>
         </dependency>
 
-        <!-- Spark SQL -->
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-
-        <!-- Spark Catalyst -->
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-catalyst_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-
-        <!-- Spark Token Provider for Kafka -->
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-token-provider-kafka-0-10_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-
-        <!-- Java WebSocket -->
-        <dependency>
-            <groupId>org.java-websocket</groupId>
-            <artifactId>Java-WebSocket</artifactId>
-            <version>1.5.4</version>
-        </dependency>
-
         <!-- JSON处理库 -->
         <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-jackson_${scala.binary.version}</artifactId>
-            <version>3.5.5</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
         
+        <!-- Lombok -->
         <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-core_${scala.binary.version}</artifactId>
-            <version>3.5.5</version>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
         </dependency>
         
-        <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-ast_${scala.binary.version}</artifactId>
-            <version>3.5.5</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-ext_${scala.binary.version}</artifactId>
-            <version>3.5.5</version>
-        </dependency>
-
-        <!-- SnakeYAML -->
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>1.33</version>
-        </dependency>
-
-        <!-- Typesafe Config -->
+        <!-- Typesafe Config 依赖 -->
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
             <version>1.4.2</version>
         </dependency>
-
-        <!-- Log4j -->
+        
+        <!-- JSON4S 依赖 (用于Scala代码) -->
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.17.2</version>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-jackson_${scala.binary.version}</artifactId>
+            <version>4.0.6</version>
         </dependency>
+        
+        <!-- Java WebSocket 依赖 -->
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.17.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-            <version>2.17.2</version>
-        </dependency>
-        <!-- Log4j 1.x到2.x的桥接 -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-1.2-api</artifactId>
-            <version>2.17.2</version>
+            <groupId>org.java-websocket</groupId>
+            <artifactId>Java-WebSocket</artifactId>
+            <version>1.5.3</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Java编译器插件 -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
                 </configuration>
-            </plugin>
-            
-            <!-- Scala编译插件 -->
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-                <version>4.8.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <scalaVersion>${scala.version}</scalaVersion>
-                    <args>
-                        <arg>-deprecation</arg>
-                        <arg>-feature</arg>
-                    </args>
-                    <jvmArgs>
-                        <jvmArg>-Xms1024m</jvmArg>
-                        <jvmArg>-Xmx2048m</jvmArg>
-                    </jvmArgs>
-                </configuration>
-            </plugin>
-            
-            <!-- 打包插件 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.2</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <mainClass>org.shiguang.AgricultureSensorApp</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
-            
-            <!-- 资源插件，确保配置文件被正确打包 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>copy-resources</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/resources</directory>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            
-            <!-- Assembly插件，用于打包依赖 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.3.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>org.shiguang.AgricultureSensorApp</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

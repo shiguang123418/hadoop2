@@ -46,27 +46,31 @@
       </div>
       
       <!-- Spark状态 -->
-      <div class="service-item connected">
+      <div class="service-item" :class="{ 'connected': sparkStatus, 'disconnected': !sparkStatus }">
         <div class="service-icon spark-icon"></div>
         <div class="service-info">
           <span class="service-name">Spark</span>
-          <span class="status-badge status-online">运行中</span>
+          <span class="status-badge" :class="{ 'status-online': sparkStatus, 'status-offline': !sparkStatus }">
+            {{ sparkStatus ? '运行中' : '未连接' }}
+          </span>
         </div>
-        <div class="service-url">http://localhost:4040</div>
-        <button class="refresh-btn" title="刷新Spark状态">
+        <div class="service-url">{{ sparkUrl }}</div>
+        <button @click="checkSparkStatus" class="refresh-btn" title="刷新Spark状态">
           <span class="refresh-icon"></span>
         </button>
       </div>
       
       <!-- Kafka状态 -->
-      <div class="service-item connected">
+      <div class="service-item" :class="{ 'connected': kafkaStatus, 'disconnected': !kafkaStatus }">
         <div class="service-icon kafka-icon"></div>
         <div class="service-info">
           <span class="service-name">Kafka</span>
-          <span class="status-badge status-online">运行中</span>
+          <span class="status-badge" :class="{ 'status-online': kafkaStatus, 'status-offline': !kafkaStatus }">
+            {{ kafkaStatus ? '运行中' : '未连接' }}
+          </span>
         </div>
-        <div class="service-url">localhost:9092</div>
-        <button class="refresh-btn" title="刷新Kafka状态">
+        <div class="service-url">{{ kafkaUrl }}</div>
+        <button @click="checkKafkaStatus" class="refresh-btn" title="刷新Kafka状态">
           <span class="refresh-icon"></span>
         </button>
       </div>
@@ -96,7 +100,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { HDFSService, HiveService } from '@/services';
+import { HDFSService, HiveService, SparkService, KafkaService } from '@/services';
 
 const hdfsStatus = ref(false);
 const hdfsUri = ref('');
@@ -105,6 +109,14 @@ const hdfsError = ref('');
 const hiveStatus = ref(false);
 const hiveUrl = ref('');
 const hiveError = ref('');
+
+const sparkStatus = ref(false);
+const sparkUrl = ref('');
+const sparkError = ref('');
+
+const kafkaStatus = ref(false);
+const kafkaUrl = ref('');
+const kafkaError = ref('');
 
 const refreshing = ref(false);
 const runningDiagnostic = ref(false);
@@ -121,7 +133,9 @@ const refreshAllStatus = async () => {
   try {
     await Promise.all([
       checkHdfsStatus(),
-      checkHiveStatus()
+      checkHiveStatus(),
+      checkSparkStatus(),
+      checkKafkaStatus()
     ]);
   } finally {
     refreshing.value = false;
@@ -158,6 +172,36 @@ const checkHiveStatus = async () => {
   }
 };
 
+// 检查Spark状态
+const checkSparkStatus = async () => {
+  try {
+    const response = await SparkService.getStatus();
+    sparkStatus.value = response.connected;
+    sparkUrl.value = response.url || '';
+    sparkError.value = '';
+  } catch (err) {
+    console.error('获取Spark状态失败:', err);
+    sparkStatus.value = false;
+    sparkUrl.value = '';
+    sparkError.value = err.response?.data?.error || err.message || '连接服务器失败';
+  }
+};
+
+// 检查Kafka状态
+const checkKafkaStatus = async () => {
+  try {
+    const response = await KafkaService.getStatus();
+    kafkaStatus.value = response.connected;
+    kafkaUrl.value = response.url || '';
+    kafkaError.value = '';
+  } catch (err) {
+    console.error('获取Kafka状态失败:', err);
+    kafkaStatus.value = false;
+    kafkaUrl.value = '';
+    kafkaError.value = err.response?.data?.error || err.message || '连接服务器失败';
+  }
+};
+
 // 运行诊断
 const runDiagnostics = async () => {
   runningDiagnostic.value = true;
@@ -188,6 +232,32 @@ const runDiagnostics = async () => {
       diagnosticResults.value.push({
         status: 'error',
         message: `Hive API服务不可达: ${err.message}`
+      });
+    }
+    
+    try {
+      await SparkService.getStatus();
+      diagnosticResults.value.push({
+        status: 'success',
+        message: 'Spark API服务可达'
+      });
+    } catch (err) {
+      diagnosticResults.value.push({
+        status: 'error',
+        message: `Spark API服务不可达: ${err.message}`
+      });
+    }
+    
+    try {
+      await KafkaService.getStatus();
+      diagnosticResults.value.push({
+        status: 'success',
+        message: 'Kafka API服务可达'
+      });
+    } catch (err) {
+      diagnosticResults.value.push({
+        status: 'error',
+        message: `Kafka API服务不可达: ${err.message}`
       });
     }
     
@@ -254,6 +324,74 @@ const runDiagnostics = async () => {
       diagnosticResults.value.push({
         status: 'warning',
         message: '可能原因: 1. Hive服务未运行 2. 连接地址错误 3. JDBC驱动问题'
+      });
+    }
+    
+    // 检查Spark连接状态
+    if (sparkStatus.value) {
+      diagnosticResults.value.push({
+        status: 'success',
+        message: `Spark连接正常: ${sparkUrl.value}`
+      });
+      
+      // 可以增加一些Spark特定的诊断测试
+      try {
+        // 假设有获取应用列表的方法
+        const response = await SparkService.getApplications();
+        diagnosticResults.value.push({
+          status: 'success',
+          message: `Spark应用列表获取成功，有 ${response.length} 个运行中的应用`
+        });
+      } catch (err) {
+        diagnosticResults.value.push({
+          status: 'warning',
+          message: `Spark应用列表获取失败: ${err.response?.data?.error || err.message}`
+        });
+      }
+    } else {
+      diagnosticResults.value.push({
+        status: 'error',
+        message: `Spark连接失败: ${sparkError.value}`
+      });
+      
+      // 提供可能的解决方案
+      diagnosticResults.value.push({
+        status: 'warning',
+        message: '可能原因: 1. Spark服务未运行 2. Spark Master地址错误 3. 网络连接问题'
+      });
+    }
+    
+    // 检查Kafka连接状态
+    if (kafkaStatus.value) {
+      diagnosticResults.value.push({
+        status: 'success',
+        message: `Kafka连接正常: ${kafkaUrl.value}`
+      });
+      
+      // 可以增加一些Kafka特定的诊断测试
+      try {
+        // 假设有获取主题列表的方法
+        const response = await KafkaService.getTopics();
+        diagnosticResults.value.push({
+          status: 'success',
+          message: `Kafka主题列表获取成功，有 ${response.length} 个主题`
+        });
+      } catch (err) {
+        diagnosticResults.value.push({
+          status: 'warning',
+          message: `Kafka主题列表获取失败: ${err.response?.data?.error || err.message}`
+        });
+      }
+    } else {
+      diagnosticResults.value.push({
+        status: 'error',
+        message: `Kafka连接失败: ${kafkaError.value}`
+      });
+      
+      // 提供可能的解决方案
+      diagnosticResults.value.push({
+        status: 'warning',
+        message: '可能原因: 1. Kafka Broker未运行 2. Broker地址错误 3. 网络连接问题'
       });
     }
     

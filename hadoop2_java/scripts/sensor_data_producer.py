@@ -18,14 +18,14 @@ try:
 except ImportError:
     print("未安装kafka-python库。请运行: pip install kafka-python")
     sys.exit(1)
-# 修改默认地址
-host="hadoop"
+# 修改默认地址为Kafka集群
+kafka_servers = "shiguang:9092,nas:9092"
 
 # 命令行参数
 parser = argparse.ArgumentParser(description='农业传感器数据生成器')
-parser.add_argument('--bootstrap-servers', default=f'{host}:9092', help='Kafka服务器地址')
+parser.add_argument('--bootstrap-servers', default=kafka_servers, help='Kafka服务器地址')
 parser.add_argument('--topic', default='agriculture_sensors', help='Kafka主题')
-parser.add_argument('--interval', type=float, default=2.0, help='数据生成间隔(秒)')
+parser.add_argument('--interval', type=float, default=10.0, help='数据生成间隔(秒)')
 parser.add_argument('--count', type=int, default=0, help='生成数据条数(0表示无限)')
 parser.add_argument('--anomaly-rate', type=float, default=0.05, help='异常数据生成率(0-1)')
 args = parser.parse_args()

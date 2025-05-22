@@ -1,7 +1,7 @@
 package org.shiguang.utils
 
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.shiguang.SparkConfig
+import org.shiguang.LegacySparkConfig
 import org.shiguang.model.SensorData
 import org.json4s.DefaultFormats
 import org.json4s.jackson.Serialization.write
@@ -58,7 +58,7 @@ object SensorDataGenerator {
    */
   def generateAndSendData(count: Int, intervalMs: Int = 1000): Unit = {
     // 加载配置
-    val config = SparkConfig.loadConfig()
+    val config = LegacySparkConfig.loadConfig()
     val producer = createProducer(config.kafkaBootstrapServers)
     
     val sensorIds = Array("sensor-001", "sensor-002", "sensor-003", "sensor-004", "sensor-005")

@@ -1,6 +1,6 @@
 package org.shiguang.model
 
-import org.shiguang.SparkConfig
+import org.shiguang.LegacySparkConfig
 import org.shiguang.db.DbConnection
 import org.shiguang.utils.{ConfigManager, ConfigKeys}
 

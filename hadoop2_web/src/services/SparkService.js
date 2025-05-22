@@ -1,0 +1,82 @@
+import ApiService from './api.service';
+
+/**
+ * Spark服务 - 提供与Spark集群交互的功能
+ */
+class SparkService extends ApiService {
+  constructor() {
+    super('/spark');
+  }
+  
+  /**
+   * 获取Spark连接状态
+   * @returns {Promise} 连接状态信息
+   */
+  getStatus() {
+    return this.get('/status');
+  }
+  
+  /**
+   * 获取运行中的Spark应用列表
+   * @returns {Promise} 应用列表
+   */
+  getApplications() {
+    return this.get('/applications');
+  }
+  
+  /**
+   * 获取特定应用的详细信息
+   * @param {string} appId 应用ID
+   * @returns {Promise} 应用详情
+   */
+  getApplicationInfo(appId) {
+    return this.get(`/applications/${appId}`);
+  }
+  
+  /**
+   * 获取应用的执行器信息
+   * @param {string} appId 应用ID
+   * @returns {Promise} 执行器列表
+   */
+  getApplicationExecutors(appId) {
+    return this.get(`/applications/${appId}/executors`);
+  }
+  
+  /**
+   * 获取应用的作业信息
+   * @param {string} appId 应用ID
+   * @returns {Promise} 作业列表
+   */
+  getApplicationJobs(appId) {
+    return this.get(`/applications/${appId}/jobs`);
+  }
+  
+  /**
+   * 获取Spark环境信息
+   * @returns {Promise} 环境信息
+   */
+  getEnvironment() {
+    return this.get('/environment');
+  }
+  
+  /**
+   * 提交Spark作业
+   * @param {Object} jobConfig 作业配置
+   * @returns {Promise} 提交结果
+   */
+  submitJob(jobConfig) {
+    return this.post('/jobs/submit', jobConfig);
+  }
+  
+  /**
+   * 取消正在运行的作业
+   * @param {string} jobId 作业ID
+   * @returns {Promise} 取消结果
+   */
+  cancelJob(jobId) {
+    return this.post(`/jobs/${jobId}/cancel`);
+  }
+}
+
+// 导出单例
+export default new SparkService(); 

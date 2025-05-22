@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: AgricultureSensorProcessor
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://shiguang:3306/agri_big_data?useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 082415
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  kafka:
+    bootstrap-servers: shiguang:9092,nas:9092
+    consumer:
+      group-id: agriculture_sensor_group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: WARN
+    org.shiguang: INFO
+    org.apache.spark: WARN
+    org.apache.kafka: WARN
+
+# 自定义配置项
+app:
+  spark:
+    master: spark://192.168.1.192:7077
+    batch-interval: 5
+    ui:
+      port: 4040
+      enabled: true
+  
+  kafka:
+    topic: agriculture_sensors
+  
+  websocket:
+    host: 0.0.0.0
+    port: 8085
+    path: /
+  
+  threshold:
+    temperature:
+      max: 40.0
+      min: 0.0
+    humidity:
+      max: 100.0
+      min: 0.0
+    soil-moisture:
+      max: 100.0
+      min: 0.0
+    light-intensity:
+      max: 1000.0
+      min: 0.0
+    co2:
+      max: 2000.0
+      min: 200.0
+    battery:
+      min: 10.0 
