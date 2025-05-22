@@ -29,8 +29,15 @@ object SparkConfig {
    */
   def loadConfig(): SparkConfig = {
     try {
-      val config = ConfigFactory.load()
+      println("正在加载配置文件...")
+      
+      // 明确加载application.conf
+      val config = ConfigFactory.load("application.conf")
+      
       println("成功加载配置文件")
+      
+      // 打印配置内容，用于调试
+      println("配置内容: " + config.root().render())
       
       val sparkConfig = SparkConfig(
         sparkMaster = config.getString("spark.master"),
