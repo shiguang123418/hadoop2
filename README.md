@@ -12,8 +12,8 @@
 
 ## 技术栈
 
-- **后端**: Spring Boot 3.3.2
-- **大数据处理**: 
+- **后端**: Spring Boot 2.7.10
+- **大数据处理**:  
   - Apache Hadoop 3.4.0
   - Apache Spark 3.3.1
   - Apache Hive 3.1.2
