@@ -213,8 +213,16 @@ export default {
     const refreshStatus = async () => {
       try {
         const response = await HiveService.getStatus();
-        connected.value = response.connected;
-        hiveUrl.value = response.url || '';
+        console.log('Hive状态响应:', response);
+        
+        // 处理可能的嵌套数据结构
+        if (response && response.data) {
+          connected.value = response.data.connected;
+          hiveUrl.value = response.data.url || '';
+        } else {
+          connected.value = response.connected;
+          hiveUrl.value = response.url || '';
+        }
         return connected.value;
       } catch (err) {
         console.error('获取Hive状态失败:', err);
@@ -236,7 +244,28 @@ export default {
       
       try {
         const response = await HiveService.getDatabases();
-        databases.value = response.map(db => ({ name: db }));
+        console.log('数据库列表响应:', response);
+        
+        // 处理可能的嵌套数据结构
+        let dbList = response;
+        if (response && response.data) {
+          dbList = response.data;
+        }
+        
+        if (Array.isArray(dbList)) {
+          databases.value = dbList.map(db => {
+            // 处理不同的返回格式
+            if (typeof db === 'string') {
+              return { name: db };
+            } else if (db && db.name) {
+              return { name: db.name };
+            } else {
+              return { name: JSON.stringify(db) };
+            }
+          });
+        } else {
+          databases.value = [];
+        }
         
         // 如果当前数据库不在列表中，清空它
         if (currentDatabase.value && !databases.value.some(db => db.name === currentDatabase.value)) {
@@ -285,7 +314,28 @@ export default {
       
       try {
         const response = await HiveService.getTables(dbName);
-        tables.value = response.map(table => ({ name: table }));
+        console.log('表列表响应:', response);
+        
+        // 处理可能的嵌套数据结构
+        let tableList = response;
+        if (response && response.data) {
+          tableList = response.data;
+        }
+        
+        if (Array.isArray(tableList)) {
+          tables.value = tableList.map(table => {
+            // 处理不同的返回格式
+            if (typeof table === 'string') {
+              return { name: table };
+            } else if (table && table.name) {
+              return { name: table.name };
+            } else {
+              return { name: JSON.stringify(table) };
+            }
+          });
+        } else {
+          tables.value = [];
+        }
       } catch (err) {
         console.error('获取表列表失败:', err);
         tableError.value = err.response?.data?.error || err.message;

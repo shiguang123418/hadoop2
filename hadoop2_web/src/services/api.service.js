@@ -40,7 +40,11 @@ class ApiService {
     
     // 响应拦截器
     this.api.interceptors.response.use(
-      response => response.data,
+      response => {
+        // 直接返回整个响应数据，不做过滤处理
+        // 在具体服务中处理数据结构
+        return response.data;
+      },
       error => {
         // 处理错误响应
         console.error('API请求失败:', error);

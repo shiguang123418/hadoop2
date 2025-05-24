@@ -28,12 +28,15 @@ public class User {
     
     private String email;
     
-    private String fullName;
+    private String name;
     
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    private String phone;
+    
     @Column(name = "role")
-    private List<String> roles = new ArrayList<>();
+    private String role = "user";
+    
+    @Column(name = "status")
+    private String status = "active";
     
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
@@ -41,7 +44,8 @@ public class User {
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
     
-    private boolean active = true;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date lastLoginAt;
     
     @PrePersist
     protected void onCreate() {

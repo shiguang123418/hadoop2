@@ -58,8 +58,15 @@ class HDFSService extends ApiService {
     const formData = new FormData();
     formData.append('file', file);
     
+    // 确保path是一个目录路径
+    let path = targetPath || '/';
+    // 去除结尾的文件名，只保留目录路径
+    if (path.endsWith(file.name)) {
+      path = path.substring(0, path.length - file.name.length);
+    }
+    
     const config = {
-      params: { path: targetPath },
+      params: { path: path },
       headers: {
         'Content-Type': 'multipart/form-data'
       }

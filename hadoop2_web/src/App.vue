@@ -1,199 +1,307 @@
 <template>
-  <div class="app-container">
-    <!-- 头部 -->
-    <header>
-      <nav class="navbar">
-        <div class="logo">农业大数据平台</div>
-        <div class="nav-links">
-          <router-link to="/" :class="{ 'active': $route.path === '/' }">首页</router-link>
-          <router-link to="/hdfs-explorer" v-if="isLoggedIn" :class="{ 'active': $route.path === '/hdfs-explorer' }">HDFS浏览器</router-link>
-          <router-link to="/hive-explorer" v-if="isLoggedIn" :class="{ 'active': $route.path === '/hive-explorer' }">Hive查询</router-link>
-          <router-link to="/hive-analytics" v-if="isLoggedIn" :class="{ 'active': $route.path === '/hive-analytics' }">Hive分析</router-link>
-          <router-link to="/crop-analysis" v-if="isLoggedIn" :class="{ 'active': $route.path === '/crop-analysis' }">产量预测</router-link>
-          <router-link to="/sensor-monitor" v-if="isLoggedIn" :class="{ 'active': $route.path === '/sensor-monitor' }">传感器监控</router-link>
-          <router-link to="/login" v-if="!isLoggedIn" :class="{ 'active': $route.path === '/login' }">登录</router-link>
-          <a href="#" @click.prevent="logout" v-if="isLoggedIn" class="logout-link">退出</a>
-        </div>
-      </nav>
-    </header>
-
-    <!-- 主要内容区域 -->
-    <main class="main-content">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </main>
-
-    <!-- 页脚 -->
-    <footer class="footer">
-      <div class="container">
-        <p>&copy; 2025 农业大数据平台 - 版权所有</p>
+  <el-container class="app-wrapper">
+    <el-aside width="220px" class="sidebar">
+      <div class="logo-container">
+        <!-- <img src="/logo.png" alt="Logo" class="logo" v-if="false"> -->
+        <h2 class="logo-text">农业数据平台</h2>
       </div>
-    </footer>
-  </div>
+      <el-scrollbar>
+        <el-menu
+          :router="true"
+          :default-active="$route.path"
+          class="el-menu-vertical"
+          background-color="#f9fafc"
+          text-color="#2c3e50"
+          active-text-color="#409EFF"
+        >
+          <el-menu-item index="/" class="menu-item">
+            <el-icon><HomeFilled /></el-icon>
+            <span>首页</span>
+          </el-menu-item>
+          
+          <el-sub-menu index="1" class="submenu">
+            <template #title>
+              <el-icon><FolderOpened /></el-icon>
+              <span>核心功能</span>
+            </template>
+            <el-menu-item index="/hdfs-explorer" class="menu-item">
+              <el-icon><Files /></el-icon>
+              <span>HDFS浏览器</span>
+            </el-menu-item>
+            <el-menu-item index="/hive-explorer" class="menu-item">
+              <el-icon><Document /></el-icon>
+              <span>Hive查询</span>
+            </el-menu-item>
+            <el-menu-item index="/hive-analytics" class="menu-item">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>Hive分析</span>
+            </el-menu-item>
+          </el-sub-menu>
+          
+          <el-sub-menu index="2" class="submenu">
+            <template #title>
+              <el-icon><Grid /></el-icon>
+              <span>应用功能</span>
+            </template>
+            <el-menu-item index="/crop-analysis" class="menu-item">
+              <el-icon><Crop /></el-icon>
+              <span>产量预测</span>
+            </el-menu-item>
+            <el-menu-item index="/sensor-monitor" class="menu-item">
+              <el-icon><Monitor /></el-icon>
+              <span>传感器监控</span>
+            </el-menu-item>
+            <el-menu-item index="/sensor-dashboard" class="menu-item">
+              <el-icon><TrendCharts /></el-icon>
+              <span>传感器仪表盘</span>
+            </el-menu-item>
+          </el-sub-menu>
+          
+          <el-menu-item index="/datasource" class="menu-item">
+            <el-icon><DataLine /></el-icon>
+            <span>数据源管理</span>
+          </el-menu-item>
+          
+          <el-sub-menu index="3" class="submenu">
+            <template #title>
+              <el-icon><Setting /></el-icon>
+              <span>系统管理</span>
+            </template>
+            <el-menu-item index="/user-management" class="menu-item">
+              <el-icon><User /></el-icon>
+              <span>用户管理</span>
+            </el-menu-item>
+            <el-menu-item index="/system-settings" class="menu-item">
+              <el-icon><Tools /></el-icon>
+              <span>系统设置</span>
+            </el-menu-item>
+          </el-sub-menu>
+        </el-menu>
+      </el-scrollbar>
+    </el-aside>
+    <el-container class="main-container">
+      <el-header class="header">
+        <div class="header-left">
+          <h2 class="header-title">农业数据可视化平台</h2>
+        </div>
+        <div class="header-right">
+          <el-dropdown trigger="click">
+            <span class="user-dropdown">
+              <el-avatar size="small" icon="el-icon-user"></el-avatar>
+              <span class="username">管理员</span>
+              <el-icon><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item>个人信息</el-dropdown-item>
+                <el-dropdown-item>修改密码</el-dropdown-item>
+                <el-dropdown-item divided>退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </el-header>
+      <el-main class="main-content">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </el-main>
+    </el-container>
+  </el-container>
 </template>
 
-<script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import AuthService from './services/auth'
+<script>
+import { 
+  DataLine, 
+  HomeFilled, 
+  FolderOpened, 
+  Files, 
+  Document, 
+  DataAnalysis, 
+  Grid, 
+  Monitor, 
+  TrendCharts, 
+  Setting, 
+  User, 
+  Tools,
+  Crop,
+  ArrowDown
+} from '@element-plus/icons-vue'
 
-const router = useRouter()
-const route = useRoute()
-const isLoggedIn = ref(false)
-
-// 更新登录状态
-const updateLoginStatus = () => {
-  isLoggedIn.value = AuthService.isLoggedIn()
+export default {
+  name: 'App',
+  components: {
+    DataLine,
+    HomeFilled,
+    FolderOpened,
+    Files,
+    Document,
+    DataAnalysis,
+    Grid,
+    Monitor,
+    TrendCharts,
+    Setting,
+    User,
+    Tools,
+    Crop,
+    ArrowDown
+  }
 }
-
-// 退出登录
-const logout = () => {
-  AuthService.logout()
-  isLoggedIn.value = false
-  router.push('/login')
-}
-
-// 初始化检查登录状态
-onMounted(() => {
-  updateLoginStatus()
-  
-  // 添加路由变化监听
-  router.beforeEach((to, from, next) => {
-    updateLoginStatus()
-    next()
-  })
-})
-
-// 清理路由监听
-onBeforeUnmount(() => {
-  // 路由监听会自动清理，无需手动操作
-})
 </script>
 
 <style>
-:root {
-  --primary-color: #4CAF50;
-  --primary-dark: #388E3C;
-  --primary-light: #C8E6C9;
-  --accent-color: #FFEB3B;
-  --text-color: #333333;
-  --text-light: #666666;
-  --bg-light: #ffffff;
-  --bg-gray: #f5f5f5;
-  --border-radius: 8px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --transition-speed: 0.3s;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.app-container {
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2c3e50;
+  background-color: #f5f7fa;
+}
+
+.app-wrapper {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 侧边栏样式 */
+.sidebar {
+  background-color: #f9fafc;
+  box-shadow: 1px 0 6px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+  transition: all 0.3s;
+  height: 100%;
+  overflow: hidden;
+}
+
+.logo-container {
+  height: 60px;
+  padding: 0 20px;
   display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  width: 100%;
-  background-color: var(--bg-gray);
-}
-
-/* 头部样式 */
-header {
-  background-color: var(--primary-color);
-  color: white;
-  padding: 0.8rem 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.navbar {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+  background-color: #f9fafc;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  margin-bottom: 10px;
 }
 
 .logo {
-  font-size: 1.6rem;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-  background: linear-gradient(135deg, #ffffff, #e0e0e0);
-  -webkit-background-clip: text;
-  color: transparent;
-  text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+  height: 30px;
+  margin-right: 10px;
 }
 
-.nav-links {
+.logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #409EFF;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.el-menu-vertical {
+  border-right: none;
+  padding: 10px 0;
+}
+
+.menu-item {
+  height: 50px;
+  line-height: 50px;
+  margin: 4px 0;
+  border-radius: 4px;
+  padding-left: 18px !important;
+}
+
+.submenu {
+  margin: 4px 0;
+}
+
+.el-menu-item.is-active {
+  background-color: #ecf5ff !important;
+  border-left: 3px solid #409EFF;
+}
+
+.el-menu-item:hover {
+  background-color: #f0f2f5 !important;
+}
+
+.el-sub-menu__title {
+  padding-left: 18px !important;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.el-sub-menu__title:hover {
+  background-color: #f0f2f5 !important;
+}
+
+/* 主体内容区域样式 */
+.main-container {
+  background-color: #f5f7fa;
+  height: 100%;
+  overflow: hidden;
   display: flex;
-  gap: 1.2rem;
+  flex-direction: column;
+}
+
+.header {
+  background-color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 60px;
+  position: relative;
+  z-index: 9;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  letter-spacing: 0.5px;
+}
+
+.header-right {
+  display: flex;
   align-items: center;
 }
 
-.nav-links a {
-  color: white;
-  text-decoration: none;
-  padding: 0.6rem 0.8rem;
-  border-radius: 4px;
-  transition: all 0.3s;
-  font-weight: 500;
-  position: relative;
-}
-
-.nav-links a:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-}
-
-.nav-links a.active {
-  background-color: rgba(255, 255, 255, 0.25);
-  font-weight: 600;
-}
-
-.nav-links a.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  height: 3px;
-  background-color: var(--accent-color);
-  border-radius: 2px;
-}
-
-.logout-link {
-  color: white;
-  font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.5rem 1rem !important;
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 10px;
   border-radius: 4px;
   transition: all 0.3s;
 }
 
-.logout-link:hover {
-  background-color: rgba(255, 0, 0, 0.15);
+.user-dropdown:hover {
+  background-color: #f5f7fa;
 }
 
-/* 主要内容区域样式 */
+.username {
+  margin: 0 8px;
+  font-size: 14px;
+}
+
 .main-content {
-  flex: 1;
-  width: 100%;
-  max-width: 1280px;
-  margin: 1.5rem auto;
-  padding: 0 1.5rem;
-  padding-bottom: 2rem;
+  padding: 20px;
+  overflow-y: auto;
+  height: calc(100% - 60px);
 }
 
-/* 页面切换过渡效果 */
+/* 页面过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease;
 }
 
 .fade-enter-from,
@@ -201,38 +309,38 @@ header {
   opacity: 0;
 }
 
-/* 页脚样式 */
-.footer {
-  background-color: #333;
-  color: rgba(255, 255, 255, 0.8);
-  text-align: center;
-  padding: 1.8rem 0;
-  margin-top: auto;
-  font-size: 0.9rem;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f7fa;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    padding: 1rem 0;
+  .sidebar {
+    width: 64px !important;
   }
   
-  .logo {
-    margin-bottom: 1rem;
+  .logo-text {
+    display: none;
   }
   
-  .nav-links {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.8rem;
+  .menu-item span,
+  .el-sub-menu__title span {
+    display: none;
   }
   
-  .nav-links a {
-    padding: 0.5rem 0.7rem;
-    font-size: 0.9rem;
+  .el-sub-menu__icon-arrow {
+    display: none;
   }
 }
 </style>

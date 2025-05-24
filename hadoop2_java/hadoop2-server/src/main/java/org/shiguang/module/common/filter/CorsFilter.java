@@ -1,5 +1,7 @@
 package org.shiguang.module.common.filter;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.*;
@@ -8,44 +10,39 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * 跨域请求过滤器
- * 允许从其他域名访问API
+ * 全局CORS过滤器，确保所有请求都能正确处理CORS
+ * 将其优先级设置为最高，确保在其他过滤器之前执行
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorsFilter implements Filter {
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-        // 初始化过滤器
-    }
-
-    @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
             throws IOException, ServletException {
-        HttpServletRequest request = (HttpServletRequest) servletRequest;
-        HttpServletResponse response = (HttpServletResponse) servletResponse;
+        HttpServletRequest request = (HttpServletRequest) req;
+        HttpServletResponse response = (HttpServletResponse) res;
 
-        // 允许的请求来源
+        // 添加CORS响应头
         response.setHeader("Access-Control-Allow-Origin", "*");
-        // 允许的请求方法
-        response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
-        // 请求头缓存时间
-        response.setHeader("Access-Control-Max-Age", "3600");
-        // 允许的请求头
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Content-Length, X-Requested-With");
-        // 允许发送认证信息
         response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        response.setHeader("Access-Control-Max-Age", "3600");
+        response.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control");
 
-        // 对于OPTIONS请求直接返回
+        // 对于OPTIONS请求（预检请求），直接返回200 OK
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
         } else {
-            filterChain.doFilter(request, response);
+            chain.doFilter(req, res);
         }
     }
 
     @Override
+    public void init(FilterConfig filterConfig) {
+    }
+
+    @Override
     public void destroy() {
-        // 销毁过滤器
     }
 } 

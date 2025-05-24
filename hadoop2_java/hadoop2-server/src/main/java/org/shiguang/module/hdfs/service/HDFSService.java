@@ -14,6 +14,18 @@ import java.util.Map;
 public interface HDFSService {
 
     /**
+     * 检查HDFS是否可用
+     * @return 是否可用
+     */
+    boolean isHdfsAvailable();
+    
+    /**
+     * 获取HDFS URI
+     * @return HDFS URI
+     */
+    String getHdfsUri();
+    
+    /**
      * 获取HDFS连接状态
      * @return 连接状态信息
      * @throws IOException 如果发生I/O错误

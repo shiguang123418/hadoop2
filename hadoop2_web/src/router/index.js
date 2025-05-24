@@ -15,7 +15,7 @@ const router = createRouter({
     { 
       path: '/', 
       component: HomePage,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: false, title: '首页' }
     },
     { 
       path: '/hdfs-explorer', 
@@ -51,20 +51,47 @@ const router = createRouter({
       component: () => import('../components/SensorDashboard.vue'),
       name: 'sensor-dashboard',
       meta: { requiresAuth: true }
+    },
+    { 
+      path: '/user-management', 
+      component: () => import('../views/UserManagement.vue'),
+      name: 'user-management',
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    { 
+      path: '/system-settings', 
+      component: () => import('../views/SystemSettings.vue'),
+      name: 'system-settings',
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/datasource',
+      name: 'DataSource',
+      component: () => import('../views/datasource/DataSourceList.vue'),
+      meta: { title: '数据源管理' }
     }
   ]
 })
 
 // 全局路由守卫
 router.beforeEach((to, from, next) => {
+  // 设置页面标题
+  document.title = to.meta.title ? `${to.meta.title} - 农业数据可视化平台` : '农业数据可视化平台'
+
   // 检查路由是否需要认证
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth === true);
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin === true);
   const isLoggedIn = AuthService.isLoggedIn();
+  
+  // 检查用户是否为管理员
+  const isAdmin = AuthService.isAdmin();
   
   console.log('路由守卫检查:', { 
     path: to.path, 
     requiresAuth, 
+    requiresAdmin,
     isLoggedIn,
+    isAdmin,
     matched: to.matched.map(r => r.path)
   });
 
@@ -72,12 +99,17 @@ router.beforeEach((to, from, next) => {
     // 需要认证但未登录，重定向到登录页
     console.log('未登录，重定向到登录页');
     next('/login');
+  } else if (requiresAdmin && !isAdmin) {
+    // 需要管理员权限但不是管理员，重定向到首页
+    console.log('需要管理员权限，重定向到首页');
+    next('/');
   } else if (to.path === '/login' && isLoggedIn) {
     // 已登录但访问登录页，重定向到首页
     console.log('已登录，重定向到首页');
     next('/');
   } else {
     // 其他情况正常导航
+    console.log('允许导航到:', to.path);
     next();
   }
 });

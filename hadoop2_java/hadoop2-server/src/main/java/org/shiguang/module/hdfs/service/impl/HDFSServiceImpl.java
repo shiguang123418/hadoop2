@@ -77,6 +77,27 @@ public class HDFSServiceImpl implements HDFSService {
     }
     
     /**
+     * 检查HDFS是否可用
+     */
+    @Override
+    public boolean isHdfsAvailable() {
+        try {
+            return fileSystem != null && fileSystem.exists(new Path("/"));
+        } catch (Exception e) {
+            logger.error("检查HDFS可用性时出错: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * 获取HDFS URI
+     */
+    @Override
+    public String getHdfsUri() {
+        return hdfsUri;
+    }
+    
+    /**
      * 获取HDFS连接状态
      */
     @Override

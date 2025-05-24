@@ -6,7 +6,7 @@
 // ======================================================
 // 【重要】修改此处可统一更改所有API服务地址
 // ======================================================
-const API_SERVER_HOST = 'shiguang'; // 修改此处设置API服务器主机名/IP
+const API_SERVER_HOST = 'shiguang'; // 修改为localhost或实际IP，不要使用主机名
 const API_SERVER_PORT = '8080';      // 修改此处设置API服务器端口
 // ======================================================
 
@@ -17,7 +17,7 @@ const devConfig = {
   // API基础路径
   apiBasePath: '/api',
   // 是否启用本地代理（开发时使用）
-  useProxy: true,
+  useProxy: false, // 直接使用完整URL，不使用代理
   // 服务相关配置
   services: {
     hdfs: '/hdfs',

@@ -183,9 +183,16 @@ export default {
     const refreshStatus = async () => {
       try {
         const response = await HDFSService.getStatus();
-        console.log("HDFS Status Response:", response);
-        connected.value = response.connected;
-        hdfsUri.value = response.uri || '';
+        console.log("HDFS状态响应:", response);
+        
+        // 处理可能的嵌套数据结构
+        if (response && response.data) {
+          connected.value = response.data.connected;
+          hdfsUri.value = response.data.uri || '';
+        } else {
+          connected.value = response.connected;
+          hdfsUri.value = response.uri || '';
+        }
       } catch (err) {
         console.error('获取HDFS状态失败:', err);
         connected.value = false;
@@ -202,19 +209,31 @@ export default {
       // 处理路径，移除HDFS URL前缀
       const cleanPath = cleanHdfsPath(currentPath.value);
       currentPath.value = cleanPath; // 更新为干净的路径
-
+      
+      if (!connected.value) {
+        error.value = 'HDFS服务未连接';
+        return;
+      }
+      
       loading.value = true;
       error.value = null;
       
       try {
-        if (!connected.value) {
-          throw new Error("HDFS未连接，无法浏览目录");
-        }
-        
         console.log("正在请求HDFS目录:", cleanPath);
         const response = await HDFSService.listFiles(cleanPath);
-        console.log("HDFS List Response:", response);
-        files.value = response;
+        console.log("HDFS列表响应:", response);
+        
+        // 处理可能的嵌套数据结构
+        let fileList = response;
+        if (response && response.data) {
+          fileList = response.data;
+        }
+        
+        if (Array.isArray(fileList)) {
+          files.value = fileList;
+        } else {
+          files.value = [];
+        }
       } catch (err) {
         console.error('获取文件列表失败:', err);
         error.value = err.response?.data?.error || err.message;
@@ -310,12 +329,12 @@ export default {
       uploadProgress.value = 0;
       
       try {
-        // 使用清理后的路径
+        // 使用清理后的路径 - 确保只提供目录路径，不包含文件名
         const cleanPath = cleanHdfsPath(currentPath.value);
-        const targetPath = `${cleanPath}/${selectedFile.value.name}`.replace(/\/\//g, '/');
+        // 不再将文件名添加到路径中，而是让后端处理
         await HDFSService.uploadFile(
           selectedFile.value, 
-          targetPath,
+          cleanPath,  // 只传递目录路径
           (progress) => {
             uploadProgress.value = progress;
           }

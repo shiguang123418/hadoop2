@@ -134,9 +134,20 @@ export default {
         const response = await AuthService.login(this.username, this.password);
         
         console.log('登录响应:', response);
+        console.log('当前Token:', localStorage.getItem('token'));
+        console.log('当前User:', localStorage.getItem('user'));
         
-        // 重定向到首页
-        this.$router.push('/');
+        // 确保登录状态更新后再跳转
+        if (AuthService.isLoggedIn()) {
+          console.log('登录成功，跳转到首页');
+          // 延迟100ms确保状态更新
+          setTimeout(() => {
+            this.$router.push('/');
+          }, 100);
+        } else {
+          console.error('登录成功但token未保存');
+          this.errorMessage = '登录状态保存失败，请重试';
+        }
       } catch (error) {
         console.error('登录失败:', error);
         if (error.response) {

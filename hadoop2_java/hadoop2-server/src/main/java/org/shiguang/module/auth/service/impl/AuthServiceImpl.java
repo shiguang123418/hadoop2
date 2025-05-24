@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,7 +38,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     @Value("${security.jwt.token.expire-length}")
     private long validityInMilliseconds;
 
-    private Key key;
+    private SecretKey key;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -50,7 +51,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
 
     @PostConstruct
     protected void init() {
-        // 使用Java 8兼容的密钥生成方法
+        // 使用JJWT 0.11.x的API创建密钥
         key = Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
@@ -77,9 +78,18 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         userInfo.put("id", user.getId());
         userInfo.put("username", user.getUsername());
         userInfo.put("email", user.getEmail());
-        userInfo.put("fullName", user.getFullName());
-        userInfo.put("roles", user.getRoles());
-        userInfo.put("active", user.isActive());
+        userInfo.put("fullName", user.getName());
+        
+        // 修复：确保roles不为null
+        String role = user.getRole();
+        if (role != null && !role.isEmpty()) {
+            userInfo.put("roles", Collections.singletonList(role));
+        } else {
+            // 默认为普通用户角色
+            userInfo.put("roles", Collections.singletonList("ROLE_USER"));
+        }
+        
+        userInfo.put("active", "active".equals(user.getStatus()));
         
         response.put("user", userInfo);
 
@@ -97,8 +107,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         // 设置默认角色
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            user.setRoles(Collections.singletonList(SecurityConstants.ROLE_USER));
+        if (user.getRole() == null || user.getRole().isEmpty()) {
+            user.setRole(SecurityConstants.ROLE_USER);
         }
 
         // 保存用户
@@ -111,7 +121,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("用户不存在"));
 
         Claims claims = Jwts.claims().setSubject(username);
-        claims.put("roles", user.getRoles());
+        claims.put("roles", Collections.singletonList(user.getRole()));
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
@@ -120,14 +130,16 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(validity)
-                .signWith(SignatureAlgorithm.HS256, key)
+                .signWith(key, SignatureAlgorithm.HS256)  // 更新的API调用
                 .compact();
     }
 
     @Override
     public Authentication getAuthentication(String token) {
-        Claims claims = Jwts.parser()
+        // 更新的JJWT解析API
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
 
@@ -167,13 +179,11 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                user.isActive(),
+                "active".equals(user.getStatus()),
                 true,
                 true,
                 true,
-                user.getRoles().stream()
-                        .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toList())
+                Collections.singletonList(new SimpleGrantedAuthority(user.getRole()))
         );
     }
 } 

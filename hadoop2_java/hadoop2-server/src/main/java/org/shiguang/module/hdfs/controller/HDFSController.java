@@ -2,6 +2,7 @@ package org.shiguang.module.hdfs.controller;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 
 import org.shiguang.entity.dto.ApiResponse;
 import org.shiguang.module.hdfs.service.HDFSService;

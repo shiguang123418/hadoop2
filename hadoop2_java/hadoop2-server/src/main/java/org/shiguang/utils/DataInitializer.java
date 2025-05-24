@@ -50,12 +50,29 @@ public class DataInitializer implements CommandLineRunner {
             user.setUsername(username);
             user.setPassword(passwordEncoder.encode(password));
             user.setEmail(email);
-            user.setFullName(fullName);
-            user.setRoles(roles);
-            user.setActive(true);
+            user.setName(fullName);
+            
+            // 确保admin用户获得ROLE_ADMIN角色
+            if ("admin".equals(username)) {
+                user.setRole(SecurityConstants.ROLE_ADMIN);
+            } else {
+                user.setRole(roles.get(0));
+            }
+            
+            user.setStatus("active");
 
             userRepository.save(user);
             System.out.println("已创建用户: " + username);
+        } else {
+            // 检查并更新现有admin用户的角色
+            if ("admin".equals(username)) {
+                User adminUser = existingUser.get();
+                if (!SecurityConstants.ROLE_ADMIN.equals(adminUser.getRole())) {
+                    adminUser.setRole(SecurityConstants.ROLE_ADMIN);
+                    userRepository.save(adminUser);
+                    System.out.println("已更新admin用户角色为: " + SecurityConstants.ROLE_ADMIN);
+                }
+            }
         }
     }
 } 

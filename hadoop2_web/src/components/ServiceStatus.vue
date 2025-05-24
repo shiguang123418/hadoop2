@@ -146,8 +146,16 @@ const refreshAllStatus = async () => {
 const checkHdfsStatus = async () => {
   try {
     const response = await HDFSService.getStatus();
-    hdfsStatus.value = response.connected;
-    hdfsUri.value = response.uri || '';
+    console.log('HDFS状态响应:', response);
+    
+    // 检查响应结构并获取正确的数据
+    if (response && response.data) {
+      hdfsStatus.value = response.data.connected;
+      hdfsUri.value = response.data.uri || '';
+    } else {
+      hdfsStatus.value = response.connected;
+      hdfsUri.value = response.uri || '';
+    }
     hdfsError.value = '';
   } catch (err) {
     console.error('获取HDFS状态失败:', err);
@@ -161,8 +169,16 @@ const checkHdfsStatus = async () => {
 const checkHiveStatus = async () => {
   try {
     const response = await HiveService.getStatus();
-    hiveStatus.value = response.connected;
-    hiveUrl.value = response.url || '';
+    console.log('Hive状态响应:', response);
+    
+    // 检查响应结构并获取正确的数据
+    if (response && response.data) {
+      hiveStatus.value = response.data.connected;
+      hiveUrl.value = response.data.url || '';
+    } else {
+      hiveStatus.value = response.connected;
+      hiveUrl.value = response.url || '';
+    }
     hiveError.value = '';
   } catch (err) {
     console.error('获取Hive状态失败:', err);
@@ -176,8 +192,16 @@ const checkHiveStatus = async () => {
 const checkSparkStatus = async () => {
   try {
     const response = await SparkService.getStatus();
-    sparkStatus.value = response.connected;
-    sparkUrl.value = response.url || '';
+    console.log('Spark状态响应:', response);
+    
+    // 检查响应结构并获取正确的数据
+    if (response && response.data) {
+      sparkStatus.value = response.data.connected;
+      sparkUrl.value = response.data.url || '';
+    } else {
+      sparkStatus.value = response.connected;
+      sparkUrl.value = response.url || '';
+    }
     sparkError.value = '';
   } catch (err) {
     console.error('获取Spark状态失败:', err);
@@ -191,8 +215,16 @@ const checkSparkStatus = async () => {
 const checkKafkaStatus = async () => {
   try {
     const response = await KafkaService.getStatus();
-    kafkaStatus.value = response.connected;
-    kafkaUrl.value = response.url || '';
+    console.log('Kafka状态响应:', response);
+    
+    // 检查响应结构并获取正确的数据
+    if (response && response.data) {
+      kafkaStatus.value = response.data.connected;
+      kafkaUrl.value = response.data.url || '';
+    } else {
+      kafkaStatus.value = response.connected;
+      kafkaUrl.value = response.url || '';
+    }
     kafkaError.value = '';
   } catch (err) {
     console.error('获取Kafka状态失败:', err);
@@ -210,7 +242,7 @@ const runDiagnostics = async () => {
   try {
     // 检查API服务可达性
     try {
-      await HDFSService.getStatus();
+      const response = await HDFSService.getStatus();
       diagnosticResults.value.push({
         status: 'success',
         message: 'HDFS API服务可达'
@@ -223,7 +255,7 @@ const runDiagnostics = async () => {
     }
     
     try {
-      await HiveService.getStatus();
+      const response = await HiveService.getStatus();
       diagnosticResults.value.push({
         status: 'success',
         message: 'Hive API服务可达'
@@ -236,7 +268,7 @@ const runDiagnostics = async () => {
     }
     
     try {
-      await SparkService.getStatus();
+      const response = await SparkService.getStatus();
       diagnosticResults.value.push({
         status: 'success',
         message: 'Spark API服务可达'
@@ -249,7 +281,7 @@ const runDiagnostics = async () => {
     }
     
     try {
-      await KafkaService.getStatus();
+      const response = await KafkaService.getStatus();
       diagnosticResults.value.push({
         status: 'success',
         message: 'Kafka API服务可达'
@@ -270,10 +302,11 @@ const runDiagnostics = async () => {
       
       // 测试列出根目录
       try {
-        const response = await HDFSService.listFiles('/');
+        const listResponse = await HDFSService.listFiles('/');
+        const fileList = listResponse.data || listResponse;
         diagnosticResults.value.push({
           status: 'success',
-          message: `HDFS根目录列表获取成功，包含 ${response.length} 个项目`
+          message: `HDFS根目录列表获取成功，包含 ${Array.isArray(fileList) ? fileList.length : '未知数量'} 个项目`
         });
       } catch (err) {
         diagnosticResults.value.push({
@@ -303,10 +336,11 @@ const runDiagnostics = async () => {
       
       // 测试获取数据库列表
       try {
-        const response = await HiveService.getDatabases();
+        const dbResponse = await HiveService.getDatabases();
+        const databases = dbResponse.data || dbResponse;
         diagnosticResults.value.push({
           status: 'success',
-          message: `Hive数据库列表获取成功，包含 ${response.length} 个数据库`
+          message: `Hive数据库列表获取成功，包含 ${Array.isArray(databases) ? databases.length : '未知数量'} 个数据库`
         });
       } catch (err) {
         diagnosticResults.value.push({
@@ -337,10 +371,11 @@ const runDiagnostics = async () => {
       // 可以增加一些Spark特定的诊断测试
       try {
         // 假设有获取应用列表的方法
-        const response = await SparkService.getApplications();
+        const appResponse = await SparkService.getApplications();
+        const applications = appResponse.data || appResponse;
         diagnosticResults.value.push({
           status: 'success',
-          message: `Spark应用列表获取成功，有 ${response.length} 个运行中的应用`
+          message: `Spark应用列表获取成功，有 ${Array.isArray(applications) ? applications.length : '未知数量'} 个运行中的应用`
         });
       } catch (err) {
         diagnosticResults.value.push({
@@ -371,10 +406,11 @@ const runDiagnostics = async () => {
       // 可以增加一些Kafka特定的诊断测试
       try {
         // 假设有获取主题列表的方法
-        const response = await KafkaService.getTopics();
+        const topicResponse = await KafkaService.getTopics();
+        const topics = topicResponse.data || topicResponse;
         diagnosticResults.value.push({
           status: 'success',
-          message: `Kafka主题列表获取成功，有 ${response.length} 个主题`
+          message: `Kafka主题列表获取成功，有 ${Array.isArray(topics) ? topics.length : '未知数量'} 个主题`
         });
       } catch (err) {
         diagnosticResults.value.push({
