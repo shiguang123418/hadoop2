@@ -13,32 +13,7 @@
     <description>农业大数据平台的主服务器模块</description>
 
     <dependencies>
-        <dependency>
-            <groupId>org.shiguang</groupId>
-            <artifactId>hadoop2-common</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.shiguang</groupId>
-            <artifactId>hadoop2-pojo</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.shiguang</groupId>
-            <artifactId>hadoop2-hdfs</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.shiguang</groupId>
-            <artifactId>hadoop2-hive</artifactId>
-        </dependency>
 
-        
-        <dependency>
-            <groupId>org.shiguang</groupId>
-            <artifactId>hadoop2-kafka-ws</artifactId>
-        </dependency>
-        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>

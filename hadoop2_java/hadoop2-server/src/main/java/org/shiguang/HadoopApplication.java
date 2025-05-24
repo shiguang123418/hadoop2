@@ -1,12 +1,10 @@
 package org.shiguang;
 
-import org.shiguang.hadoop.HDFSClient;
-import org.shiguang.hadoop.HiveClient;
-import org.springframework.beans.factory.annotation.Value;
+import org.shiguang.Client.HDFSClient;
+import org.shiguang.Client.HiveClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
 
 import java.util.Arrays;
 import java.util.Scanner;

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 演示</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>WebSocket 连接测试</h1>
+        <div class="connection-status">
+            <span id="status-indicator" class="disconnected"></span>
+            <span id="status-text">未连接</span>
+        </div>
+    </header>
+
+    <div class="connection-controls">
+        <div class="server-url">
+            <label for="server-url">WebSocket 地址：</label>
+            <input type="text" id="server-url" value="http://shiguang:8001/ws">
+        </div>
+        <div class="button-group">
+            <button id="connect-btn" class="primary-btn">连接</button>
+            <button id="disconnect-btn" class="danger-btn" disabled>断开连接</button>
+        </div>
+    </div>
+
+    <div class="message-panel">
+        <div class="message-input">
+            <label for="message">消息：</label>
+            <textarea id="message" placeholder="输入要发送的消息..." disabled></textarea>
+            <button id="send-btn" class="primary-btn" disabled>发送消息</button>
+        </div>
+
+        <div class="message-log-container">
+            <h3>消息历史</h3>
+            <div id="message-log" class="message-log"></div>
+        </div>
+    </div>
+</div>
+
+<script src="js/websocket-client.js"></script>
+</body>
+</html>

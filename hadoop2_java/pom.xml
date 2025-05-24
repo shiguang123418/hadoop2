@@ -17,11 +17,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>hadoop2-common</module>
-        <module>hadoop2-pojo</module>
         <module>hadoop2-server</module>
-        <module>hadoop2-hdfs</module>
-        <module>hadoop2-hive</module>
         <module>hadoop2-kafka-ws</module>
     </modules>
 
