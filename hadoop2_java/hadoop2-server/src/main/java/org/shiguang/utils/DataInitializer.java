@@ -1,7 +1,7 @@
 package org.shiguang.utils;
 
-import org.shiguang.security.repository.UserRepository;
-import org.shiguang.security.security.SecurityConstants;
+import org.shiguang.repository.UserRepository;
+import org.shiguang.module.auth.Constants.SecurityConstants;
 import org.shiguang.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;

@@ -1,0 +1,179 @@
+package org.shiguang.module.auth.service.impl;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.shiguang.entity.User;
+import org.shiguang.module.auth.service.AuthService;
+import org.shiguang.module.common.security.SecurityConstants;
+import org.shiguang.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import java.security.Key;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * 认证服务实现类
+ */
+@Service
+public class AuthServiceImpl implements AuthService, UserDetailsService {
+
+    @Value("${security.jwt.token.secret-key}")
+    private String secretKey;
+
+    @Value("${security.jwt.token.expire-length}")
+    private long validityInMilliseconds;
+
+    private Key key;
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostConstruct
+    protected void init() {
+        // 使用Java 8兼容的密钥生成方法
+        key = Keys.hmacShaKeyFor(secretKey.getBytes());
+    }
+
+    @Override
+    public Map<String, Object> login(String username, String password) {
+        // 查找用户
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("用户名或密码错误"));
+
+        // 验证密码
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("用户名或密码错误");
+        }
+
+        // 生成令牌
+        String token = createToken(username);
+
+        // 构建响应
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        
+        // 复制用户信息，排除敏感字段
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("username", user.getUsername());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("fullName", user.getFullName());
+        userInfo.put("roles", user.getRoles());
+        userInfo.put("active", user.isActive());
+        
+        response.put("user", userInfo);
+
+        return response;
+    }
+
+    @Override
+    public User register(User user) {
+        // 检查用户名是否已存在
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new IllegalArgumentException("用户名已存在");
+        }
+
+        // 加密密码
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        // 设置默认角色
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            user.setRoles(Collections.singletonList(SecurityConstants.ROLE_USER));
+        }
+
+        // 保存用户
+        return userRepository.save(user);
+    }
+
+    @Override
+    public String createToken(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("用户不存在"));
+
+        Claims claims = Jwts.claims().setSubject(username);
+        claims.put("roles", user.getRoles());
+
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + validityInMilliseconds);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(validity)
+                .signWith(SignatureAlgorithm.HS256, key)
+                .compact();
+    }
+
+    @Override
+    public Authentication getAuthentication(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(key)
+                .parseClaimsJws(token)
+                .getBody();
+
+        String username = claims.getSubject();
+        List<String> roles = claims.get("roles", List.class);
+
+        UserDetails userDetails = loadUserByUsername(username);
+
+        return new UsernamePasswordAuthenticationToken(
+                userDetails, "", userDetails.getAuthorities());
+    }
+
+    @Override
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+        String username;
+
+        if (principal instanceof UserDetails) {
+            username = ((UserDetails) principal).getUsername();
+        } else {
+            username = principal.toString();
+        }
+
+        return userRepository.findByUsername(username).orElse(null);
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("未找到用户: " + username));
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                user.isActive(),
+                true,
+                true,
+                true,
+                user.getRoles().stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList())
+        );
+    }
+} 

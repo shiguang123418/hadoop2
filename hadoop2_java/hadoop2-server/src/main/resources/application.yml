@@ -5,6 +5,8 @@ server:
 
 app:
   host: shiguang
+  server:
+    host: localhost
 
 spring:
   datasource:
@@ -46,6 +48,11 @@ hadoop:
     impl: org.apache.hadoop.hdfs.DistributedFileSystem
 
 hive:
+  jdbc:
+    url: jdbc:hive2://${app.host}:10000/default
+    driver: org.apache.hive.jdbc.HiveDriver
+    username: 
+    password: 
   url: jdbc:hive2://${app.host}:10000
   username: root
   password:
@@ -67,10 +74,20 @@ debug: false
 
 # Spark 配置
 spark:
-  master:
-    url: http://${app.host}:8081
+  app:
+    name: HadoopSparkApp
+  master: local[*]
+  executor:
+    memory: 1g
+  driver:
+    memory: 1g
 
 # Kafka 配置
 kafka:
+  bootstrap:
+    servers: ${app.host}:9092
+  consumer:
+    group:
+      id: hadoop-consumer-group
   host: ${app.host}
   port: 9092
