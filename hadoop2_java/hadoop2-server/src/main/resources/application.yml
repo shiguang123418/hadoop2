@@ -59,7 +59,7 @@ hive:
   jdbc:
     url: jdbc:hive2://${app.host}:10000/default
     driver: org.apache.hive.jdbc.HiveDriver
-    username: 
+    username: root
     password: 
   url: jdbc:hive2://${app.host}:10000
   username: root
@@ -84,7 +84,7 @@ debug: false
 spark:
   app:
     name: HadoopSparkApp
-  master: local[*]
+  master: yarn
   executor:
     memory: 1g
   driver:
