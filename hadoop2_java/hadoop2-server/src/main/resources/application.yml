@@ -6,7 +6,7 @@ server:
 app:
   host: shiguang
   server:
-    host: localhost
+    host: shiguang
 
 spring:
   datasource:
@@ -77,7 +77,7 @@ debug: false
 spark:
   app:
     name: HadoopSparkApp
-  master: local[*]
+  master: yarn
   executor:
     memory: 1g
   driver:
