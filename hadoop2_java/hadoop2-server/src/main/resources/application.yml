@@ -84,7 +84,7 @@ debug: false
 spark:
   app:
     name: HadoopSparkApp
-  master: yarn
+  master: local[*]
   executor:
     memory: 1g
   driver:
