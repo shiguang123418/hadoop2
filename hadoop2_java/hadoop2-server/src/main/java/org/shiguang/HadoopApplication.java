@@ -511,14 +511,6 @@ public class HadoopApplication {
     }
 
     /**
-     * 密码编码器
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
      * 跨域过滤器
      */
     @Bean
