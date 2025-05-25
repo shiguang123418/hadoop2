@@ -21,6 +21,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private org.shiguang.utils.DataInitializer dataInitializer;
+
     /**
      * 获取所有用户
      */
@@ -128,5 +131,29 @@ public class UserController {
         }
         
         return ResponseEntity.ok(ApiResponse.success("用户角色更新成功", updatedUser));
+    }
+
+    /**
+     * 管理员重置用户密码为初始密码
+     * 仅限ADMIN角色使用
+     */
+    @PostMapping("/{userId}/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @PathVariable Long userId) {
+        
+        // 获取要重置的用户
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            return ResponseEntity.ok(ApiResponse.error(404, "用户不存在"));
+        }
+        
+        // 重置密码
+        boolean reset = dataInitializer.resetUserPassword(user.getUsername());
+        
+        if (!reset) {
+            return ResponseEntity.ok(ApiResponse.error(500, "密码重置失败"));
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success("密码已重置为初始密码"));
     }
 } 

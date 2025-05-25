@@ -428,9 +428,11 @@ export default {
           response = await HiveService.executeQuery(queryText.value);
           
           if (response && Array.isArray(response) && response.length > 0) {
-            // 提取列名
             columns.value = Object.keys(response[0]);
             queryResults.value = response;
+          } else if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+            columns.value = Object.keys(response.data[0]);
+            queryResults.value = response.data;
           } else if (response && response.columns) {
             columns.value = response.columns;
             queryResults.value = response.data || [];

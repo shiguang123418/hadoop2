@@ -7,7 +7,7 @@
 // 【重要】修改此处可统一更改所有API服务地址
 // ======================================================
 const API_SERVER_HOST = 'shiguang'; // 修改为localhost或实际IP，不要使用主机名
-const API_SERVER_PORT = '8080';      // 修改此处设置API服务器端口
+const API_SERVER_PORT = '8000';      // 修改此处设置API服务器端口
 // ======================================================
 
 // 默认开发环境配置
@@ -55,9 +55,11 @@ const getBaseUrl = () => {
 
 // 导出配置
 export default {
-  ...config,
-  baseUrl: getBaseUrl(),
-  // 导出主机和端口以便其他地方使用
-  host: API_SERVER_HOST,
-  port: API_SERVER_PORT
+  baseUrl: '/api',
+  services: {
+    hdfs: '/hdfs',
+    hive: '/hive',
+    spark: '/spark',
+    auth: '/auth'
+  }
 }; 

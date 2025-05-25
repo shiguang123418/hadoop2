@@ -80,27 +80,7 @@
         <dependencies>
             <dependency>
                 <groupId>org.shiguang</groupId>
-                <artifactId>hadoop2-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.shiguang</groupId>
-                <artifactId>hadoop2-pojo</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.shiguang</groupId>
                 <artifactId>hadoop2-server</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.shiguang</groupId>
-                <artifactId>hadoop2-hdfs</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.shiguang</groupId>
-                <artifactId>hadoop2-hive</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

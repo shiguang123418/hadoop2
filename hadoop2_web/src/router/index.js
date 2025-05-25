@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../views/HomePage.vue'
 import Login from '../views/Login.vue'
 import AuthService from '../services/auth'
+import { ElMessage } from 'element-plus'
 
 // 创建路由实例
 const router = createRouter({
@@ -69,6 +70,20 @@ const router = createRouter({
       name: 'DataSource',
       component: () => import('../views/datasource/DataSourceList.vue'),
       meta: { title: '数据源管理' }
+    },
+    // 新增路由 - 个人信息
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/Profile.vue'),
+      meta: { requiresAuth: true, title: '个人信息' }
+    },
+    // 新增路由 - 修改密码
+    {
+      path: '/change-password',
+      name: 'change-password',
+      component: () => import('../views/ChangePassword.vue'),
+      meta: { requiresAuth: true, title: '修改密码' }
     }
   ]
 })
@@ -98,10 +113,12 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth && !isLoggedIn) {
     // 需要认证但未登录，重定向到登录页
     console.log('未登录，重定向到登录页');
+    ElMessage.warning('请先登录后再访问此页面');
     next('/login');
   } else if (requiresAdmin && !isAdmin) {
     // 需要管理员权限但不是管理员，重定向到首页
     console.log('需要管理员权限，重定向到首页');
+    ElMessage.error('您没有管理员权限，无法访问此页面');
     next('/');
   } else if (to.path === '/login' && isLoggedIn) {
     // 已登录但访问登录页，重定向到首页

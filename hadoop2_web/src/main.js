@@ -4,6 +4,7 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 import AuthService from './services/auth'
 import router from './router'
+import apiConfig from './config/api.config'
 
 // 导入Element Plus
 import ElementPlus from 'element-plus'
@@ -15,9 +16,11 @@ import './assets/base.css'
 import './assets/main.css'
 import './assets/background-fix.css'
 
-// 配置axios - 移除默认的/api前缀，因为各服务类已经包含了完整路径
-axios.defaults.baseURL = ''
+// 配置axios - 使用apiConfig中的baseUrl作为默认路径
+axios.defaults.baseURL = apiConfig.baseUrl
 axios.defaults.withCredentials = true
+
+console.log('API基础路径:', apiConfig.baseUrl)
 
 // 设置认证头
 AuthService.setupAuthHeader();

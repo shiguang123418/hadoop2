@@ -20,6 +20,9 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // 用于测试的固定密码
+    private static final String DEFAULT_PASSWORD = "082415";
+
     @Autowired
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -29,16 +32,18 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // 创建默认管理员用户
-        createUserIfNotExists("admin", "082415", "admin@example.com", "管理员",
+        createUserIfNotExists("admin", DEFAULT_PASSWORD, "admin@example.com", "管理员",
                 Arrays.asList(SecurityConstants.ROLE_ADMIN, SecurityConstants.ROLE_USER));
 
         // 创建默认普通用户
-        createUserIfNotExists("user", "082415", "user@example.com", "普通用户",
+        createUserIfNotExists("user", DEFAULT_PASSWORD, "user@example.com", "普通用户",
                 Arrays.asList(SecurityConstants.ROLE_USER));
                 
-        // 创建测试用户 y1/123456
-        createUserIfNotExists("y1", "082415", "y1@example.com", "测试用户",
+        // 创建测试用户 y1/082415
+        createUserIfNotExists("y1", DEFAULT_PASSWORD, "y1@example.com", "测试用户",
                 Arrays.asList(SecurityConstants.ROLE_USER));
+                
+        System.out.println("用户初始化完成，默认密码为: " + DEFAULT_PASSWORD);
     }
 
     private void createUserIfNotExists(String username, String password, String email, String fullName, 
@@ -74,5 +79,22 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
         }
+    }
+    
+    /**
+     * 重置用户密码
+     * 用于测试或管理员重置
+     * @param username 用户名
+     * @return 是否成功
+     */
+    public boolean resetUserPassword(String username) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
+            userRepository.save(user);
+            return true;
+        }
+        return false;
     }
 } 

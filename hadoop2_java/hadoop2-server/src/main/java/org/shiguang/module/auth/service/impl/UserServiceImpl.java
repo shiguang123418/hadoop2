@@ -165,6 +165,8 @@ public class UserServiceImpl implements UserService {
             // 加密新密码
             user.setPassword(passwordEncoder.encode(newPassword));
             user.setUpdatedAt(new Date());
+            // 更新密码修改时间
+            user.setPasswordLastChanged(new Date());
             
             userRepository.save(user);
             return true;

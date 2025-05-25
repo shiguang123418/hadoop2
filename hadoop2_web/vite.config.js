@@ -4,9 +4,6 @@ import vue from '@vitejs/plugin-vue'
 
 // 默认API服务器配置
 // 注意：此处的配置应与api.config.js中保持一致
-const API_SERVER_HOST = 'shiguang';
-const API_SERVER_PORT = '8080';
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -26,27 +23,17 @@ export default defineConfig({
     cors: true, // 设置没有访问限制
     proxy: {
       '/api': {
-        target: `http://${API_SERVER_HOST}:${API_SERVER_PORT}`,
+        target: 'http://shiguang:8000',
         changeOrigin: true,
         secure: false,
-        ws: true, // 启用WebSocket代理
-        // 调试时可以查看代理的请求
-        configure: (proxy, options) => {
-          console.log(`代理配置已加载: /api -> ${options.target}`);
-          
-          // 可以添加代理事件监听以调试
-          proxy.on('proxyReq', function(proxyReq, req, res, options) {
-            console.log('代理请求:', req.method, req.url, '-> 转发到:', options.target + req.url);
-          });
-          
-          proxy.on('proxyRes', function(proxyRes, req, res) {
-            console.log('代理响应:', proxyRes.statusCode, req.url);
-          });
-          
-          proxy.on('error', function(err, req, res) {
-            console.error('代理错误:', err, req.url);
-          });
-        }
+        ws: true
+      },
+      '/api_ws': {
+        target: 'ws://shiguang:8000',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api_ws/, '/ws')
       }
     }
   },

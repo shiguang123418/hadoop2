@@ -1,13 +1,14 @@
 import axios from 'axios';
+import apiConfig from '../config/api.config';
 
 /**
  * 身份验证服务
  */
 class AuthService {
   constructor() {
-    // 使用全局配置的API URL
-    const baseURL = window.API_BASE_URL || 'http://localhost:8080/api';
-    this.baseUrl = `${baseURL}/auth`;
+    // 不要在 baseUrl 中添加 /api 前缀，因为 axios.defaults.baseURL 已经是 /api 了
+    // 这里只使用相对路径 /auth
+    this.baseUrl = '/auth';
     console.log('Auth服务初始化，baseUrl:', this.baseUrl);
   }
   
@@ -333,6 +334,25 @@ class AuthService {
       return response.data;
     } catch (error) {
       console.error('更新用户资料失败:', error.response?.data?.message || error.message);
+      throw error;
+    }
+  }
+  
+  /**
+   * 管理员重置用户密码
+   * 需要管理员权限
+   * @param {string} userId 用户ID
+   */
+  async resetUserPassword(userId) {
+    try {
+      const response = await axios.post(`${this.baseUrl}/users/${userId}/reset-password`, {}, {
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('重置用户密码失败:', error.response?.data?.message || error.message);
       throw error;
     }
   }

@@ -11,7 +11,9 @@ class ApiService {
    * @param {string} basePath API基础路径
    */
   constructor(basePath) {
-    this.basePath = basePath;
+    // 确保basePath不以/开头，避免与baseURL拼接时出现双斜杠
+    this.basePath = basePath.startsWith('/') ? basePath.substring(1) : basePath;
+    
     this.api = axios.create({
       baseURL: apiConfig.baseUrl,
       headers: {
@@ -22,17 +24,11 @@ class ApiService {
     // 请求拦截器
     this.api.interceptors.request.use(
       config => {
-        // 可以在发送请求前做一些处理，例如添加token
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
-        
-        // 移除路径中的重复 /api 前缀，因为 baseURL 已经包含了 /api
-        if (this.basePath.startsWith('/api')) {
-          this.basePath = this.basePath.substring(4);
+        // 设置认证头
+        const token = AuthService.getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
-        
         return config;
       },
       error => Promise.reject(error)
@@ -61,7 +57,8 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   get(endpoint, params = {}, config = {}) {
-    return this.api.get(`${this.basePath}${endpoint}`, {
+    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    return this.api.get(`/${this.basePath}${endpoint}`, {
       params,
       ...config
     });
@@ -75,7 +72,8 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   post(endpoint, data = {}, config = {}) {
-    return this.api.post(`${this.basePath}${endpoint}`, data, config);
+    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    return this.api.post(`/${this.basePath}${endpoint}`, data, config);
   }
   
   /**
@@ -86,7 +84,8 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   put(endpoint, data = {}, config = {}) {
-    return this.api.put(`${this.basePath}${endpoint}`, data, config);
+    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    return this.api.put(`/${this.basePath}${endpoint}`, data, config);
   }
   
   /**
@@ -97,7 +96,8 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   delete(endpoint, params = {}, config = {}) {
-    return this.api.delete(`${this.basePath}${endpoint}`, {
+    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    return this.api.delete(`/${this.basePath}${endpoint}`, {
       params,
       ...config
     });

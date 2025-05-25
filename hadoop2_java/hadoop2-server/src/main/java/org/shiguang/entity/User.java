@@ -47,10 +47,14 @@ public class User {
     @Temporal(TemporalType.TIMESTAMP)
     private Date lastLoginAt;
     
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date passwordLastChanged;
+    
     @PrePersist
     protected void onCreate() {
         createdAt = new Date();
         updatedAt = createdAt;
+        passwordLastChanged = createdAt;
     }
     
     @PreUpdate

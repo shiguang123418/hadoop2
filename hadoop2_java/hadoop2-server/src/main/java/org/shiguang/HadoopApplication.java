@@ -7,9 +7,12 @@ import org.shiguang.module.kafka.client.KafkaClient;
 import org.shiguang.module.spark.client.SparkClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +31,9 @@ import java.util.Scanner;
 @SpringBootApplication
 @EnableScheduling
 @ServletComponentScan
+@ComponentScan(basePackages = {"org.shiguang", "com.hadoop2"})
+@EnableJpaRepositories(basePackages = {"org.shiguang.repository", "com.hadoop2.server.repository"})
+@EntityScan(basePackages = {"org.shiguang.entity", "com.hadoop2.server.entity"})
 public class HadoopApplication {
 
     public static void main(String[] args) {
@@ -515,21 +521,20 @@ public class HadoopApplication {
      */
     @Bean
     public CorsFilter corsFilter() {
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.setAllowCredentials(true);
+        corsConfiguration.addAllowedOriginPattern("*");
+        corsConfiguration.addAllowedHeader("*");
+        corsConfiguration.addAllowedMethod("*");
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
+        source.registerCorsConfiguration("/**", corsConfiguration);
         
-        // 允许跨域的头部信息
-        config.addAllowedHeader("*");
-        // 允许跨域的方法
-        config.addAllowedMethod("*");
-        // 允许跨域的源
-        config.addAllowedOrigin("*");
-        // 是否允许携带cookie
-        config.setAllowCredentials(true);
-        // 跨域允许时间
-        config.setMaxAge(3600L);
-        
-        source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
+    }
+    
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 } 

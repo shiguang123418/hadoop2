@@ -186,4 +186,16 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 Collections.singletonList(new SimpleGrantedAuthority(user.getRole()))
         );
     }
+    
+    @Override
+    public boolean validatePassword(String username, String password) {
+        try {
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("未找到用户: " + username));
+            
+            return passwordEncoder.matches(password, user.getPassword());
+        } catch (Exception e) {
+            return false;
+        }
+    }
 } 

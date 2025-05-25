@@ -44,4 +44,12 @@ public interface AuthService {
      * @return 当前登录用户，如果未登录则返回null
      */
     User getCurrentUser();
+    
+    /**
+     * 验证用户密码是否正确
+     * @param username 用户名
+     * @param password 密码
+     * @return 密码是否正确
+     */
+    boolean validatePassword(String username, String password);
 } 

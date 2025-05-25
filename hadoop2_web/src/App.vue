@@ -85,17 +85,17 @@
           <h2 class="header-title">农业数据可视化平台</h2>
         </div>
         <div class="header-right">
-          <el-dropdown trigger="click">
+          <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-dropdown">
               <el-avatar size="small" icon="el-icon-user"></el-avatar>
-              <span class="username">管理员</span>
+              <span class="username">{{ username }}</span>
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>个人信息</el-dropdown-item>
-                <el-dropdown-item>修改密码</el-dropdown-item>
-                <el-dropdown-item divided>退出登录</el-dropdown-item>
+                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+                <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -129,6 +129,10 @@ import {
   Crop,
   ArrowDown
 } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import AuthService from './services/auth'
 
 export default {
   name: 'App',
@@ -147,6 +151,42 @@ export default {
     Tools,
     Crop,
     ArrowDown
+  },
+  setup() {
+    const router = useRouter();
+    const username = ref('管理员');
+    
+    onMounted(() => {
+      // 获取当前用户信息
+      const user = AuthService.getCurrentUser();
+      if (user) {
+        username.value = user.username || '管理员';
+      }
+    });
+    
+    // 处理下拉菜单命令
+    const handleCommand = (command) => {
+      if (command === 'logout') {
+        ElMessageBox.confirm('确定要退出登录吗?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          AuthService.logout();
+          router.push('/login');
+          ElMessage.success('已成功退出登录');
+        }).catch(() => {});
+      } else if (command === 'profile') {
+        router.push('/profile');
+      } else if (command === 'changePassword') {
+        router.push('/change-password');
+      }
+    };
+    
+    return {
+      username,
+      handleCommand
+    };
   }
 }
 </script>
