@@ -19,6 +19,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class AuthServiceImpl implements AuthService, UserDetailsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     @Value("${security.jwt.token.secret-key}")
     private String secretKey;
@@ -66,6 +70,12 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             throw new IllegalArgumentException("用户名或密码错误");
         }
 
+        // 打印用户信息
+        logger.info("用户登录成功: {}, ID: {}, 头像: {}", 
+                    username, 
+                    user.getId(), 
+                    user.getAvatar() != null ? user.getAvatar() : "无头像");
+
         // 生成令牌
         String token = createToken(username);
 
@@ -80,6 +90,15 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         userInfo.put("email", user.getEmail());
         userInfo.put("fullName", user.getName());
         
+        // 确保头像URL正确返回
+        if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
+            userInfo.put("avatar", user.getAvatar());
+            logger.info("返回用户头像URL: {}", user.getAvatar());
+        } else {
+            userInfo.put("avatar", null);
+            logger.info("用户没有头像");
+        }
+        
         // 修复：确保roles不为null
         String role = user.getRole();
         if (role != null && !role.isEmpty()) {
@@ -92,6 +111,12 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         userInfo.put("active", "active".equals(user.getStatus()));
         
         response.put("user", userInfo);
+        
+        // 打印完整响应，但排除敏感信息
+        logger.info("返回登录响应，用户: {}, 角色: {}, 有头像: {}", 
+                    username, 
+                    role, 
+                    user.getAvatar() != null);
 
         return response;
     }
@@ -156,6 +181,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
+            logger.debug("getCurrentUser: 用户未认证或认证上下文为空");
             return null;
         }
 
@@ -168,7 +194,20 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             username = principal.toString();
         }
 
-        return userRepository.findByUsername(username).orElse(null);
+        logger.debug("getCurrentUser: 从认证上下文获取用户名: {}", username);
+        
+        User user = userRepository.findByUsername(username).orElse(null);
+        
+        if (user != null) {
+            logger.debug("getCurrentUser: 找到用户 {}, ID: {}, 头像: {}", 
+                        username, 
+                        user.getId(), 
+                        user.getAvatar() != null ? user.getAvatar() : "无头像");
+        } else {
+            logger.warn("getCurrentUser: 在数据库中未找到用户 {}", username);
+        }
+        
+        return user;
     }
 
     @Override

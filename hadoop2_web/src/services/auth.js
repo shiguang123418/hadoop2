@@ -117,6 +117,13 @@ class AuthService {
         
         // 保存用户信息
         const userData = response.data.user || { username: username, role: 'user' };
+        
+        // 打印用户数据，检查是否包含avatar
+        console.log('保存用户数据:', userData);
+        if (userData.avatar) {
+          console.log('用户头像URL:', userData.avatar);
+        }
+        
         localStorage.setItem('user', JSON.stringify(userData));
         
         // 设置默认Authorization头
@@ -128,6 +135,12 @@ class AuthService {
         console.log('从嵌套的data字段中提取登录凭证');
         const token = response.data.data.token;
         const userData = response.data.data.user || { username: username, role: 'user' };
+        
+        // 打印用户数据，检查是否包含avatar
+        console.log('保存用户数据(嵌套):', userData);
+        if (userData.avatar) {
+          console.log('用户头像URL:', userData.avatar);
+        }
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
@@ -326,10 +339,17 @@ class AuthService {
       });
       
       // 更新本地存储的用户信息
-      localStorage.setItem('user', JSON.stringify({
+      const updatedUser = {
         ...currentUser,
         ...profileData
-      }));
+      };
+      
+      // 确保avatar字段正确保存
+      if (profileData.avatar) {
+        updatedUser.avatar = profileData.avatar;
+      }
+      
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       
       return response.data;
     } catch (error) {

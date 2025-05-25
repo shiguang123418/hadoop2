@@ -102,6 +102,12 @@ public class UserServiceImpl implements UserService {
                 existingUser.setPhone(user.getPhone());
             }
             
+            // 更新头像URL
+            if (user.getAvatar() != null) {
+                logger.info("更新用户头像: " + user.getId() + ", 头像URL: " + user.getAvatar());
+                existingUser.setAvatar(user.getAvatar());
+            }
+            
             // 更新密码（如果提供）
             if (user.getPassword() != null && !user.getPassword().isEmpty()) {
                 existingUser.setPassword(passwordEncoder.encode(user.getPassword()));

@@ -2,7 +2,7 @@
   <el-container class="app-wrapper">
     <el-aside width="220px" class="sidebar">
       <div class="logo-container">
-        <!-- <img src="/logo.png" alt="Logo" class="logo" v-if="false"> -->
+        <img src="/logo.svg" alt="Logo" class="logo" v-if="false">
         <h2 class="logo-text">农业数据平台</h2>
       </div>
       <el-scrollbar>
@@ -87,7 +87,11 @@
         <div class="header-right">
           <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-dropdown">
-              <el-avatar size="small" icon="el-icon-user"></el-avatar>
+              <el-avatar 
+                size="small" 
+                :src="userAvatar" 
+                @error="avatarLoadError">
+              </el-avatar>
               <span class="username">{{ username }}</span>
               <el-icon><ArrowDown /></el-icon>
             </span>
@@ -133,6 +137,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AuthService from './services/auth'
+import axios from 'axios'
 
 export default {
   name: 'App',
@@ -155,12 +160,87 @@ export default {
   setup() {
     const router = useRouter();
     const username = ref('管理员');
+    const userAvatar = ref('');
     
-    onMounted(() => {
-      // 获取当前用户信息
-      const user = AuthService.getCurrentUser();
-      if (user) {
-        username.value = user.username || '管理员';
+    // 从服务器获取最新用户信息
+    const fetchCurrentUser = async () => {
+      try {
+        // 如果未登录则不请求
+        if (!AuthService.isLoggedIn()) {
+          console.log('用户未登录，跳过获取用户信息');
+          return;
+        }
+        
+        console.log('正在从服务器获取最新用户信息...');
+        const response = await axios.get('/auth/current', {
+          headers: {
+            'Authorization': `Bearer ${AuthService.getToken()}`
+          }
+        });
+        
+        console.log('获取用户信息响应:', response.data);
+        
+        if (response.data && response.data.code === 200 && response.data.data) {
+          const userData = response.data.data;
+          console.log('服务器返回的用户信息:', userData);
+          
+          // 更新本地存储
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          // 更新页面显示
+          username.value = userData.username || '管理员';
+          
+          // 处理头像URL
+          if (userData.avatar) {
+            console.log('用户头像URL存在:', userData.avatar);
+            // 确保URL是有效的
+            if (userData.avatar.startsWith('http')) {
+              console.log('头像URL格式正确，直接使用');
+              userAvatar.value = userData.avatar;
+            } else {
+              console.log('头像URL格式可能不正确，尝试修复:', userData.avatar);
+              // 尝试修复URL格式
+              if (userData.avatar.startsWith('/')) {
+                userAvatar.value = `${window.location.origin}${userData.avatar}`;
+              } else {
+                userAvatar.value = `${window.location.origin}/${userData.avatar}`;
+              }
+              console.log('修复后的头像URL:', userAvatar.value);
+            }
+          } else {
+            console.log('用户没有头像');
+            userAvatar.value = ''; // 清空URL
+          }
+          
+          return userData;
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+      return null;
+    };
+    
+    onMounted(async () => {
+      // 尝试从服务器获取最新用户信息
+      const serverUser = await fetchCurrentUser();
+      
+      if (!serverUser) {
+        // 如果服务器获取失败，则使用本地缓存
+        const localUser = AuthService.getCurrentUser();
+        console.log('使用本地缓存的用户信息:', localUser);
+        
+        if (localUser) {
+          username.value = localUser.username || '管理员';
+          
+          // 处理头像URL
+          if (localUser.avatar) {
+            console.log('用户头像URL:', localUser.avatar);
+            userAvatar.value = localUser.avatar;
+          } else {
+            console.log('用户没有头像');
+            userAvatar.value = ''; // El-avatar组件会在src为空时显示默认图标
+          }
+        }
       }
     });
     
@@ -183,9 +263,17 @@ export default {
       }
     };
     
+    // 处理头像加载错误
+    const avatarLoadError = () => {
+      console.error('头像加载失败');
+      userAvatar.value = ''; // 清空src，使用默认图标
+    };
+    
     return {
       username,
-      handleCommand
+      userAvatar,
+      handleCommand,
+      avatarLoadError
     };
   }
 }

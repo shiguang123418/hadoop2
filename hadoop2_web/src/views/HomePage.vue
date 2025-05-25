@@ -28,9 +28,7 @@
             </div>
           </div>
           <div class="welcome-image">
-            <div class="image-placeholder">
-              <el-icon><PictureFilled /></el-icon>
-            </div>
+            <img src="/y1.jpg" alt="农业大数据平台" class="welcome-actual-image" />
           </div>
         </div>
       </el-card>
@@ -767,19 +765,10 @@ export default {
   justify-content: center;
 }
 
-.image-placeholder {
+.welcome-actual-image {
   width: 100%;
   height: 100%;
-  background-color: #f0f2f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-}
-
-.image-placeholder .el-icon {
-  font-size: 48px;
-  color: #c0c4cc;
+  object-fit: cover;
 }
 
 /* 服务状态区域样式 */

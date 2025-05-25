@@ -32,6 +32,9 @@ public class User {
     
     private String phone;
     
+    @Column(name = "avatar")
+    private String avatar;
+    
     @Column(name = "role")
     private String role = "user";
     

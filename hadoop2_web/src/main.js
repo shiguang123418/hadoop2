@@ -15,6 +15,16 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import './assets/base.css'
 import './assets/main.css'
 import './assets/background-fix.css'
+import './assets/vue-cropper.css'  // 引入vue-cropper样式
+
+// 尝试导入vue-cropper样式，如果安装了的话
+try {
+  import('vue-cropper/dist/index.css').catch(err => {
+    console.warn('未能加载vue-cropper样式:', err);
+  });
+} catch (e) {
+  console.warn('未能导入vue-cropper样式');
+}
 
 // 配置axios - 使用apiConfig中的baseUrl作为默认路径
 axios.defaults.baseURL = apiConfig.baseUrl

@@ -99,3 +99,11 @@ kafka:
       id: hadoop-consumer-group
   host: ${app.host}
   port: 9092
+
+aliyun:
+  oss:
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+    accessKeyId: LTAI5tGdSLhRi6vV8NZSiwxf
+    accessKeySecret: sXTN21tXw5uWPwULy9ffVMjz51IeGl
+    bucketName: shiguang123418
+    urlPrefix: https://shiguang123418.oss-cn-hangzhou.aliyuncs.com/
