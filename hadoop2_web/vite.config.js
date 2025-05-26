@@ -26,10 +26,24 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
-        ws: true
+        ws: true,
+        // 不要重写路径，保持/api前缀
+        // 添加日志以便调试
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('代理错误:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('代理请求:', req.method, req.url, '->',
+                         options.target + proxyReq.path);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('代理响应:', proxyRes.statusCode, req.url);
+          });
+        }
       },
       '/api_ws': {
-        target: 'ws://shiguang:8000',
+        target: 'ws://localhost:8000',
         ws: true,
         changeOrigin: true,
         secure: false,

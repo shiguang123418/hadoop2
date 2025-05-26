@@ -28,8 +28,8 @@ public final class SecurityConstants {
      * 公开路径
      */
     public static final String[] PUBLIC_PATHS = {
-        "/api/auth/login",
-        "/api/auth/register",
+        "/auth/login",
+        "/auth/register",
         "/swagger-ui.html",
         "/swagger-resources/**",
         "/webjars/**",

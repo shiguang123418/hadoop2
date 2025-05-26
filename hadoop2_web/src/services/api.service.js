@@ -11,15 +11,22 @@ class ApiService {
    * @param {string} basePath API基础路径
    */
   constructor(basePath) {
-    // 确保basePath不以/开头，避免与baseURL拼接时出现双斜杠
-    this.basePath = basePath.startsWith('/') ? basePath.substring(1) : basePath;
+    // 确保basePath有正确的格式
+    if (basePath.startsWith('/')) {
+      this.servicePath = basePath;
+    } else {
+      this.servicePath = '/' + basePath;
+    }
     
+    // 创建axios实例，baseURL为空字符串，让全局axios配置处理
     this.api = axios.create({
-      baseURL: apiConfig.baseUrl,
+      baseURL: '',
       headers: {
         'Content-Type': 'application/json',
       }
     });
+    
+    console.log(`初始化服务 ${basePath}, 全局axios baseURL: ${axios.defaults.baseURL}, 完整路径前缀: ${axios.defaults.baseURL}${this.servicePath}`);
     
     // 请求拦截器
     this.api.interceptors.request.use(
@@ -57,8 +64,9 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   get(endpoint, params = {}, config = {}) {
-    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-    return this.api.get(`/${this.basePath}${endpoint}`, {
+    const url = this.buildUrl(endpoint);
+    console.log(`GET请求: ${axios.defaults.baseURL}${url}`);
+    return this.api.get(url, {
       params,
       ...config
     });
@@ -72,8 +80,9 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   post(endpoint, data = {}, config = {}) {
-    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-    return this.api.post(`/${this.basePath}${endpoint}`, data, config);
+    const url = this.buildUrl(endpoint);
+    console.log(`POST请求: ${axios.defaults.baseURL}${url}`);
+    return this.api.post(url, data, config);
   }
   
   /**
@@ -84,8 +93,9 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   put(endpoint, data = {}, config = {}) {
-    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-    return this.api.put(`/${this.basePath}${endpoint}`, data, config);
+    const url = this.buildUrl(endpoint);
+    console.log(`PUT请求: ${axios.defaults.baseURL}${url}`);
+    return this.api.put(url, data, config);
   }
   
   /**
@@ -96,11 +106,25 @@ class ApiService {
    * @returns {Promise} 响应结果
    */
   delete(endpoint, params = {}, config = {}) {
-    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-    return this.api.delete(`/${this.basePath}${endpoint}`, {
+    const url = this.buildUrl(endpoint);
+    console.log(`DELETE请求: ${axios.defaults.baseURL}${url}`);
+    return this.api.delete(url, {
       params,
       ...config
     });
+  }
+  
+  /**
+   * 构建完整的URL
+   * @param {string} endpoint API端点
+   * @returns {string} 完整URL
+   */
+  buildUrl(endpoint) {
+    // 确保endpoint格式正确
+    endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    
+    // 返回服务路径和端点的组合
+    return `${this.servicePath}${endpoint}`;
   }
 }
 

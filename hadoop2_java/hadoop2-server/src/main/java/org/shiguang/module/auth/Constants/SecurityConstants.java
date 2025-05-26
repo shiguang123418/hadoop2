@@ -5,8 +5,8 @@ package org.shiguang.module.auth.Constants;
  */
 public final class SecurityConstants {
     // 角色常量
-    public static final String ROLE_USER = "user";
-    public static final String ROLE_ADMIN = "admin";
+    public static final String ROLE_USER = "ROLE_USER";
+    public static final String ROLE_ADMIN = "ROLE_ADMIN";
     public static final String ROLE_HDFS = "ROLE_HDFS";
     public static final String ROLE_HIVE = "ROLE_HIVE";
 

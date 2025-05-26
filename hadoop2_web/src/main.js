@@ -27,10 +27,30 @@ try {
 }
 
 // 配置axios - 使用apiConfig中的baseUrl作为默认路径
+// apiConfig.baseUrl 已经包含了 /api 前缀
 axios.defaults.baseURL = apiConfig.baseUrl
 axios.defaults.withCredentials = true
 
 console.log('API基础路径:', apiConfig.baseUrl)
+console.log('API代理模式:', apiConfig.useProxy ? '启用' : '禁用')
+
+// 添加请求拦截器，记录每个请求
+axios.interceptors.request.use(config => {
+  const fullUrl = (config.baseURL || '') + config.url;
+  console.log(`发送请求: ${config.method.toUpperCase()} ${fullUrl}`);
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
+
+// 添加响应拦截器
+axios.interceptors.response.use(response => {
+  console.log(`收到响应: ${response.config.method.toUpperCase()} ${response.config.url} -> ${response.status}`);
+  return response;
+}, error => {
+  console.error('请求错误:', error);
+  return Promise.reject(error);
+});
 
 // 设置认证头
 AuthService.setupAuthHeader();

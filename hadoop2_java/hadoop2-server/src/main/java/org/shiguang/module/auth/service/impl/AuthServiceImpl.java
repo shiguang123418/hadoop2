@@ -146,7 +146,12 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("用户不存在"));
 
         Claims claims = Jwts.claims().setSubject(username);
-        claims.put("roles", Collections.singletonList(user.getRole()));
+        // 确保角色带有ROLE_前缀
+        String role = user.getRole();
+        if (role != null && !role.isEmpty() && !role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
+        claims.put("roles", Collections.singletonList(role));
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
@@ -215,6 +220,12 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("未找到用户: " + username));
 
+        // 确保角色带有ROLE_前缀
+        String role = user.getRole();
+        if (role != null && !role.isEmpty() && !role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
@@ -222,19 +233,35 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 true,
                 true,
                 true,
-                Collections.singletonList(new SimpleGrantedAuthority(user.getRole()))
+                Collections.singletonList(new SimpleGrantedAuthority(role))
         );
     }
     
     @Override
     public boolean validatePassword(String username, String password) {
-        try {
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("未找到用户: " + username));
-            
-            return passwordEncoder.matches(password, user.getPassword());
-        } catch (Exception e) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
             return false;
         }
+        return passwordEncoder.matches(password, user.getPassword());
+    }
+    
+    @Override
+    public boolean hasRole(String role) {
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return false;
+        }
+        
+        // 获取用户角色
+        String userRole = currentUser.getRole();
+        if (userRole == null || userRole.isEmpty()) {
+            return false;
+        }
+        
+        // 处理角色前缀，兼容不同格式的角色表示
+        return userRole.equalsIgnoreCase(role) || 
+               userRole.equalsIgnoreCase("ROLE_" + role) ||
+               role.equalsIgnoreCase("ROLE_" + userRole);
     }
 } 

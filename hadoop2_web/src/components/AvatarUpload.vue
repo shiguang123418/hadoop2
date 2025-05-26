@@ -215,42 +215,22 @@ export default defineComponent({
               // 立即更新个人资料中的头像
               try {
                 console.log('正在更新用户资料中的头像...');
-                const response = await fetch('/api/auth/profile', {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                  },
-                  body: JSON.stringify({ avatar: imageUrl })
-                });
                 
-                const data = await response.json();
-                console.log('更新个人资料响应:', data);
+                // 使用authService统一处理头像更新
+                const updateResponse = await fileService.updateUserAvatar(imageUrl);
                 
-                if (data.code === 200) {
+                if (updateResponse && updateResponse.code === 200) {
                   console.log('用户头像已成功更新到个人资料');
-                  
-                  // 更新本地存储的用户信息
-                  const userStr = localStorage.getItem('user');
-                  if (userStr) {
-                    try {
-                      const userData = JSON.parse(userStr);
-                      userData.avatar = imageUrl;
-                      localStorage.setItem('user', JSON.stringify(userData));
-                      console.log('本地用户数据已更新头像');
-                    } catch (e) {
-                      console.error('更新本地用户数据失败:', e);
-                    }
-                  }
-                  
                   ElMessage.success('头像上传并保存成功');
                 } else {
-                  console.warn('更新个人资料失败:', data);
+                  console.warn('更新个人资料失败:', updateResponse);
                   ElMessage.warning('头像已上传，但未能更新到个人资料');
                 }
-              } catch (profileError) {
-                console.error('更新个人资料失败:', profileError);
-                ElMessage.warning('头像已上传，但未能更新到个人资料');
+              } catch (error) {
+                console.error('更新头像到个人资料失败:', error);
+                ElMessage.error('头像上传成功，但更新个人资料失败: ' + (error.message || '未知错误'));
+              } finally {
+                loading.value = false;
               }
             } else {
               console.error('未找到图片URL', result);
@@ -263,8 +243,6 @@ export default defineComponent({
         } catch (error) {
           console.error('头像上传失败', error);
           ElMessage.error('头像上传失败: ' + (error.message || '未知错误'));
-        } finally {
-          loading.value = false;
         }
       });
     };

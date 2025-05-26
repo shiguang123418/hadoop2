@@ -1,12 +1,16 @@
 import axios from 'axios';
 import authService from './auth';
+import apiConfig from '../config/api.config';
 
 /**
  * 文件服务
  */
 class FileService {
   constructor() {
+    // file服务不是标准服务，需要单独设置路径
+    // axios.defaults.baseURL 已经设置为 /api，这里不要重复添加
     this.baseUrl = '/file';
+    console.log('文件服务初始化，baseUrl:', this.baseUrl);
   }
   
   /**
@@ -69,7 +73,11 @@ class FileService {
       console.log('开始上传头像:', file.name);
       
       // 使用专门的头像上传API
-      const response = await axios.post('/user/profile/avatar', formData, {
+      // axios.defaults.baseURL 已经设置为 /api，这里使用不带/api前缀的路径
+      const userProfileUrl = '/user/profile/avatar';
+      console.log('头像上传URL:', userProfileUrl, '完整URL:', axios.defaults.baseURL + userProfileUrl);
+      
+      const response = await axios.post(userProfileUrl, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${authService.getToken()}`
@@ -102,6 +110,27 @@ class FileService {
       return response.data;
     } catch (error) {
       console.error('文件删除失败:', error.response?.data?.message || error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新用户头像 - 将头像URL更新到用户资料
+   * @param {string} avatarUrl 头像URL
+   * @returns {Promise<Object>} 更新结果
+   */
+  async updateUserAvatar(avatarUrl) {
+    try {
+      console.log('更新用户资料中的头像URL:', avatarUrl);
+      
+      // 调用authService的updateProfile方法，只传递avatar字段
+      const response = await authService.updateProfile({ avatar: avatarUrl });
+      
+      console.log('头像URL更新响应:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('更新用户头像失败:', error.response?.data?.message || error.message);
       throw error;
     }
   }

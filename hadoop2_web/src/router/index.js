@@ -82,6 +82,17 @@ const router = createRouter({
         title: '系统操作审计日志' 
       }
     },
+    // 系统配置管理
+    {
+      path: '/system-config',
+      name: 'system-config',
+      component: () => import('../views/SystemConfigView.vue'),
+      meta: { 
+        requiresAuth: true, 
+        requiresAdmin: true, 
+        title: '系统配置管理' 
+      }
+    },
     // 实时数据可视化
     {
       path: '/realtime-visualization',
@@ -102,6 +113,24 @@ const router = createRouter({
       name: 'change-password',
       component: () => import('../views/ChangePassword.vue'),
       meta: { requiresAuth: true, title: '修改密码' }
+    },
+    // 新增路由 - 消息通知中心
+    {
+      path: '/notification',
+      name: 'notification',
+      component: () => import('../views/notification/NotificationList.vue'),
+      meta: { requiresAuth: true, title: '消息通知中心' }
+    },
+    // 新增路由 - 通知管理(管理员)
+    {
+      path: '/notification-manage',
+      name: 'notification-manage',
+      component: () => import('../views/notification/NotificationManage.vue'),
+      meta: { 
+        requiresAuth: true, 
+        requiresAdmin: true, 
+        title: '通知管理' 
+      }
     }
   ]
 })

@@ -125,6 +125,10 @@ export default {
       this.errorMessage = '';
       
       try {
+        if (!this.username || !this.password) {
+          throw new Error('请输入用户名和密码');
+        }
+        
         console.log('尝试登录', {
           username: this.username,
           withCredentials: true
@@ -150,18 +154,39 @@ export default {
         }
       } catch (error) {
         console.error('登录失败:', error);
+        
+        // 提取错误信息
+        let errorMsg = '';
+        
         if (error.response) {
           console.error('错误详情:', {
             status: error.response.status,
             statusText: error.response.statusText,
             data: error.response.data,
-            headers: error.response.headers
           });
+          
+          // 根据状态码和后端响应提供更友好的错误消息
+          if (error.response.status === 401) {
+            errorMsg = '用户名或密码错误';
+          } else if (error.response.status === 403) {
+            errorMsg = '账号已被锁定或禁用';
+          } else if (error.response.status >= 500) {
+            errorMsg = '服务器内部错误，请稍后重试';
+          } else if (error.response.data?.message) {
+            errorMsg = error.response.data.message;
+          } else if (error.response.data?.error) {
+            errorMsg = error.response.data.error;
+          }
         }
         
-        this.errorMessage = error.response?.data?.message || 
-                            error.response?.data?.error || 
-                            '登录失败，请检查网络连接和服务器状态';
+        // 如果没有从响应中提取到错误消息，则使用错误对象的message
+        if (!errorMsg && error.message) {
+          errorMsg = error.message;
+        }
+        
+        // 如果还是没有错误消息，则使用默认消息
+        this.errorMessage = errorMsg || '登录失败，请检查网络连接和服务器状态';
+        
       } finally {
         this.loading = false;
       }

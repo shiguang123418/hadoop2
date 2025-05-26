@@ -52,4 +52,11 @@ public interface AuthService {
      * @return 密码是否正确
      */
     boolean validatePassword(String username, String password);
+    
+    /**
+     * 检查当前用户是否具有指定角色
+     * @param role 角色名称
+     * @return 是否具有该角色
+     */
+    boolean hasRole(String role);
 } 

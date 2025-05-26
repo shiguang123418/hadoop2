@@ -439,13 +439,40 @@ const formatDate = (date) => {
 
 // 获取角色名称
 const getRoleName = (role) => {
+  // 如果角色为空或非字符串类型，返回空字符串
+  if (!role || typeof role !== 'string') {
+    return '';
+  }
+  
+  // 标准化角色名称
+  const normalizedRole = role.toLowerCase();
+  
+  // 角色映射表
   const roleMap = {
     'admin': '管理员',
     'user': '普通用户',
-    'guest': '访客'
+    'guest': '访客',
+    'role_admin': '管理员',
+    'role_user': '普通用户',
+    'role_guest': '访客',
+    'role_hdfs': 'HDFS管理员',
+    'role_hive': 'HIVE管理员'
   };
   
-  return roleMap[role] || role;
+  // 先检查完整映射
+  if (roleMap[normalizedRole]) {
+    return roleMap[normalizedRole];
+  }
+  
+  // 检查是否带有ROLE_前缀
+  if (normalizedRole.startsWith('role_')) {
+    // 尝试提取前缀后的部分
+    const roleSuffix = normalizedRole.substring(5); // 'role_'长度为5
+    return roleMap[roleSuffix] || role;
+  } else {
+    // 尝试加上前缀匹配
+    return roleMap['role_' + normalizedRole] || role;
+  }
 };
 
 // 获取状态名称

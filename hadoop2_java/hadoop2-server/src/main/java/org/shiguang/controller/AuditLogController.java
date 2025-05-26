@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
  * 审计日志控制器
  */
 @RestController
-@RequestMapping("/api/audit-logs")
-@PreAuthorize("hasRole('ADMIN')")
+@RequestMapping("/api/audit")
+@PreAuthorize("hasRole('ROLE_ADMIN')")
 public class AuditLogController {
 
     @Autowired
@@ -116,7 +116,7 @@ public class AuditLogController {
      * 删除审计日志
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
     @AuditOperation(operation = "删除审计日志", operationType = "DELETE", resourceType = "AUDIT_LOG", resourceIdIndex = 0)
     public ResponseEntity<Void> deleteAuditLog(@PathVariable Long id) {
         Optional<AuditLog> auditLog = auditLogService.getAuditLogById(id);

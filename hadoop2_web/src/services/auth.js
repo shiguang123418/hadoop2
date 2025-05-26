@@ -6,10 +6,10 @@ import apiConfig from '../config/api.config';
  */
 class AuthService {
   constructor() {
-    // 不要在 baseUrl 中添加 /api 前缀，因为 axios.defaults.baseURL 已经是 /api 了
-    // 这里只使用相对路径 /auth
-    this.baseUrl = '/auth';
-    console.log('Auth服务初始化，baseUrl:', this.baseUrl);
+    // 构建基础URL，使用apiConfig中配置的服务路径
+    // 注意：services.auth 不包含 /api 前缀，axios.defaults.baseURL 会负责添加
+    this.baseUrl = apiConfig.services.auth;
+    console.log('Auth服务初始化，baseUrl:', this.baseUrl, '完整URL:', axios.defaults.baseURL + this.baseUrl);
   }
   
   /**
@@ -50,22 +50,8 @@ class AuthService {
    * 检查用户是否为管理员
    */
   isAdmin() {
-    const currentUser = this.getCurrentUser();
-    
-    // 检查用户名是否为admin
-    if (currentUser && currentUser.username === 'admin') {
-      return true;
-    }
-    
-    // 检查roles数组
-    if (currentUser && currentUser.roles && Array.isArray(currentUser.roles)) {
-      return currentUser.roles.some(role => 
-        role === 'admin' || role === 'ROLE_ADMIN'
-      );
-    }
-    
-    // 检查role字段（兼容旧结构）
-    return currentUser && (currentUser.role === 'admin' || currentUser.role === 'ROLE_ADMIN');
+    // 使用统一的角色检查，检查是否有 admin 或 ROLE_ADMIN 角色
+    return this.hasRole('admin');
   }
   
   /**
@@ -77,19 +63,36 @@ class AuthService {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return false;
     
+    // 如果提供的角色为空，返回false
+    if (!role) return false;
+    
+    // 标准化角色名称（处理ROLE_前缀）
+    const normalizeRoleName = (roleName) => {
+      if (!roleName || typeof roleName !== 'string') return '';
+      
+      const lowerRole = roleName.toLowerCase();
+      // 如果已有前缀，直接返回；否则加上前缀
+      return lowerRole.startsWith('role_') ? lowerRole : 'role_' + lowerRole;
+    };
+    
+    const normalizedRoleToCheck = normalizeRoleName(role);
+    console.log('检查角色:', role, '标准化后:', normalizedRoleToCheck);
+    
     // 检查roles数组
     if (currentUser.roles && Array.isArray(currentUser.roles)) {
-      return currentUser.roles.some(userRole => 
-        userRole === role || 
-        userRole === `ROLE_${role}` || 
-        role === `ROLE_${userRole}`
-      );
+      return currentUser.roles.some(userRole => {
+        const normalizedUserRole = normalizeRoleName(userRole);
+        console.log('比较用户角色:', userRole, '标准化后:', normalizedUserRole);
+        return normalizedUserRole === normalizedRoleToCheck;
+      });
     }
     
     // 检查role字段（兼容旧结构）
-    return currentUser.role === role || 
-           currentUser.role === `ROLE_${role}` || 
-           role === `ROLE_${currentUser.role}`;
+    if (!currentUser.role) return false;
+    
+    const normalizedUserRole = normalizeRoleName(currentUser.role);
+    console.log('比较单一角色:', currentUser.role, '标准化后:', normalizedUserRole);
+    return normalizedUserRole === normalizedRoleToCheck;
   }
   
   /**
@@ -99,13 +102,25 @@ class AuthService {
    */
   async login(username, password) {
     try {
+      // 检查用户名和密码
+      if (!username || !password) {
+        throw new Error('用户名和密码不能为空');
+      }
+
       console.log(`发送登录请求到: ${this.baseUrl}/login`);
-      const response = await axios.post(`${this.baseUrl}/login`, { username, password }, {
+      
+      // 使用相对路径，让代理处理路由
+      const loginUrl = `${this.baseUrl}/login`;
+      console.log(`实际请求URL: ${loginUrl}，完整URL: ${axios.defaults.baseURL}${loginUrl}`);
+      
+      const response = await axios.post(loginUrl, { username, password }, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        }
+        },
+        // 添加超时设置
+        timeout: 10000
       });
       
       console.log('登录响应数据:', response.data);
@@ -151,11 +166,33 @@ class AuthService {
         console.log('登录成功，已设置认证头');
       } else {
         console.warn('响应中未找到token', response.data);
+        throw new Error('服务器返回数据格式不正确，未找到令牌信息');
       }
       
       return response.data;
     } catch (error) {
-      console.error('登录失败:', error.response?.data?.message || error.message);
+      console.error('登录失败:', error);
+      
+      // 详细记录错误信息用于调试
+      if (error.response) {
+        console.error('错误状态码:', error.response.status);
+        console.error('错误信息:', error.response.data);
+        
+        // 针对常见HTTP状态码提供更友好的错误消息
+        if (error.response.status === 401) {
+          throw new Error('用户名或密码错误');
+        } else if (error.response.status === 403) {
+          throw new Error('账号已被锁定或禁用');
+        } else if (error.response.status >= 500) {
+          throw new Error('服务器内部错误，请联系管理员');
+        }
+      } else if (error.request) {
+        // 请求已发出但没有收到响应
+        console.error('未收到服务器响应:', error.request);
+        throw new Error('无法连接到服务器，请检查网络连接');
+      }
+      
+      // 如果上面的条件都不符合，则抛出原始错误
       throw error;
     }
   }
@@ -332,7 +369,16 @@ class AuthService {
         throw new Error('未登录');
       }
       
-      const response = await axios.put(`${this.baseUrl}/profile`, profileData, {
+      // 创建一个副本，只包含需要更新的字段
+      const profileToUpdate = {...profileData};
+      
+      // 确保不发送角色信息，避免角色格式问题
+      if (profileToUpdate.role) delete profileToUpdate.role;
+      if (profileToUpdate.roles) delete profileToUpdate.roles;
+      
+      console.log('发送个人资料更新请求，数据:', profileToUpdate);
+      
+      const response = await axios.put(`${this.baseUrl}/profile`, profileToUpdate, {
         headers: {
           'Authorization': `Bearer ${this.getToken()}`
         }
@@ -341,12 +387,12 @@ class AuthService {
       // 更新本地存储的用户信息
       const updatedUser = {
         ...currentUser,
-        ...profileData
+        ...profileToUpdate
       };
       
       // 确保avatar字段正确保存
-      if (profileData.avatar) {
-        updatedUser.avatar = profileData.avatar;
+      if (profileToUpdate.avatar) {
+        updatedUser.avatar = profileToUpdate.avatar;
       }
       
       localStorage.setItem('user', JSON.stringify(updatedUser));
