@@ -1,25 +1,31 @@
 package org.shiguang.config;
 
-import org.shiguang.module.kafka.websocket.KafkaWebSocketHandler;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.socket.config.annotation.EnableWebSocket;
-import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
-import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 /**
  * WebSocket配置类
  */
 @Configuration
-@EnableWebSocket
-public class WebSocketConfig implements WebSocketConfigurer {
-    
-    @Autowired
-    private KafkaWebSocketHandler kafkaWebSocketHandler;
-    
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
     @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(kafkaWebSocketHandler, "/ws/kafka")
-                .setAllowedOriginPatterns("*");
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        // 启用简单的基于内存的消息代理，将消息传递回客户端
+        config.enableSimpleBroker("/topic");
+        // 配置一个或多个前缀以过滤针对带注释的方法的消息
+        config.setApplicationDestinationPrefixes("/app");
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // 注册STOMP端点，客户端将使用这些端点与服务器建立WebSocket连接
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*")
+                .withSockJS();
     }
 } 

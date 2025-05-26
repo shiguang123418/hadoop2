@@ -84,16 +84,21 @@ debug: false
 spark:
   app:
     name: HadoopSparkApp
-  master: local[*]
+  master: local[2]
   executor:
-    memory: 1g
+    memory: 512m
   driver:
-    memory: 1g
+    memory: 512m
+  streaming:
+    stopGracefullyOnShutdown: true
+    checkpointLocation: /tmp/spark-checkpoint
+  ui:
+    enabled: false
 
 # Kafka 配置
 kafka:
   bootstrap:
-    servers: ${app.host}:9092
+    servers: shiguang:9092,nas:9092
   consumer:
     group:
       id: hadoop-consumer-group

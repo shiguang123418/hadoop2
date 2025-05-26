@@ -52,24 +52,31 @@ public class SparkClient {
     @PostConstruct
     public void init() {
         try {
+            logger.info("开始初始化Spark客户端...");
+            logger.info("Spark配置: appName={}, master={}, executorMemory={}, driverMemory={}", 
+                    appName, master, executorMemory, driverMemory);
+            
             sparkConf = new SparkConf()
                     .setAppName(appName)
                     .setMaster(master)
                     .set("spark.executor.memory", executorMemory)
-                    .set("spark.driver.memory", driverMemory);
+                    .set("spark.driver.memory", driverMemory)
+                    .set("spark.ui.enabled", "false")
+                    .set("spark.sql.warehouse.dir", "/tmp/spark-warehouse")
+                    .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
             
-            // 创建JavaSparkContext
-            sparkContext = new JavaSparkContext(sparkConf);
-            
-            // 创建SparkSession
+            // 创建SparkSession（优先使用现有会话）
             sparkSession = SparkSession.builder()
                     .config(sparkConf)
                     .getOrCreate();
             
+            // 创建JavaSparkContext
+            sparkContext = new JavaSparkContext(sparkSession.sparkContext());
+            
             logger.info("Spark客户端初始化完成，连接到: {}", master);
         } catch (Exception e) {
-            logger.error("Spark客户端初始化失败: {}", e.getMessage(), e);
-            throw new RuntimeException("初始化Spark客户端失败", e);
+            logger.error("Spark客户端初始化失败: {}，详细错误: {}", e.getMessage(), e);
+            throw new RuntimeException("初始化Spark客户端失败: " + e.getMessage(), e);
         }
     }
     

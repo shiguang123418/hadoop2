@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大数据实时可视化</title>
+    <!-- 引入Bootstrap样式 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 引入ECharts图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
+    <!-- 引入SockJS和STOMP客户端 -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            padding-top: 20px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .control-panel {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .data-table {
+            height: 300px;
+            overflow-y: auto;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-connected {
+            background-color: #28a745;
+        }
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">大数据实时可视化平台</h1>
+        
+        <!-- 连接状态和控制面板 -->
+        <div class="card control-panel">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>
+                        WebSocket连接状态: 
+                        <span id="connection-status" class="status-indicator status-disconnected"></span>
+                        <span id="connection-text">未连接</span>
+                    </h4>
+                    <div class="mt-3">
+                        <button id="connect-btn" class="btn btn-primary">连接WebSocket</button>
+                        <button id="disconnect-btn" class="btn btn-danger" disabled>断开连接</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h4>数据加载与处理</h4>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="input-group">
+                            <span class="input-group-text">数据类型</span>
+                            <select id="data-type" class="form-select">
+                                <option value="weather">天气数据</option>
+                                <option value="product">产品数据</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text">Kafka主题</span>
+                            <input type="text" id="topic-name" class="form-control" value="weather-data">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button id="load-data-btn" class="btn btn-success">加载数据</button>
+                            <button id="start-streaming-btn" class="btn btn-warning">启动流处理</button>
+                            <button id="stop-streaming-btn" class="btn btn-danger">停止流处理</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 天气数据可视化 -->
+        <div id="weather-section">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            各城市平均温度 (°C)
+                        </div>
+                        <div class="card-body">
+                            <div id="temp-chart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            各城市总降雨量 (mm)
+                        </div>
+                        <div class="card-body">
+                            <div id="rain-chart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>天气数据表格</div>
+                    <div class="badge bg-primary" id="weather-count">0条记录</div>
+                </div>
+                <div class="card-body data-table">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>城市</th>
+                                <th>所在州</th>
+                                <th>平均最高温度</th>
+                                <th>平均最低温度</th>
+                                <th>总降雨量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weather-table-body">
+                            <!-- 天气数据将在这里动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 产品数据可视化 -->
+        <div id="product-section" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>产品数据表格</div>
+                    <div class="badge bg-primary" id="product-count">0条记录</div>
+                </div>
+                <div class="card-body data-table">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <!-- 表头将根据实际数据动态生成 -->
+                                <th>ID</th>
+                                <th>字段1</th>
+                                <th>字段2</th>
+                                <th>字段3</th>
+                                <th>字段4</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-table-body">
+                            <!-- 产品数据将在这里动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // 全局变量
+        let stompClient = null;
+        let tempChart = null;
+        let rainChart = null;
+        const weatherData = [];
+        const productData = [];
+        
+        // DOM元素
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const connectionStatus = document.getElementById('connection-status');
+        const connectionText = document.getElementById('connection-text');
+        const dataType = document.getElementById('data-type');
+        const topicName = document.getElementById('topic-name');
+        const loadDataBtn = document.getElementById('load-data-btn');
+        const startStreamingBtn = document.getElementById('start-streaming-btn');
+        const stopStreamingBtn = document.getElementById('stop-streaming-btn');
+        const weatherSection = document.getElementById('weather-section');
+        const productSection = document.getElementById('product-section');
+        const weatherTableBody = document.getElementById('weather-table-body');
+        const productTableBody = document.getElementById('product-table-body');
+        const weatherCount = document.getElementById('weather-count');
+        const productCount = document.getElementById('product-count');
+        
+        // 初始化图表
+        function initCharts() {
+            tempChart = echarts.init(document.getElementById('temp-chart'));
+            rainChart = echarts.init(document.getElementById('rain-chart'));
+            
+            // 设置基本配置
+            const tempOption = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['最高温度', '最低温度']
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: [],
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 30
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '温度 (°C)'
+                },
+                series: [
+                    {
+                        name: '最高温度',
+                        type: 'bar',
+                        data: [],
+                        itemStyle: {
+                            color: '#FF6B6B'
+                        }
+                    },
+                    {
+                        name: '最低温度',
+                        type: 'bar',
+                        data: [],
+                        itemStyle: {
+                            color: '#4ECDC4'
+                        }
+                    }
+                ]
+            };
+            
+            const rainOption = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: [],
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 30
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '降雨量 (mm)'
+                },
+                series: [
+                    {
+                        type: 'bar',
+                        data: [],
+                        itemStyle: {
+                            color: '#5D9CEC'
+                        }
+                    }
+                ]
+            };
+            
+            tempChart.setOption(tempOption);
+            rainChart.setOption(rainOption);
+            
+            // 窗口调整大小时重新调整图表
+            window.addEventListener('resize', function() {
+                tempChart.resize();
+                rainChart.resize();
+            });
+        }
+        
+        // 更新温度图表
+        function updateTempChart(data) {
+            const cities = data.map(item => item.city);
+            const maxTemps = data.map(item => parseFloat(item.avgMaxTemp).toFixed(1));
+            const minTemps = data.map(item => parseFloat(item.avgMinTemp).toFixed(1));
+            
+            tempChart.setOption({
+                xAxis: {
+                    data: cities
+                },
+                series: [
+                    {
+                        name: '最高温度',
+                        data: maxTemps
+                    },
+                    {
+                        name: '最低温度',
+                        data: minTemps
+                    }
+                ]
+            });
+        }
+        
+        // 更新降雨量图表
+        function updateRainChart(data) {
+            const cities = data.map(item => item.city);
+            const rainfall = data.map(item => parseFloat(item.totalRainfall).toFixed(1));
+            
+            rainChart.setOption({
+                xAxis: {
+                    data: cities
+                },
+                series: [
+                    {
+                        data: rainfall
+                    }
+                ]
+            });
+        }
+        
+        // 更新天气数据表格
+        function updateWeatherTable(data) {
+            // 清空表格
+            weatherTableBody.innerHTML = '';
+            
+            // 添加新数据
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.city}</td>
+                    <td>${item.state}</td>
+                    <td>${parseFloat(item.avgMaxTemp).toFixed(1)} °C</td>
+                    <td>${parseFloat(item.avgMinTemp).toFixed(1)} °C</td>
+                    <td>${parseFloat(item.totalRainfall).toFixed(1)} mm</td>
+                `;
+                weatherTableBody.appendChild(row);
+            });
+            
+            // 更新记录数
+            weatherCount.innerText = `${data.length}条记录`;
+        }
+        
+        // 更新产品数据表格
+        function updateProductTable(data) {
+            if (data.length === 0) return;
+            
+            // 清空表格
+            productTableBody.innerHTML = '';
+            
+            // 添加新数据
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // 动态生成表格内容
+                let cells = '';
+                for (const key in item) {
+                    cells += `<td>${item[key]}</td>`;
+                }
+                
+                row.innerHTML = cells;
+                productTableBody.appendChild(row);
+            });
+            
+            // 更新记录数
+            productCount.innerText = `${data.length}条记录`;
+        }
+        
+        // 切换数据类型
+        dataType.addEventListener('change', function() {
+            if (dataType.value === 'weather') {
+                weatherSection.style.display = 'block';
+                productSection.style.display = 'none';
+                topicName.value = 'weather-data';
+            } else {
+                weatherSection.style.display = 'none';
+                productSection.style.display = 'block';
+                topicName.value = 'product-data';
+            }
+        });
+        
+        // 连接WebSocket
+        connectBtn.addEventListener('click', function() {
+            const socket = new SockJS('/api/ws');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function(frame) {
+                // 更新UI状态
+                setConnected(true);
+                console.log('已连接: ' + frame);
+                
+                // 订阅天气数据主题
+                stompClient.subscribe('/topic/weather-stats', function(message) {
+                    const weatherStatsData = JSON.parse(message.body);
+                    weatherData.length = 0; // 清空之前的数据
+                    
+                    // 解析每一条JSON字符串
+                    weatherStatsData.forEach(jsonStr => {
+                        try {
+                            const data = JSON.parse(jsonStr);
+                            weatherData.push(data);
+                        } catch (error) {
+                            console.error('解析天气数据失败:', error);
+                        }
+                    });
+                    
+                    // 更新图表和表格
+                    updateTempChart(weatherData);
+                    updateRainChart(weatherData);
+                    updateWeatherTable(weatherData);
+                });
+                
+                // 订阅产品数据主题
+                stompClient.subscribe('/topic/product-stats', function(message) {
+                    const productStatsData = JSON.parse(message.body);
+                    productData.length = 0; // 清空之前的数据
+                    
+                    // 解析每一条JSON字符串
+                    productStatsData.forEach(jsonStr => {
+                        try {
+                            const data = JSON.parse(jsonStr);
+                            productData.push(data);
+                        } catch (error) {
+                            console.error('解析产品数据失败:', error);
+                        }
+                    });
+                    
+                    // 更新表格
+                    updateProductTable(productData);
+                });
+                
+                // 订阅测试主题
+                stompClient.subscribe('/topic/test', function(message) {
+                    console.log('收到测试消息: ' + message.body);
+                });
+            }, function(error) {
+                console.error('连接失败:', error);
+                setConnected(false);
+            });
+        });
+        
+        // 断开WebSocket连接
+        disconnectBtn.addEventListener('click', function() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+                setConnected(false);
+                console.log("已断开连接");
+            }
+        });
+        
+        // 设置连接状态UI
+        function setConnected(connected) {
+            connectBtn.disabled = connected;
+            disconnectBtn.disabled = !connected;
+            
+            if (connected) {
+                connectionStatus.classList.remove('status-disconnected');
+                connectionStatus.classList.add('status-connected');
+                connectionText.innerText = '已连接';
+            } else {
+                connectionStatus.classList.remove('status-connected');
+                connectionStatus.classList.add('status-disconnected');
+                connectionText.innerText = '未连接';
+            }
+        }
+        
+        // 加载数据
+        loadDataBtn.addEventListener('click', function() {
+            const type = dataType.value;
+            const topic = topicName.value;
+            
+            let filePath;
+            let endpoint;
+            
+            if (type === 'weather') {
+                filePath = 'data/temprainfall.csv';
+                endpoint = '/api/realtime/load/weather';
+            } else {
+                filePath = 'data/product_regressiondb.csv';
+                endpoint = '/api/realtime/load/products';
+            }
+            
+            fetch(endpoint + `?filePath=${encodeURIComponent(filePath)}&topicName=${encodeURIComponent(topic)}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('加载数据响应:', data);
+                alert(`成功加载 ${data.recordCount} 条${type === 'weather' ? '天气' : '产品'}数据到Kafka主题: ${topic}`);
+            })
+            .catch(error => {
+                console.error('加载数据失败:', error);
+                alert('加载数据失败，请查看控制台获取详细信息');
+            });
+        });
+        
+        // 启动流处理
+        startStreamingBtn.addEventListener('click', function() {
+            const type = dataType.value;
+            const topic = topicName.value;
+            
+            let endpoint;
+            
+            if (type === 'weather') {
+                endpoint = '/api/realtime/start/weather';
+            } else {
+                endpoint = '/api/realtime/start/products';
+            }
+            
+            fetch(endpoint + `?topicName=${encodeURIComponent(topic)}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('启动流处理响应:', data);
+                alert(`${data.message}: ${topic}`);
+            })
+            .catch(error => {
+                console.error('启动流处理失败:', error);
+                alert('启动流处理失败，请查看控制台获取详细信息');
+            });
+        });
+        
+        // 停止流处理
+        stopStreamingBtn.addEventListener('click', function() {
+            fetch('/api/realtime/stop', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('停止流处理响应:', data);
+                alert(data.message);
+            })
+            .catch(error => {
+                console.error('停止流处理失败:', error);
+                alert('停止流处理失败，请查看控制台获取详细信息');
+            });
+        });
+        
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+        });
+    </script>
+
+    <!-- 引入Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

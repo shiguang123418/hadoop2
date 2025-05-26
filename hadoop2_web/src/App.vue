@@ -55,6 +55,10 @@
               <el-icon><TrendCharts /></el-icon>
               <span>传感器仪表盘</span>
             </el-menu-item>
+            <el-menu-item index="/realtime-visualization" class="menu-item">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>实时数据可视化</span>
+            </el-menu-item>
           </el-sub-menu>
           
           <el-menu-item index="/datasource" class="menu-item">

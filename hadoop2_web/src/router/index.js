@@ -71,6 +71,13 @@ const router = createRouter({
       component: () => import('../views/datasource/DataSourceList.vue'),
       meta: { title: '数据源管理' }
     },
+    // 实时数据可视化
+    {
+      path: '/realtime-visualization',
+      name: 'realtime-visualization',
+      component: () => import('../views/RealtimeVisualization.vue'),
+      meta: { requiresAuth: false, title: '实时数据可视化' }
+    },
     // 新增路由 - 个人信息
     {
       path: '/profile',

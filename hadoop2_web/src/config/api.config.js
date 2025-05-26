@@ -23,7 +23,9 @@ const devConfig = {
     hdfs: '/hdfs',
     hive: '/hive',
     spark: '/spark',
-    auth: '/auth'
+    kafka: '/kafka',
+    auth: '/auth',
+    realtime: '/realtime'
   }
 };
 
@@ -44,22 +46,17 @@ const isProduction = import.meta.env.PROD;
 const config = isProduction ? prodConfig : devConfig;
 
 // 计算完整的API基础URL
-const getBaseUrl = () => {
-  // 如果是开发环境且使用代理，则使用相对路径
-  if (!isProduction && config.useProxy) {
-    return config.apiBasePath;
-  }
-  // 否则使用完整服务器地址
-  return `${config.apiServer}${config.apiBasePath}`;
-};
+const baseUrl = config.apiServer + config.apiBasePath;
 
 // 导出配置
 export default {
-  baseUrl: '/api',
+  baseUrl,
   services: {
     hdfs: '/hdfs',
     hive: '/hive',
     spark: '/spark',
-    auth: '/auth'
+    kafka: '/kafka', 
+    auth: '/auth',
+    realtime: '/realtime'
   }
 }; 

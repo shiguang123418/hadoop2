@@ -41,6 +41,9 @@ public class User {
     @Column(name = "status")
     private String status = "active";
     
+    @Column(name = "active")
+    private Boolean active = true;
+    
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
     

@@ -65,6 +65,7 @@ public class DataInitializer implements CommandLineRunner {
             }
             
             user.setStatus("active");
+            user.setActive(true);
 
             userRepository.save(user);
             System.out.println("已创建用户: " + username);
