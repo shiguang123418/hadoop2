@@ -23,11 +23,12 @@ export default defineConfig({
     cors: true, // 设置没有访问限制
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://shiguang:8000',
         changeOrigin: true,
         secure: false,
         ws: true,
         // 不要重写路径，保持/api前缀
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
         // 添加日志以便调试
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {

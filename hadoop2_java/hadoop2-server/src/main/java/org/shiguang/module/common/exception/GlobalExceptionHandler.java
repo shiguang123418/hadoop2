@@ -106,13 +106,62 @@ public class GlobalExceptionHandler {
     }
     
     /**
+     * 处理非法参数异常
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public ApiResponse<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.warn("非法参数: {}", ex.getMessage());
+        return ApiResponse.error(400, ex.getMessage());
+    }
+    
+    /**
+     * 处理状态异常
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ResponseBody
+    public ApiResponse<String> handleIllegalStateException(IllegalStateException ex) {
+        logger.warn("状态异常: {}", ex.getMessage());
+        return ApiResponse.error(403, ex.getMessage());
+    }
+    
+    /**
+     * 处理运行时异常
+     */
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseBody
+    public ApiResponse<String> handleRuntimeException(RuntimeException ex) {
+        logger.error("运行时异常: {}", ex.getMessage(), ex);
+        
+        // 添加更详细的日志信息，帮助排查问题
+        logger.error("异常堆栈:", ex);
+        if (ex.getCause() != null) {
+            logger.error("根本原因: {}", ex.getCause().getMessage(), ex.getCause());
+        }
+        
+        // 对用户显示友好的错误消息
+        return ApiResponse.error(500, "处理请求时出现错误: " + ex.getMessage());
+    }
+    
+    /**
      * 处理通用异常
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ResponseBody
     public ApiResponse<String> handleException(Exception ex) {
-        logger.error("未处理的异常: {}", ex.getMessage(), ex);
-        return ApiResponse.error(500, "服务器内部错误: " + ex.getMessage());
+        logger.error("未处理的异常: {}", ex.getMessage());
+        
+        // 添加更详细的日志信息，帮助排查问题
+        logger.error("异常堆栈:", ex);
+        if (ex.getCause() != null) {
+            logger.error("根本原因: {}", ex.getCause().getMessage(), ex.getCause());
+        }
+        
+        // 对用户显示友好的错误消息，但不泄露详细的异常信息
+        return ApiResponse.error(500, "服务器内部错误，请稍后再试");
     }
 } 

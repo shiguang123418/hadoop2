@@ -1,11 +1,14 @@
 import ApiService from './api.service';
+import serviceHelper from '../utils/service-helper';
 
 /**
  * Hive服务 - 提供与Hive数据库交互的功能
  */
 class HiveService extends ApiService {
   constructor() {
-    super('/hive');
+    // 使用/api前缀
+    super('/api/hive');
+    console.log('Hive服务初始化，完整路径:', serviceHelper.getServicePath('hive'));
   }
   
   /**

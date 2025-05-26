@@ -13,7 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 用户个人资料API
@@ -101,45 +104,107 @@ public class UserProfileController {
         User currentUser = authService.getCurrentUser();
         
         if (currentUser == null) {
+            logger.error("头像上传失败: 用户未登录");
             return ResponseEntity.ok(ApiResponse.error(401, "未登录或登录已过期"));
         }
         
         try {
             if (file.isEmpty()) {
+                logger.error("头像上传失败: 文件为空");
                 return ResponseEntity.ok(ApiResponse.error(400, "文件不能为空"));
             }
             
-            // 检查文件类型
+            String originalFilename = file.getOriginalFilename();
+            long fileSize = file.getSize();
             String contentType = file.getContentType();
+            
+            // 检查文件类型
             if (contentType == null || !contentType.startsWith("image/")) {
+                logger.error("头像上传失败: 不支持的文件类型 {}", contentType);
                 return ResponseEntity.ok(ApiResponse.error(400, "只支持图片文件上传"));
             }
             
             // 检查文件大小
-            long fileSize = file.getSize();
             if (fileSize > 5 * 1024 * 1024) { // 5MB
+                logger.error("头像上传失败: 文件大小超过限制 {} bytes", fileSize);
                 return ResponseEntity.ok(ApiResponse.error(400, "文件大小不能超过5MB"));
             }
             
-            logger.info("开始上传头像，用户: {}", currentUser.getUsername());
+            logger.info("开始上传头像 - 用户: {}, 文件名: {}, 大小: {} bytes, 类型: {}", 
+                    currentUser.getUsername(), originalFilename, fileSize, contentType);
             
-            // 上传到指定目录
-            Map<String, String> result = ossService.uploadFile(file, "avatar/");
-            
-            if (result != null && result.containsKey("url")) {
-                String avatarUrl = result.get("url");
-                logger.info("头像上传成功，URL: {}", avatarUrl);
+            try {
+                // 上传到指定目录
+                Map<String, String> result = ossService.uploadFile(file, "avatar/");
+                logger.info("OSS上传成功 - 结果: {}", result);
                 
-                // 直接更新用户头像字段
-                currentUser.setAvatar(avatarUrl);
-                userService.updateUser(currentUser);
+                if (result == null) {
+                    logger.error("OSS上传失败 - 返回结果为null");
+                    return ResponseEntity.ok(ApiResponse.error(500, "头像上传失败: OSS服务返回为空"));
+                }
                 
-                logger.info("用户头像已更新到数据库");
+                String avatarUrl = null;
+                
+                // 尝试从不同字段获取URL
+                if (result.containsKey("url")) {
+                    avatarUrl = result.get("url");
+                    logger.info("从url字段获取头像URL: {}", avatarUrl);
+                } else if (result.containsKey("path")) {
+                    avatarUrl = result.get("path");
+                    logger.info("从path字段获取头像URL: {}", avatarUrl);
+                } else if (result.containsKey("ossUrl")) {
+                    avatarUrl = result.get("ossUrl");
+                    logger.info("从ossUrl字段获取头像URL: {}", avatarUrl);
+                } else {
+                    // 构造URL
+                    String bucketName = result.getOrDefault("bucketName", "shiguang123418");
+                    String filename = result.getOrDefault("filename", null);
+                    String objectKey = result.getOrDefault("objectKey", null);
+                    
+                    if (objectKey != null) {
+                        avatarUrl = "https://" + bucketName + ".oss-cn-hangzhou.aliyuncs.com/" + objectKey;
+                        logger.info("根据objectKey构造头像URL: {}", avatarUrl);
+                    } else if (filename != null) {
+                        String datePath = new SimpleDateFormat("yyyy/MM/dd").format(new Date());
+                        avatarUrl = "https://" + bucketName + ".oss-cn-hangzhou.aliyuncs.com/avatar/" + datePath + "/" + filename;
+                        logger.info("根据filename构造头像URL: {}", avatarUrl);
+                    }
+                }
+                
+                // 更新用户头像字段
+                if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                    try {
+                        // 使用专门的安全方法更新头像，确保不影响其他字段特别是密码
+                        User updatedUser = userService.updateUserAvatar(currentUser.getId(), avatarUrl);
+                        
+                        if (updatedUser == null) {
+                            logger.error("更新头像失败: 用户不存在或更新过程出错");
+                            return ResponseEntity.ok(ApiResponse.error(404, "更新头像失败，用户不存在"));
+                        }
+                        
+                        logger.info("用户头像已安全更新到数据库: {}", avatarUrl);
+                        
+                        // 确保result中包含url字段
+                        result.put("url", avatarUrl);
+                    } catch (Exception e) {
+                        logger.error("更新用户头像失败: {}", e.getMessage(), e);
+                        return ResponseEntity.ok(ApiResponse.error(500, "头像上传成功，但更新用户失败: " + e.getMessage()));
+                    }
+                } else {
+                    logger.error("未能从OSS结果中提取头像URL: {}", result);
+                    return ResponseEntity.ok(ApiResponse.error(500, "头像上传失败: 无法获取URL"));
+                }
+                
+                return ResponseEntity.ok(ApiResponse.success("头像上传成功", result));
+            } catch (Exception ossEx) {
+                logger.error("OSS上传过程出错: {}", ossEx.getMessage(), ossEx);
+                return ResponseEntity.ok(ApiResponse.error(500, "头像上传过程出错: " + ossEx.getMessage()));
             }
-            
-            return ResponseEntity.ok(ApiResponse.success("头像上传成功", result));
         } catch (Exception e) {
-            logger.error("头像上传失败", e);
+            logger.error("头像上传处理过程出现异常: {}", e.getMessage(), e);
+            if (e.getCause() != null) {
+                logger.error("根本原因: {}", e.getCause().getMessage(), e.getCause());
+            }
             return ResponseEntity.ok(ApiResponse.error(500, "头像上传失败: " + e.getMessage()));
         }
     }

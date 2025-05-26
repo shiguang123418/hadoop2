@@ -7,7 +7,7 @@ import apiConfig from '../config/api.config';
 class AuthService {
   constructor() {
     // 构建基础URL，使用apiConfig中配置的服务路径
-    // 注意：services.auth 不包含 /api 前缀，axios.defaults.baseURL 会负责添加
+    // 确保路径以/api开头
     this.baseUrl = apiConfig.services.auth;
     console.log('Auth服务初始化，baseUrl:', this.baseUrl, '完整URL:', axios.defaults.baseURL + this.baseUrl);
   }
@@ -51,7 +51,7 @@ class AuthService {
    */
   isAdmin() {
     // 使用统一的角色检查，检查是否有 admin 或 ROLE_ADMIN 角色
-    return this.hasRole('admin');
+    return this.hasRole('role_admin');
   }
   
   /**
@@ -218,6 +218,11 @@ class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     axios.defaults.headers.common['Authorization'] = '';
+    
+    // 触发用户信息更新事件，通知全局组件刷新状态
+    window.dispatchEvent(new Event('user-info-updated'));
+    
+    console.log('用户已退出登录，所有用户信息已清除');
   }
   
   /**
@@ -378,28 +383,53 @@ class AuthService {
       
       console.log('发送个人资料更新请求，数据:', profileToUpdate);
       
-      const response = await axios.put(`${this.baseUrl}/profile`, profileToUpdate, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      
-      // 更新本地存储的用户信息
-      const updatedUser = {
-        ...currentUser,
-        ...profileToUpdate
-      };
-      
-      // 确保avatar字段正确保存
-      if (profileToUpdate.avatar) {
-        updatedUser.avatar = profileToUpdate.avatar;
+      // 特殊处理头像更新
+      const isAvatarUpdate = profileToUpdate.avatar && Object.keys(profileToUpdate).length === 1;
+      if (isAvatarUpdate) {
+        console.log('检测到这是头像更新请求');
       }
       
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // 设置超时和重试
+      const response = await axios.put(`${this.baseUrl}/profile`, profileToUpdate, {
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: isAvatarUpdate ? 30000 : 10000 // 头像更新给予更长的超时时间
+      });
+      
+      console.log('个人资料更新响应:', response.data);
+      
+      // 如果更新成功
+      if (response.data && response.data.code === 200) {
+        // 更新本地存储的用户信息
+        const updatedUser = {
+          ...currentUser,
+          ...profileToUpdate
+        };
+        
+        // 确保avatar字段正确保存
+        if (profileToUpdate.avatar) {
+          console.log('更新本地用户头像:', profileToUpdate.avatar);
+          updatedUser.avatar = profileToUpdate.avatar;
+        }
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        console.log('本地用户信息已更新');
+      }
       
       return response.data;
     } catch (error) {
-      console.error('更新用户资料失败:', error.response?.data?.message || error.message);
+      console.error('更新用户资料失败:', error);
+      
+      // 详细记录错误信息
+      if (error.response) {
+        console.error('错误状态码:', error.response.status);
+        console.error('错误详情:', error.response.data);
+      } else if (error.request) {
+        console.error('未收到响应:', error.request);
+      }
+      
       throw error;
     }
   }

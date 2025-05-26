@@ -26,7 +26,7 @@ class ApiService {
       }
     });
     
-    console.log(`初始化服务 ${basePath}, 全局axios baseURL: ${axios.defaults.baseURL}, 完整路径前缀: ${axios.defaults.baseURL}${this.servicePath}`);
+    console.log(`初始化服务 ${basePath}, 全局axios baseURL: ${axios.defaults.baseURL}`);
     
     // 请求拦截器
     this.api.interceptors.request.use(
@@ -36,6 +36,11 @@ class ApiService {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // 记录请求URL信息
+        const fullUrl = (config.baseURL || '') + config.url;
+        console.log(`发送API请求: ${config.method.toUpperCase()} ${fullUrl}`);
+        
         return config;
       },
       error => Promise.reject(error)
@@ -65,7 +70,7 @@ class ApiService {
    */
   get(endpoint, params = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`GET请求: ${axios.defaults.baseURL}${url}`);
+    console.log(`GET请求: ${url}`);
     return this.api.get(url, {
       params,
       ...config
@@ -81,7 +86,7 @@ class ApiService {
    */
   post(endpoint, data = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`POST请求: ${axios.defaults.baseURL}${url}`);
+    console.log(`POST请求: ${url}`);
     return this.api.post(url, data, config);
   }
   
@@ -94,7 +99,7 @@ class ApiService {
    */
   put(endpoint, data = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`PUT请求: ${axios.defaults.baseURL}${url}`);
+    console.log(`PUT请求: ${url}`);
     return this.api.put(url, data, config);
   }
   
@@ -107,7 +112,7 @@ class ApiService {
    */
   delete(endpoint, params = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`DELETE请求: ${axios.defaults.baseURL}${url}`);
+    console.log(`DELETE请求: ${url}`);
     return this.api.delete(url, {
       params,
       ...config
@@ -123,7 +128,7 @@ class ApiService {
     // 确保endpoint格式正确
     endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
     
-    // 返回服务路径和端点的组合
+    // 返回服务路径和端点的组合，不添加/api前缀，由拦截器统一处理
     return `${this.servicePath}${endpoint}`;
   }
 }

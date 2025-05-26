@@ -7,9 +7,8 @@ import apiConfig from '../config/api.config';
  */
 class FileService {
   constructor() {
-    // file服务不是标准服务，需要单独设置路径
-    // axios.defaults.baseURL 已经设置为 /api，这里不要重复添加
-    this.baseUrl = '/file';
+    // 初始化服务配置
+    this.baseUrl = '/api/file';
     console.log('文件服务初始化，baseUrl:', this.baseUrl);
   }
   
@@ -33,24 +32,18 @@ class FileService {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${authService.getToken()}`
-        }
+        },
+        timeout: 60000 // 60秒超时
       });
       
       console.log('文件上传响应:', response.data);
       
-      // 规范化返回结果
-      if (response.data) {
-        if (response.data.code === 200) {
-          // 检查data字段的格式
-          if (response.data.data) {
-            // 确保返回标准格式
-            return {
-              code: 200,
-              message: response.data.message || '上传成功',
-              data: response.data.data
-            };
-          }
-        }
+      if (response.data && response.data.code === 200) {
+        return {
+          code: 200,
+          message: response.data.message || '上传成功',
+          data: response.data.data
+        };
       }
       
       return response.data;
@@ -61,36 +54,94 @@ class FileService {
   }
   
   /**
+   * 简化版头像上传 - 直接上传不裁剪
+   * @param {File} file 头像文件
+   * @returns {Promise<Object>} 上传结果
+   */
+  async uploadAvatarSimple(file) {
+    try {
+      console.log('开始简化版头像上传:', file.name, '大小:', file.size, '类型:', file.type);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // 使用完整的API路径，确保添加/api前缀
+      const response = await axios({
+        method: 'post',
+        url: '/user/profile/avatar',
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${authService.getToken()}`
+        },
+        timeout: 60000 // 60秒超时
+      });
+      
+      console.log('头像上传响应:', response.data);
+      
+      if (response.data && response.data.code === 200) {
+        // 尝试提取URL
+        const result = response.data.data;
+        let imageUrl = '';
+        
+        if (typeof result === 'string') {
+          // 直接返回URL字符串
+          imageUrl = result;
+        } else if (result && typeof result === 'object') {
+          // 检查各种可能的字段
+          if (result.url) {
+            imageUrl = result.url;
+          } else if (result.path) {
+            imageUrl = result.path;
+          } else if (result.filename) {
+            // 构建URL
+            const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '/');
+            imageUrl = `https://shiguang123418.oss-cn-hangzhou.aliyuncs.com/avatar/${datePart}/${result.filename}`;
+          }
+        }
+        
+        if (imageUrl) {
+          return {
+            code: 200,
+            message: '头像上传成功',
+            data: imageUrl
+          };
+        }
+        
+        // 如果无法提取URL，返回原始响应
+        return {
+          code: 200,
+          message: '头像上传成功，但无法解析URL',
+          data: result,
+          rawResponse: response.data
+        };
+      }
+      
+      return {
+        code: response.data.code || 500,
+        message: response.data.message || '头像上传失败',
+        data: null
+      };
+    } catch (error) {
+      console.error('头像上传失败:', error);
+      
+      if (error.response) {
+        console.error('错误状态码:', error.response.status);
+        console.error('错误详情:', error.response.data);
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
    * 上传头像 - 使用专用的头像上传API
    * @param {File} file 头像文件
    * @returns {Promise<Object>} 上传结果
    */
   async uploadAvatar(file) {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      console.log('开始上传头像:', file.name);
-      
-      // 使用专门的头像上传API
-      // axios.defaults.baseURL 已经设置为 /api，这里使用不带/api前缀的路径
-      const userProfileUrl = '/user/profile/avatar';
-      console.log('头像上传URL:', userProfileUrl, '完整URL:', axios.defaults.baseURL + userProfileUrl);
-      
-      const response = await axios.post(userProfileUrl, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${authService.getToken()}`
-        }
-      });
-      
-      console.log('头像上传响应:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      console.error('头像上传失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    // 直接使用简化版上传
+    return this.uploadAvatarSimple(file);
   }
   
   /**

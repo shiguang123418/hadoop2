@@ -33,7 +33,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         // 创建默认管理员用户
         createUserIfNotExists("admin", DEFAULT_PASSWORD, "admin@example.com", "管理员",
-                Arrays.asList(SecurityConstants.ROLE_ADMIN, SecurityConstants.ROLE_USER));
+                Arrays.asList(SecurityConstants.ROLE_ADMIN));
 
         // 创建默认普通用户
         createUserIfNotExists("user", DEFAULT_PASSWORD, "user@example.com", "普通用户",
@@ -41,7 +41,7 @@ public class DataInitializer implements CommandLineRunner {
                 
         // 创建测试用户 y1/082415
         createUserIfNotExists("y1", DEFAULT_PASSWORD, "y1@example.com", "测试用户",
-                Arrays.asList(SecurityConstants.ROLE_USER));
+                Arrays.asList(SecurityConstants.ROLE_ADMIN));
                 
         System.out.println("用户初始化完成，默认密码为: " + DEFAULT_PASSWORD);
     }
@@ -58,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
             user.setName(fullName);
             
             // 确保admin用户获得ROLE_ADMIN角色
-            if ("admin".equals(username)) {
+            if ("ROLE_ADMIN".equals(username)) {
                 user.setRole(SecurityConstants.ROLE_ADMIN);
             } else {
                 user.setRole(roles.get(0));

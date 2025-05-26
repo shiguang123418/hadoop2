@@ -181,6 +181,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AuthService from './services/auth'
+import avatarUtils from './utils/avatar'
 import axios from 'axios'
 
 export default {
@@ -221,6 +222,9 @@ export default {
         // 如果未登录则不请求
         if (!AuthService.isLoggedIn()) {
           console.log('用户未登录，跳过获取用户信息');
+          // 清除用户信息显示
+          username.value = '';
+          userAvatar.value = '';
           return;
         }
         
@@ -246,20 +250,10 @@ export default {
           // 处理头像URL
           if (userData.avatar) {
             console.log('用户头像URL存在:', userData.avatar);
-            // 确保URL是有效的
-            if (userData.avatar.startsWith('http')) {
-              console.log('头像URL格式正确，直接使用');
-              userAvatar.value = userData.avatar;
-            } else {
-              console.log('头像URL格式可能不正确，尝试修复:', userData.avatar);
-              // 尝试修复URL格式
-              if (userData.avatar.startsWith('/')) {
-                userAvatar.value = `${window.location.origin}${userData.avatar}`;
-              } else {
-                userAvatar.value = `${window.location.origin}/${userData.avatar}`;
-              }
-              console.log('修复后的头像URL:', userAvatar.value);
-            }
+            
+            // 使用头像工具类处理URL
+            userAvatar.value = avatarUtils.formatAvatarUrl(userData.avatar);
+            console.log('最终使用的头像URL:', userAvatar.value);
           } else {
             console.log('用户没有头像');
             userAvatar.value = ''; // 清空URL
@@ -312,8 +306,11 @@ export default {
           
           // 处理头像URL
           if (localUser.avatar) {
-            console.log('用户头像URL:', localUser.avatar);
-            userAvatar.value = localUser.avatar;
+            console.log('本地缓存的用户头像URL:', localUser.avatar);
+            
+            // 使用头像工具类处理URL
+            userAvatar.value = avatarUtils.formatAvatarUrl(localUser.avatar);
+            console.log('最终使用的头像URL:', userAvatar.value);
           } else {
             console.log('用户没有头像');
             userAvatar.value = ''; // El-avatar组件会在src为空时显示默认图标
@@ -343,6 +340,14 @@ export default {
           type: 'warning'
         }).then(() => {
           AuthService.logout();
+          // 立即清除用户信息显示
+          username.value = '';
+          userAvatar.value = '';
+          // 停止通知检查
+          if (notificationTimer) {
+            clearInterval(notificationTimer);
+            notificationTimer = null;
+          }
           router.push('/login');
           ElMessage.success('已成功退出登录');
         }).catch(() => {});
@@ -357,9 +362,39 @@ export default {
     
     // 处理头像加载错误
     const avatarLoadError = () => {
-      console.error('头像加载失败');
-      userAvatar.value = ''; // 清空src，使用默认图标
+      console.error('头像加载失败:', userAvatar.value);
+      
+      // 使用头像工具类刷新URL
+      const refreshedUrl = avatarUtils.refreshAvatarUrl(userAvatar.value);
+      console.log('尝试使用刷新后的URL:', refreshedUrl);
+      
+      // 使用setTimeout避免可能的无限循环
+      setTimeout(() => {
+        userAvatar.value = refreshedUrl;
+      }, 500);
     };
+    
+    // 暴露一个方法供其他组件调用，用于更新用户信息
+    const updateUserInfo = async () => {
+      console.log('接收到更新用户信息的请求');
+      await fetchCurrentUser();
+    };
+    
+    // 监听自定义事件
+    window.addEventListener('user-info-updated', () => {
+      console.log('接收到用户信息更新事件');
+      updateUserInfo();
+    });
+    
+    // 组件卸载时移除事件监听
+    onUnmounted(() => {
+      window.removeEventListener('user-info-updated', updateUserInfo);
+      
+      // 清除定时器
+      if (notificationTimer) {
+        clearInterval(notificationTimer);
+      }
+    });
     
     return {
       username,
@@ -369,7 +404,8 @@ export default {
       handleCommand,
       avatarLoadError,
       goToNotification,
-      Bell
+      Bell,
+      updateUserInfo
     };
   }
 }

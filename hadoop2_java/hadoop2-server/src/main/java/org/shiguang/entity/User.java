@@ -3,6 +3,7 @@ package org.shiguang.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Slf4j
 public class User {
     
     @Id
@@ -56,6 +58,13 @@ public class User {
     @Temporal(TemporalType.TIMESTAMP)
     private Date passwordLastChanged;
     
+    // 临时存储字段，不持久化到数据库
+    @Transient
+    private String passwordCopy;
+    
+    @Transient
+    private Date passwordLastChangedCopy;
+    
     @PrePersist
     protected void onCreate() {
         createdAt = new Date();
@@ -65,6 +74,25 @@ public class User {
     
     @PreUpdate
     protected void onUpdate() {
+        // 只更新updatedAt字段，不动其他字段
         updatedAt = new Date();
+        
+        // 防止密码被框架自动清空的保护逻辑
+        if (passwordCopy != null && (password == null || password.isEmpty())) {
+            log.warn("实体更新过程中发现密码字段被清空，恢复为原密码");
+            password = passwordCopy;
+            passwordLastChanged = passwordLastChangedCopy;
+        }
+    }
+    
+    /**
+     * 在实体被加载后记录密码副本，防止后续操作中被清空
+     */
+    @PostLoad
+    protected void onLoad() {
+        if (password != null) {
+            passwordCopy = password;
+            passwordLastChangedCopy = passwordLastChanged;
+        }
     }
 } 

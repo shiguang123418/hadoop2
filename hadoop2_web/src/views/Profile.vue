@@ -62,6 +62,7 @@ import { useRouter } from 'vue-router';
 import { Refresh, Link } from '@element-plus/icons-vue';
 import authService from '../services/auth';
 import AvatarUpload from '../components/AvatarUpload.vue';
+import avatarUtils from '../utils/avatar';
 import axios from 'axios';
 
 export default defineComponent({
@@ -105,7 +106,8 @@ export default defineComponent({
         const response = await axios.get('/auth/current', {
           headers: {
             'Authorization': `Bearer ${authService.getToken()}`
-          }
+          },
+          timeout: 10000 // 添加超时设置
         });
         
         console.log('从服务器获取的用户信息:', response.data);
@@ -126,7 +128,10 @@ export default defineComponent({
           // 设置头像
           if (serverUserData.avatar) {
             console.log('服务器返回的头像URL:', serverUserData.avatar);
-            form.avatar = serverUserData.avatar;
+            
+            // 使用头像工具类处理URL
+            form.avatar = avatarUtils.formatAvatarUrl(serverUserData.avatar);
+            console.log('最终设置的头像URL:', form.avatar);
           } else {
             console.log('服务器返回的用户没有头像');
             form.avatar = '';
@@ -151,10 +156,13 @@ export default defineComponent({
         form.email = currentUser.email || '';
         form.phone = currentUser.phone || '';
         
-        // 设置头像
+        // 设置头像，添加随机参数防止缓存
         if (currentUser.avatar) {
           console.log('本地缓存的头像URL:', currentUser.avatar);
-          form.avatar = currentUser.avatar;
+          
+          // 使用头像工具类处理URL
+          form.avatar = avatarUtils.formatAvatarUrl(currentUser.avatar);
+          console.log('最终设置的头像URL:', form.avatar);
         } else {
           console.log('本地缓存的用户没有头像');
           form.avatar = '';
@@ -202,6 +210,9 @@ export default defineComponent({
             currentUser.avatar = form.avatar;
             localStorage.setItem('user', JSON.stringify(currentUser));
           }
+          
+          // 触发全局用户信息更新
+          window.dispatchEvent(new Event('user-info-updated'));
         } else {
           ElMessage.error(response?.message || '个人资料更新失败');
         }
@@ -252,10 +263,14 @@ export default defineComponent({
             currentUser.avatar = avatarUrl;
             localStorage.setItem('user', JSON.stringify(currentUser));
             console.log('本地用户头像已更新');
+            ElMessage.success('头像已成功更新');
+            
+            // 触发全局用户信息更新
+            window.dispatchEvent(new Event('user-info-updated'));
           }
         } else {
           console.error('头像保存失败:', response);
-          ElMessage.error('头像保存失败');
+          ElMessage.error(response?.message || '头像保存失败');
         }
       } catch (error) {
         console.error('保存头像失败:', error);
@@ -274,21 +289,17 @@ export default defineComponent({
       try {
         console.log('正在刷新头像...');
         
-        // 先尝试直接访问当前头像URL以检查可访问性
-        if (form.avatar) {
-          console.log('测试当前头像URL是否可访问:', form.avatar);
-          
-          const testImage = new Image();
-          testImage.onload = () => {
-            console.log('当前头像URL可以正常访问');
-            ElMessage.success('头像URL有效，正在重新加载用户信息');
-          };
-          testImage.onerror = () => {
-            console.error('当前头像URL无法访问');
-            ElMessage.warning('当前头像URL无法访问，将尝试获取新的头像信息');
-          };
-          testImage.src = form.avatar;
-        }
+        // 清除浏览器缓存的图片
+        const currentAvatar = form.avatar;
+        form.avatar = ''; // 先清空
+        
+        // 使用头像工具类刷新URL
+        setTimeout(() => {
+          if (currentAvatar) {
+            form.avatar = avatarUtils.refreshAvatarUrl(currentAvatar);
+            console.log('更新头像URL带时间戳:', form.avatar);
+          }
+        }, 100);
         
         // 重新获取用户信息
         await loadUserData();

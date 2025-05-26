@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -61,64 +62,112 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
 
     @Override
     public Map<String, Object> login(String username, String password) {
-        // 查找用户
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("用户名或密码错误"));
+        try {
+            // 输入验证
+            if (username == null || username.trim().isEmpty()) {
+                logger.warn("登录失败: 用户名为空");
+                throw new IllegalArgumentException("用户名不能为空");
+            }
+            
+            if (password == null || password.trim().isEmpty()) {
+                logger.warn("登录失败: 密码为空");
+                throw new IllegalArgumentException("密码不能为空");
+            }
+            
+            logger.info("尝试登录: 用户名={}", username);
+            
+            // 查找用户
+            Optional<User> userOptional = userRepository.findByUsername(username);
+            if (!userOptional.isPresent()) {
+                logger.warn("登录失败: 用户名不存在 - {}", username);
+                throw new UsernameNotFoundException("用户名或密码错误");
+            }
+            
+            User user = userOptional.get();
+            
+            // 检查用户状态
+            if (!"active".equals(user.getStatus())) {
+                logger.warn("登录失败: 用户账号已被禁用或锁定 - {}, 状态={}", username, user.getStatus());
+                throw new IllegalStateException("账号已被禁用或锁定");
+            }
+            
+            // 验证密码
+            if (!passwordEncoder.matches(password, user.getPassword())) {
+                logger.warn("登录失败: 密码错误 - {}", username);
+                throw new BadCredentialsException("用户名或密码错误");
+            }
 
-        // 验证密码
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("用户名或密码错误");
+            // 打印用户信息
+            logger.info("用户登录成功: {}, ID: {}, 角色: {}, 头像: {}", 
+                        username, 
+                        user.getId(), 
+                        user.getRole(),
+                        user.getAvatar() != null ? user.getAvatar() : "无头像");
+
+            // 更新最后登录时间
+            user.setLastLoginAt(new Date());
+            userRepository.save(user);
+
+            // 生成令牌
+            String token = createToken(username);
+
+            // 构建响应
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            
+            // 复制用户信息，排除敏感字段
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("id", user.getId());
+            userInfo.put("username", user.getUsername());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("name", user.getName());
+            
+            // 确保头像URL正确返回
+            if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
+                userInfo.put("avatar", user.getAvatar());
+                logger.info("返回用户头像URL: {}", user.getAvatar());
+            } else {
+                userInfo.put("avatar", null);
+                logger.info("用户没有头像");
+            }
+            
+            // 确保roles不为null
+            String role = user.getRole();
+            if (role != null && !role.isEmpty()) {
+                // 处理ROLE_前缀
+                if (!role.startsWith("ROLE_")) {
+                    role = "ROLE_" + role.toUpperCase();
+                }
+                userInfo.put("roles", Collections.singletonList(role));
+            } else {
+                // 默认为普通用户角色
+                userInfo.put("roles", Collections.singletonList("ROLE_USER"));
+            }
+            
+            userInfo.put("active", "active".equals(user.getStatus()));
+            
+            response.put("user", userInfo);
+            
+            // 打印完整响应，但排除敏感信息
+            logger.info("返回登录响应，用户: {}, 角色: {}, 有头像: {}", 
+                        username, 
+                        role, 
+                        user.getAvatar() != null);
+
+            return response;
+        } catch (UsernameNotFoundException | BadCredentialsException e) {
+            // 用户名或密码错误的情况，使用一致的错误消息
+            logger.warn("登录认证失败: {}", e.getMessage());
+            throw new BadCredentialsException("用户名或密码错误");
+        } catch (IllegalStateException e) {
+            // 账号状态问题
+            logger.warn("账号状态异常: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            // 其他未预期的异常，记录详细信息但不向客户端暴露
+            logger.error("登录过程发生异常: {}", e.getMessage(), e);
+            throw new RuntimeException("登录失败，请稍后再试");
         }
-
-        // 打印用户信息
-        logger.info("用户登录成功: {}, ID: {}, 头像: {}", 
-                    username, 
-                    user.getId(), 
-                    user.getAvatar() != null ? user.getAvatar() : "无头像");
-
-        // 生成令牌
-        String token = createToken(username);
-
-        // 构建响应
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", token);
-        
-        // 复制用户信息，排除敏感字段
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("id", user.getId());
-        userInfo.put("username", user.getUsername());
-        userInfo.put("email", user.getEmail());
-        userInfo.put("fullName", user.getName());
-        
-        // 确保头像URL正确返回
-        if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
-            userInfo.put("avatar", user.getAvatar());
-            logger.info("返回用户头像URL: {}", user.getAvatar());
-        } else {
-            userInfo.put("avatar", null);
-            logger.info("用户没有头像");
-        }
-        
-        // 修复：确保roles不为null
-        String role = user.getRole();
-        if (role != null && !role.isEmpty()) {
-            userInfo.put("roles", Collections.singletonList(role));
-        } else {
-            // 默认为普通用户角色
-            userInfo.put("roles", Collections.singletonList("ROLE_USER"));
-        }
-        
-        userInfo.put("active", "active".equals(user.getStatus()));
-        
-        response.put("user", userInfo);
-        
-        // 打印完整响应，但排除敏感信息
-        logger.info("返回登录响应，用户: {}, 角色: {}, 有头像: {}", 
-                    username, 
-                    role, 
-                    user.getAvatar() != null);
-
-        return response;
     }
 
     @Override

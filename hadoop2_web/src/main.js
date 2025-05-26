@@ -5,11 +5,16 @@ import VueAxios from 'vue-axios'
 import AuthService from './services/auth'
 import router from './router'
 import apiConfig from './config/api.config'
+import { setupApiInterceptor } from './utils/service-helper'
 
 // 导入Element Plus
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+
+// 导入WebSocket相关依赖
+import SockJS from 'sockjs-client'
+import { Stomp } from '@stomp/stompjs'
 
 // 导入样式文件
 import './assets/base.css'
@@ -17,22 +22,22 @@ import './assets/main.css'
 import './assets/background-fix.css'
 import './assets/vue-cropper.css'  // 引入vue-cropper样式
 
-// 尝试导入vue-cropper样式，如果安装了的话
-try {
-  import('vue-cropper/dist/index.css').catch(err => {
-    console.warn('未能加载vue-cropper样式:', err);
-  });
-} catch (e) {
-  console.warn('未能导入vue-cropper样式');
-}
+// 确保正确加载vue-cropper样式
+import 'vue-cropper/dist/index.css'
 
-// 配置axios - 使用apiConfig中的baseUrl作为默认路径
-// apiConfig.baseUrl 已经包含了 /api 前缀
+// 配置axios - 使用空的baseURL，由拦截器统一处理API前缀
 axios.defaults.baseURL = apiConfig.baseUrl
 axios.defaults.withCredentials = true
 
+// 将WebSocket客户端挂载到全局，以便在组件中使用
+window.SockJS = SockJS
+window.Stomp = Stomp
+
 console.log('API基础路径:', apiConfig.baseUrl)
-console.log('API代理模式:', apiConfig.useProxy ? '启用' : '禁用')
+console.log('WebSocket客户端加载:', SockJS ? '成功' : '失败', Stomp ? '成功' : '失败')
+
+// 设置API请求拦截器，统一添加/api前缀
+setupApiInterceptor();
 
 // 添加请求拦截器，记录每个请求
 axios.interceptors.request.use(config => {

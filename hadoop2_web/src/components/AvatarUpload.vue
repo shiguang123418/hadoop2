@@ -33,56 +33,19 @@
     <div class="avatar-tips">
       <p>支持 JPG、PNG、GIF 格式，小于 5MB</p>
     </div>
-    
-    <el-dialog
-      v-model="cropperVisible"
-      title="裁剪头像"
-      width="500px"
-      :close-on-click-modal="false"
-      :append-to-body="true"
-    >
-      <div class="cropper-container">
-        <div v-if="cropperSrc" class="cropper-img-container">
-          <vue-cropper
-            ref="cropper"
-            :img="cropperSrc"
-            :outputSize="1"
-            :outputType="'png'"
-            :info="true"
-            :full="false"
-            :canMove="true"
-            :canMoveBox="true"
-            :fixedBox="true"
-            :autoCrop="true"
-            :autoCropWidth="200"
-            :autoCropHeight="200"
-            :centerBox="true"
-            :high="true"
-            :infoTrue="true"
-          />
-        </div>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="cropperVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmCrop">确认</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { ref, defineComponent, computed, onMounted, watch } from 'vue';
+import { ref, defineComponent, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { VueCropper } from 'vue-cropper';
 import { User, Upload } from '@element-plus/icons-vue';
 import fileService from '../services/file';
+import avatarUtils from '../utils/avatar';
 
 export default defineComponent({
   name: 'AvatarUpload',
   components: {
-    VueCropper,
     User,
     Upload
   },
@@ -101,12 +64,8 @@ export default defineComponent({
     const fileInput = ref(null);
     const loading = ref(false);
     const previewUrl = ref(props.value || '');
-    const cropperVisible = ref(false);
-    const cropperSrc = ref('');
-    const cropper = ref(null);
-    const currentFile = ref(null);
     
-    // 当props.value改变时更新预览
+    // 初始化和更新
     const updatePreview = () => {
       console.log('更新头像预览，原始URL:', props.value);
       
@@ -116,8 +75,8 @@ export default defineComponent({
         return;
       }
       
-      // 直接使用原始URL，不尝试修复格式
-      previewUrl.value = props.value;
+      // 使用avatar工具处理URL
+      previewUrl.value = avatarUtils.formatAvatarUrl(props.value);
       console.log('设置头像预览URL:', previewUrl.value);
     };
     
@@ -138,8 +97,8 @@ export default defineComponent({
       fileInput.value.click();
     };
     
-    // 文件选择变化
-    const handleFileChange = (e) => {
+    // 文件选择变化 - 直接上传文件
+    const handleFileChange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       
@@ -155,115 +114,91 @@ export default defineComponent({
         return;
       }
       
-      currentFile.value = file;
-      
-      // 显示图片裁剪器
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        cropperSrc.value = event.target.result;
-        cropperVisible.value = true;
-      };
-      reader.readAsDataURL(file);
-      
-      // 重置input，允许选择相同文件
-      e.target.value = '';
-    };
-    
-    // 确认裁剪
-    const confirmCrop = () => {
-      if (!cropper.value) return;
-      
-      cropper.value.getCropBlob(async (blob) => {
-        try {
-          cropperVisible.value = false;
-          loading.value = true;
+      // 直接上传文件
+      try {
+        loading.value = true;
+        console.log('开始上传头像文件:', file.name, file.size + '字节');
+        
+        const result = await fileService.uploadAvatar(file);
+        console.log('头像上传结果:', result);
+        
+        if (result && result.code === 200) {
+          let imageUrl = '';
           
-          // 创建File对象
-          const file = new File([blob], currentFile.value.name || "avatar.png", { 
-            type: 'image/png' 
-          });
-          
-          console.log('准备上传头像文件:', file.name, file.size + '字节');
-          
-          // 使用专用的头像上传API
-          const result = await fileService.uploadAvatar(file);
-          
-          console.log('头像上传结果:', result);
-          
-          if (result && result.code === 200) {
-            let imageUrl = '';
-            
-            // 处理不同的返回格式
-            if (result.data && typeof result.data === 'object') {
-              if (result.data.url) {
-                imageUrl = result.data.url;
-              } else if (result.data.data && result.data.data.url) {
-                imageUrl = result.data.data.url;
-              }
-            } else if (typeof result.data === 'string') {
-              imageUrl = result.data;
+          if (typeof result.data === 'string') {
+            imageUrl = result.data;
+          } else if (result.data && typeof result.data === 'object') {
+            // 尝试从不同字段获取URL或文件名
+            if (result.data.url) {
+              imageUrl = result.data.url;
+            } else if (result.data.path) {
+              imageUrl = result.data.path;
+            } else if (result.data.filename) {
+              // 使用工具类根据文件名构建URL
+              imageUrl = avatarUtils.buildOssAvatarUrl(result.data.filename);
             }
-            
-            if (imageUrl) {
-              console.log('获取到头像URL:', imageUrl);
-              
-              // 更新头像URL
-              previewUrl.value = imageUrl;
-              emit('update:value', imageUrl);
-              emit('change', imageUrl);
-              
-              // 立即更新个人资料中的头像
-              try {
-                console.log('正在更新用户资料中的头像...');
-                
-                // 使用authService统一处理头像更新
-                const updateResponse = await fileService.updateUserAvatar(imageUrl);
-                
-                if (updateResponse && updateResponse.code === 200) {
-                  console.log('用户头像已成功更新到个人资料');
-                  ElMessage.success('头像上传并保存成功');
-                } else {
-                  console.warn('更新个人资料失败:', updateResponse);
-                  ElMessage.warning('头像已上传，但未能更新到个人资料');
-                }
-              } catch (error) {
-                console.error('更新头像到个人资料失败:', error);
-                ElMessage.error('头像上传成功，但更新个人资料失败: ' + (error.message || '未知错误'));
-              } finally {
-                loading.value = false;
-              }
-            } else {
-              console.error('未找到图片URL', result);
-              ElMessage.error('头像上传失败: 返回数据格式错误');
-            }
-          } else {
-            console.error('头像上传失败:', result);
-            ElMessage.error(result?.message || '头像上传失败');
           }
-        } catch (error) {
-          console.error('头像上传失败', error);
-          ElMessage.error('头像上传失败: ' + (error.message || '未知错误'));
+          
+          if (imageUrl) {
+            console.log('获取到头像URL:', imageUrl);
+            
+            // 使用工具类处理URL
+            const formattedUrl = avatarUtils.formatAvatarUrl(imageUrl);
+            console.log('格式化后的URL:', formattedUrl);
+            
+            // 更新显示和发送事件
+            previewUrl.value = formattedUrl;
+            emit('update:value', imageUrl); // 发送原始URL给父组件
+            emit('change', imageUrl);
+            
+            ElMessage.success('头像上传成功');
+          } else {
+            console.error('未能从响应中提取URL:', result);
+            ElMessage.warning('头像已上传，但未能获取URL');
+            
+            // 尝试从完整响应中提取文件名
+            if (result.data && result.data.filename) {
+              const filename = result.data.filename;
+              const fallbackUrl = avatarUtils.buildOssAvatarUrl(filename);
+              console.log('尝试使用文件名构建URL:', fallbackUrl);
+              
+              previewUrl.value = fallbackUrl;
+              emit('update:value', fallbackUrl);
+              emit('change', fallbackUrl);
+              
+              ElMessage.success('头像上传成功');
+            }
+          }
+        } else {
+          console.error('头像上传失败:', result);
+          ElMessage.error(result?.message || '头像上传失败');
         }
-      });
+      } catch (error) {
+        console.error('头像上传过程出错:', error);
+        ElMessage.error('上传失败: ' + (error.message || '未知错误'));
+      } finally {
+        loading.value = false;
+        // 重置文件输入以允许重新选择同一文件
+        e.target.value = '';
+      }
     };
     
     // 处理图片加载错误
     const handleImageError = () => {
       console.error('头像加载失败，地址:', previewUrl.value);
-      ElMessage.warning('头像图片加载失败，请尝试重新上传');
-      previewUrl.value = '';
+      
+      // 使用工具类刷新URL
+      const refreshedUrl = avatarUtils.refreshAvatarUrl(previewUrl.value);
+      console.log('尝试使用刷新后的URL加载头像:', refreshedUrl);
+      previewUrl.value = refreshedUrl;
     };
     
     return {
       fileInput,
       loading,
       previewUrl,
-      cropperVisible,
-      cropperSrc,
-      cropper,
       triggerFileInput,
       handleFileChange,
-      confirmCrop,
       handleImageError
     };
   }
@@ -344,54 +279,5 @@ export default defineComponent({
   font-size: 12px;
   color: #909399;
   text-align: center;
-}
-
-.cropper-container {
-  width: 100%;
-  height: 350px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cropper-img-container {
-  width: 100%;
-  height: 100%;
-}
-
-.dialog-footer {
-  padding: 10px 0 0;
-  text-align: right;
-}
-
-/* 添加vue-cropper的基本样式 */
-.vue-cropper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  user-select: none;
-  direction: ltr;
-  touch-action: none;
-  text-align: left;
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAAA3NCSVQICAjb4U/gAAAABlBMVEXMzMz////TjRV2AAAACXBIWXMAAArrAAAK6wGCiw1aAAAAHHRFWHRTb2Z0d2FyZQBBZG9iZSBGaXJld29ya3MgQ1M26LyyjAAAABFJREFUCJlj+M/AgBVhF/0PAH6/D/HkDxOGAAAAAElFTkSuQmCC");
-}
-
-.cropper-box, .cropper-box-canvas, .cropper-drag-box, .cropper-crop-box, .cropper-face {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  user-select: none;
-}
-
-.cropper-view-box {
-  display: block;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  outline: 1px solid #39f;
-  outline-color: rgba(51, 153, 255, 0.75);
 }
 </style> 

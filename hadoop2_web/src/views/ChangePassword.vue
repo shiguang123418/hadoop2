@@ -144,6 +144,8 @@ export default defineComponent({
           ElMessage.success('密码修改成功，请使用新密码重新登录');
           // 退出登录，返回登录页
           authService.logout();
+          // 清除页面上的用户信息
+          window.dispatchEvent(new Event('user-info-updated'));
           router.push('/login');
         } else {
           ElMessage.error(response?.message || '密码修改失败');

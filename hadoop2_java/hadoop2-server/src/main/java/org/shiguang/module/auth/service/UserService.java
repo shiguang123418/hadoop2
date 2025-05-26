@@ -34,6 +34,14 @@ public interface UserService {
      * @return 更新后的用户对象，如果不存在则返回null
      */
     User updateUser(User user);
+    
+    /**
+     * 更新用户头像（安全方法，只更新头像字段，不会影响其他字段）
+     * @param userId 用户ID
+     * @param avatarUrl 头像URL
+     * @return 更新后的用户对象，如果不存在则返回null
+     */
+    User updateUserAvatar(Long userId, String avatarUrl);
 
     /**
      * 删除用户

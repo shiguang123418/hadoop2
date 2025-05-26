@@ -5,11 +5,16 @@ import org.shiguang.entity.dto.ApiResponse;
 import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.auth.service.UserService;
+import org.shiguang.module.auth.service.impl.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 认证相关的REST API
@@ -19,11 +24,16 @@ import java.util.Map;
 @CrossOrigin
 public class AuthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
     @Autowired
     private AuthService authService;
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private LoginService loginService;
 
     /**
      * 用户登录
@@ -31,12 +41,44 @@ public class AuthController {
     @PostMapping("/login")
     @AuditOperation(operation = "用户登录", operationType = "LOGIN", resourceType = "AUTH")
     public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
-        String password = loginRequest.get("password");
-        
-        Map<String, Object> result = authService.login(username, password);
-        
-        return ResponseEntity.ok(ApiResponse.success("登录成功", result));
+        try {
+            String username = loginRequest.get("username");
+            String password = loginRequest.get("password");
+            
+            // 输入验证
+            if (username == null || username.trim().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error(400, "用户名不能为空"));
+            }
+            
+            if (password == null || password.trim().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error(400, "密码不能为空"));
+            }
+            
+            // 使用专门的登录服务处理登录
+            Map<String, Object> result = loginService.login(username, password);
+            
+            return ResponseEntity.ok(ApiResponse.success("登录成功", result));
+        } catch (BadCredentialsException e) {
+            // 处理用户名或密码错误的情况
+            logger.warn("登录失败: 用户名或密码错误 - {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error(401, "用户名或密码错误"));
+        } catch (UsernameNotFoundException e) {
+            // 处理用户不存在的情况 - 为了安全，使用与密码错误相同的消息
+            logger.warn("登录失败: 用户不存在 - {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error(401, "用户名或密码错误"));
+        } catch (IllegalStateException e) {
+            // 处理账号状态问题
+            logger.warn("登录失败: 账号状态异常 - {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error(403, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            // 处理参数验证失败
+            logger.warn("登录失败: 参数验证失败 - {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error(400, e.getMessage()));
+        } catch (Exception e) {
+            // 处理其他未预期的异常
+            logger.error("登录过程中发生未知异常:", e);
+            return ResponseEntity.ok(ApiResponse.error(500, "登录失败，请稍后再试"));
+        }
     }
 
     /**
@@ -59,20 +101,21 @@ public class AuthController {
         User currentUser = authService.getCurrentUser();
         
         if (currentUser == null) {
-            System.out.println("getCurrentUser: 未找到当前登录用户");
+            logger.warn("getCurrentUser: 未找到当前登录用户");
             return ResponseEntity.ok(ApiResponse.error(401, "未登录或登录已过期"));
         }
         
         // 添加详细日志，确认头像URL是否存在
-        System.out.println("getCurrentUser: 用户 " + currentUser.getUsername() + 
-                         " 获取成功, ID: " + currentUser.getId() + 
-                         ", 头像: " + (currentUser.getAvatar() != null ? currentUser.getAvatar() : "无"));
+        logger.info("getCurrentUser: 用户 {} 获取成功, ID: {}, 头像: {}", 
+                 currentUser.getUsername(),
+                 currentUser.getId(),
+                 currentUser.getAvatar() != null ? currentUser.getAvatar() : "无");
         
         // 确保头像URL不为空
         if (currentUser.getAvatar() == null || currentUser.getAvatar().trim().isEmpty()) {
-            System.out.println("getCurrentUser: 用户没有头像，设置为null");
+            logger.info("getCurrentUser: 用户没有头像，设置为null");
         } else {
-            System.out.println("getCurrentUser: 返回用户头像URL: " + currentUser.getAvatar());
+            logger.info("getCurrentUser: 返回用户头像URL: {}", currentUser.getAvatar());
         }
         
         return ResponseEntity.ok(ApiResponse.success("获取当前用户信息成功", currentUser));
@@ -90,36 +133,79 @@ public class AuthController {
             return ResponseEntity.ok(ApiResponse.error(401, "未登录或登录已过期"));
         }
         
-        // 只允许更新部分字段
-        if (profileData.containsKey("nickname") || profileData.containsKey("name")) {
-            currentUser.setName(profileData.getOrDefault("nickname", profileData.getOrDefault("name", currentUser.getName())));
-        }
-        
-        if (profileData.containsKey("email")) {
-            currentUser.setEmail(profileData.get("email"));
-        }
-        
-        if (profileData.containsKey("phone")) {
-            currentUser.setPhone(profileData.get("phone"));
-        }
-        
-        // 支持更新头像
+        // 单独处理头像更新，与其他资料分开
+        String avatarUrl = null;
         if (profileData.containsKey("avatar")) {
-            String avatarUrl = profileData.get("avatar");
-            System.out.println("收到头像更新请求，URL: " + avatarUrl);
-            // 确保头像URL不为空且有效
+            avatarUrl = profileData.get("avatar");
+            profileData.remove("avatar"); // 从profileData移除，防止被常规更新处理
+            
             if (avatarUrl != null && !avatarUrl.trim().isEmpty()) {
-                currentUser.setAvatar(avatarUrl);
-                System.out.println("已设置用户[" + currentUser.getUsername() + "]头像: " + avatarUrl);
-            } else {
-                System.out.println("头像URL为空或无效，不更新");
+                logger.info("检测到头像更新请求，使用安全方法单独处理头像: {}", avatarUrl);
+                try {
+                    User updatedWithAvatar = userService.updateUserAvatar(currentUser.getId(), avatarUrl);
+                    if (updatedWithAvatar == null) {
+                        logger.error("头像更新失败: 用户不存在或更新过程出错");
+                        return ResponseEntity.ok(ApiResponse.error(404, "更新头像失败"));
+                    }
+                    currentUser = updatedWithAvatar; // 使用更新后的用户对象继续处理
+                    logger.info("头像已安全更新: {}", avatarUrl);
+                } catch (Exception e) {
+                    logger.error("更新头像失败: {}", e.getMessage());
+                    return ResponseEntity.ok(ApiResponse.error(500, "头像更新失败: " + e.getMessage()));
+                }
             }
         }
         
-        User updatedUser = userService.updateUser(currentUser);
+        // 如果没有其他字段要更新，直接返回
+        if (profileData.isEmpty() || (profileData.size() == 1 && profileData.containsKey("avatar"))) {
+            logger.info("没有需要更新的基本资料字段，返回当前用户信息");
+            return ResponseEntity.ok(ApiResponse.success("用户资料更新成功", currentUser));
+        }
         
-        if (updatedUser != null && updatedUser.getAvatar() != null) {
-            System.out.println("用户资料更新成功，头像URL: " + updatedUser.getAvatar());
+        // 处理其他基本信息
+        logger.info("更新用户基本资料: {}", profileData);
+        
+        // 获取数据库中的完整用户信息，确保不丢失密码等敏感字段
+        User fullUser = userService.getUserById(currentUser.getId());
+        if (fullUser == null) {
+            logger.error("更新用户资料失败: 数据库中未找到用户 ID={}", currentUser.getId());
+            return ResponseEntity.ok(ApiResponse.error(404, "用户不存在"));
+        }
+        
+        // 记录更新前的状态
+        logger.info("更新用户资料前: ID={}, 用户名={}, 密码状态={}", 
+                  fullUser.getId(), 
+                  fullUser.getUsername(),
+                  fullUser.getPassword() != null ? "已设置" : "未设置");
+        
+        // 只允许更新部分字段
+        if (profileData.containsKey("nickname") || profileData.containsKey("name")) {
+            fullUser.setName(profileData.getOrDefault("nickname", profileData.getOrDefault("name", fullUser.getName())));
+        }
+        
+        if (profileData.containsKey("email")) {
+            fullUser.setEmail(profileData.get("email"));
+        }
+        
+        if (profileData.containsKey("phone")) {
+            fullUser.setPhone(profileData.get("phone"));
+        }
+        
+        // 确认密码字段在更新前是否完整
+        logger.info("更新用户前最终检查: ID={}, 用户名={}, 密码状态={}", 
+                  fullUser.getId(), 
+                  fullUser.getUsername(),
+                  fullUser.getPassword() != null ? "已设置" : "未设置");
+        
+        User updatedUser = userService.updateUser(fullUser);
+        
+        // 如果之前更新了头像，确保在响应中包含头像URL
+        if (avatarUrl != null && !avatarUrl.trim().isEmpty() && updatedUser != null) {
+            updatedUser.setAvatar(avatarUrl);
+        }
+        
+        if (updatedUser != null) {
+            logger.info("用户资料更新成功，完整资料已更新");
         }
         
         return ResponseEntity.ok(ApiResponse.success("个人资料更新成功", updatedUser));
