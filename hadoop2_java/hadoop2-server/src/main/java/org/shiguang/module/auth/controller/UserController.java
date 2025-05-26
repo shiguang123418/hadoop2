@@ -2,6 +2,7 @@ package org.shiguang.module.auth.controller;
 
 import org.shiguang.entity.User;
 import org.shiguang.entity.dto.ApiResponse;
+import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ public class UserController {
      * 获取所有用户
      */
     @GetMapping
+    @AuditOperation(operation = "获取所有用户列表", operationType = "QUERY", resourceType = "USER")
     public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", users));
@@ -37,6 +39,7 @@ public class UserController {
      * 获取单个用户
      */
     @GetMapping("/{userId}")
+    @AuditOperation(operation = "获取用户详情", operationType = "QUERY", resourceType = "USER", resourceIdIndex = 0)
     public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable Long userId) {
         User user = userService.getUserById(userId);
         if (user == null) {
@@ -49,6 +52,7 @@ public class UserController {
      * 创建用户
      */
     @PostMapping
+    @AuditOperation(operation = "创建新用户", operationType = "CREATE", resourceType = "USER")
     public ResponseEntity<ApiResponse<User>> createUser(@RequestBody User user) {
         User createdUser = userService.createUser(user);
         return ResponseEntity.ok(ApiResponse.success("创建用户成功", createdUser));
@@ -58,6 +62,7 @@ public class UserController {
      * 更新用户
      */
     @PutMapping("/{userId}")
+    @AuditOperation(operation = "更新用户信息", operationType = "UPDATE", resourceType = "USER", resourceIdIndex = 0)
     public ResponseEntity<ApiResponse<User>> updateUser(@PathVariable Long userId, @RequestBody User user) {
         user.setId(userId);
         User updatedUser = userService.updateUser(user);
@@ -71,6 +76,7 @@ public class UserController {
      * 删除用户
      */
     @DeleteMapping("/{userId}")
+    @AuditOperation(operation = "删除用户", operationType = "DELETE", resourceType = "USER", resourceIdIndex = 0)
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long userId) {
         boolean deleted = userService.deleteUser(userId);
         if (!deleted) {
@@ -83,6 +89,7 @@ public class UserController {
      * 更改用户密码
      */
     @PostMapping("/{userId}/change-password")
+    @AuditOperation(operation = "管理员修改用户密码", operationType = "UPDATE", resourceType = "USER_PASSWORD", resourceIdIndex = 0)
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @PathVariable Long userId,
             @RequestBody Map<String, String> passwordData) {
@@ -101,6 +108,7 @@ public class UserController {
      * 更改用户状态
      */
     @PutMapping("/{userId}/status")
+    @AuditOperation(operation = "修改用户状态", operationType = "UPDATE", resourceType = "USER_STATUS", resourceIdIndex = 0)
     public ResponseEntity<ApiResponse<User>> changeUserStatus(
             @PathVariable Long userId,
             @RequestBody Map<String, String> statusData) {
@@ -119,6 +127,7 @@ public class UserController {
      * 更改用户角色
      */
     @PutMapping("/{userId}/role")
+    @AuditOperation(operation = "修改用户角色", operationType = "UPDATE", resourceType = "USER_ROLE", resourceIdIndex = 0)
     public ResponseEntity<ApiResponse<User>> changeUserRole(
             @PathVariable Long userId,
             @RequestBody Map<String, String> roleData) {
@@ -138,6 +147,7 @@ public class UserController {
      * 仅限ADMIN角色使用
      */
     @PostMapping("/{userId}/reset-password")
+    @AuditOperation(operation = "重置用户密码", operationType = "UPDATE", resourceType = "USER_PASSWORD", resourceIdIndex = 0)
     public ResponseEntity<ApiResponse<Void>> resetPassword(
             @PathVariable Long userId) {
         

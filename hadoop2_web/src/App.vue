@@ -79,6 +79,10 @@
               <el-icon><Tools /></el-icon>
               <span>系统设置</span>
             </el-menu-item>
+            <el-menu-item index="/audit-logs" class="menu-item" v-if="isAdmin">
+              <el-icon><List /></el-icon>
+              <span>审计日志</span>
+            </el-menu-item>
           </el-sub-menu>
         </el-menu>
       </el-scrollbar>
@@ -135,7 +139,8 @@ import {
   User, 
   Tools,
   Crop,
-  ArrowDown
+  ArrowDown,
+  List
 } from '@element-plus/icons-vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -159,12 +164,18 @@ export default {
     User,
     Tools,
     Crop,
-    ArrowDown
+    ArrowDown,
+    List
   },
   setup() {
     const router = useRouter();
     const username = ref('管理员');
     const userAvatar = ref('');
+    
+    // 判断是否为管理员
+    const isAdmin = computed(() => {
+      return AuthService.isAdmin();
+    });
     
     // 从服务器获取最新用户信息
     const fetchCurrentUser = async () => {
@@ -276,6 +287,7 @@ export default {
     return {
       username,
       userAvatar,
+      isAdmin,
       handleCommand,
       avatarLoadError
     };

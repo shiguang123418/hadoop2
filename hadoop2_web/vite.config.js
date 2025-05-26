@@ -23,7 +23,7 @@ export default defineConfig({
     cors: true, // 设置没有访问限制
     proxy: {
       '/api': {
-        target: 'http://shiguang:8000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
         ws: true

@@ -2,6 +2,7 @@ package org.shiguang.module.auth.controller;
 
 import org.shiguang.entity.User;
 import org.shiguang.entity.dto.ApiResponse;
+import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.auth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ public class AuthController {
      * 用户登录
      */
     @PostMapping("/login")
+    @AuditOperation(operation = "用户登录", operationType = "LOGIN", resourceType = "AUTH")
     public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody Map<String, String> loginRequest) {
         String username = loginRequest.get("username");
         String password = loginRequest.get("password");
@@ -41,6 +43,7 @@ public class AuthController {
      * 用户注册
      */
     @PostMapping("/register")
+    @AuditOperation(operation = "用户注册", operationType = "REGISTER", resourceType = "USER")
     public ResponseEntity<ApiResponse<User>> register(@RequestBody User user) {
         User createdUser = authService.register(user);
         
@@ -51,6 +54,7 @@ public class AuthController {
      * 获取当前登录用户信息
      */
     @GetMapping("/current")
+    @AuditOperation(operation = "获取当前用户信息", operationType = "QUERY", resourceType = "USER")
     public ResponseEntity<ApiResponse<User>> getCurrentUser() {
         User currentUser = authService.getCurrentUser();
         
@@ -78,6 +82,7 @@ public class AuthController {
      * 更新当前用户个人资料
      */
     @PutMapping("/profile")
+    @AuditOperation(operation = "更新个人资料", operationType = "UPDATE", resourceType = "USER_PROFILE")
     public ResponseEntity<ApiResponse<User>> updateProfile(@RequestBody Map<String, String> profileData) {
         User currentUser = authService.getCurrentUser();
         
@@ -124,6 +129,7 @@ public class AuthController {
      * 当前用户修改密码
      */
     @PostMapping("/change-password")
+    @AuditOperation(operation = "修改个人密码", operationType = "UPDATE", resourceType = "USER_PASSWORD")
     public ResponseEntity<ApiResponse<Void>> changePassword(@RequestBody Map<String, String> passwordData) {
         User currentUser = authService.getCurrentUser();
         
@@ -153,5 +159,15 @@ public class AuthController {
         }
         
         return ResponseEntity.ok(ApiResponse.success("密码修改成功"));
+    }
+    
+    /**
+     * 用户注销登录
+     */
+    @PostMapping("/logout")
+    @AuditOperation(operation = "用户注销", operationType = "LOGOUT", resourceType = "AUTH")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        // 这里根据实际情况实现注销逻辑
+        return ResponseEntity.ok(ApiResponse.success("注销成功"));
     }
 } 

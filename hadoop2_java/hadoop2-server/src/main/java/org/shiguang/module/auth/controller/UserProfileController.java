@@ -2,6 +2,7 @@ package org.shiguang.module.auth.controller;
 
 import org.shiguang.entity.User;
 import org.shiguang.entity.dto.ApiResponse;
+import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.auth.service.UserService;
 import org.shiguang.module.oss.service.OssService;
@@ -37,6 +38,7 @@ public class UserProfileController {
      * 获取当前用户个人资料
      */
     @GetMapping
+    @AuditOperation(operation = "查看个人资料", operationType = "QUERY", resourceType = "USER_PROFILE")
     public ResponseEntity<ApiResponse<User>> getUserProfile() {
         User currentUser = authService.getCurrentUser();
         
@@ -51,6 +53,7 @@ public class UserProfileController {
      * 更新个人资料
      */
     @PutMapping
+    @AuditOperation(operation = "更新个人资料", operationType = "UPDATE", resourceType = "USER_PROFILE")
     public ResponseEntity<ApiResponse<User>> updateProfile(@RequestBody Map<String, String> profileData) {
         User currentUser = authService.getCurrentUser();
         
@@ -93,6 +96,7 @@ public class UserProfileController {
      * 上传头像（直接上传并更新用户头像字段）
      */
     @PostMapping("/avatar")
+    @AuditOperation(operation = "上传用户头像", operationType = "UPDATE", resourceType = "USER_AVATAR")
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadAvatar(@RequestParam("file") MultipartFile file) {
         User currentUser = authService.getCurrentUser();
         

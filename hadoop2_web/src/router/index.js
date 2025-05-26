@@ -71,6 +71,17 @@ const router = createRouter({
       component: () => import('../views/datasource/DataSourceList.vue'),
       meta: { title: '数据源管理' }
     },
+    // 新增审计日志路由
+    { 
+      path: '/audit-logs', 
+      component: () => import('../views/AuditLogView.vue'),
+      name: 'audit-logs',
+      meta: { 
+        requiresAuth: true, 
+        requiresAdmin: true, 
+        title: '系统操作审计日志' 
+      }
+    },
     // 实时数据可视化
     {
       path: '/realtime-visualization',
