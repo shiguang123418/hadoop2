@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/realtime")
+@RequestMapping("/realtime")
 public class RealtimeDataController {
     private static final Logger logger = LoggerFactory.getLogger(RealtimeDataController.class);
     

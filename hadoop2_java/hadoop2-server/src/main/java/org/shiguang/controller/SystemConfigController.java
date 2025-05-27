@@ -23,7 +23,7 @@ import java.util.Optional;
  * 系统配置控制器
  */
 @RestController
-@RequestMapping("/api/system/configs")
+@RequestMapping("/system/configs")
 @PreAuthorize("hasRole('ROLE_ADMIN')")
 public class SystemConfigController {
 

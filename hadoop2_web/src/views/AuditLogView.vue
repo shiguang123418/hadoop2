@@ -191,7 +191,7 @@ export default defineComponent({
     const fetchAuditLogs = async () => {
       loading.value = true
       try {
-        let url = '/api/audit-logs'
+        let url = '/audit'
         let params = {
           page: pagination.currentPage - 1,
           size: pagination.pageSize,
@@ -200,7 +200,7 @@ export default defineComponent({
         }
 
         if (filters.username || filters.operationType || filters.resourceType || dateRange.value?.length === 2) {
-          url = '/api/audit-logs/search'
+          url = '/api/audit/search'
           
           if (filters.username) params.username = filters.username
           if (filters.operationType) params.operationType = filters.operationType
@@ -269,14 +269,14 @@ export default defineComponent({
       fetchAuditLogs()
     }
 
-    // 导出日志
+    // 导出日志为Excel
     const exportLogs = async () => {
       try {
         loading.value = true
         
         // 构建导出URL和参数
         // 注意：这里假设后端有一个导出API，实际实现可能需要调整
-        let url = '/api/audit-logs/export'
+        let url = '/api/audit/export'
         let params = { ...filters }
 
         if (dateRange.value?.length === 2) {

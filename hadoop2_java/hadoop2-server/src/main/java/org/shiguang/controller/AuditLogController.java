@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * 审计日志控制器
  */
 @RestController
-@RequestMapping("/api/audit")
+@RequestMapping("/audit")
 @PreAuthorize("hasRole('ROLE_ADMIN')")
 public class AuditLogController {
 
