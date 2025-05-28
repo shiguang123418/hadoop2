@@ -1,0 +1,84 @@
+# 应用配置
+server:
+  port: 8001
+  servlet:
+    context-path: /api
+  tomcat:
+    max-threads: 200
+    max-connections: 10000
+
+spring:
+  application:
+    name: hadoop2-kafka-ws
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
+  security:
+    basic:
+      enabled: false
+
+# WebSocket配置
+websocket:
+  endpoint: /ws
+  allowed-origins: "*"
+  message-size-limit: 32768
+  send-buffer-size-limit: 524288
+  send-time-limit: 30000
+
+# Kafka配置
+kafka:
+  bootstrap:
+    servers: shiguang:9092,nas:9092
+  consumer:
+    group:
+      id: agriculture-data-group
+  topics:
+    agriculture-sensor-data: agriculture-sensor-data
+    weather-stats: weather-stats
+    product-stats: product-stats
+    system-notifications: system-notifications
+
+# Spark配置
+spark:
+  master: local[*]
+  batch:
+    duration: 5
+  enabled: true
+  app:
+    name: AgricultureDataProcessing
+
+# 数据生成器配置
+data:
+  generator:
+    enabled: true
+    interval: 3000
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.messaging: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.shiguang.ws: DEBUG
+    org.apache.kafka: INFO
+    org.apache.spark: INFO
+
+# 应用信息
+info:
+  app:
+    name: ${spring.application.name}
+    description: 农业数据监控WebSocket服务
+    version: 0.0.1
+
+# 应用自定义配置
+app:
+  host: shiguang
+  server:
+    host: shiguang
+  websocket:
+    heartbeat-interval: 60000
+    disconnect-timeout: 300000 

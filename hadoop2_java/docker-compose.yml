@@ -9,14 +9,14 @@ services:
     network_mode: "host"
     restart: on-failure
 
-  # kafka-ws:
-  #   image: eclipse-temurin:8-jdk
-  #   container_name: hadoop2_kafka_ws
-  #   volumes:
-  #     - /develop/workspare/projects/hadoop2/hadoop2_java/hadoop2-kafka-ws/target/hadoop2-kafka-ws-2.7.17.jar:/app/ws-app.jar
-  #   working_dir: /app
-  #   command: ["java", "-jar", "ws-app.jar"]
-  #   network_mode: "host"
-  #   restart: on-failure
-  #   depends_on:
-  #     - hadoop2_server
+  kafka-ws:
+    image: eclipse-temurin:8-jdk
+    container_name: hadoop2_kafka_ws
+    volumes:
+      - /develop/workspare/projects/hadoop2/hadoop2_java/hadoop2-kafka-ws/target/hadoop2-kafka-ws-0.0.1.jar:/app/ws-app.jar
+    working_dir: /app
+    command: ["java", "-jar", "ws-app.jar"]
+    network_mode: "host"
+    restart: on-failure
+    depends_on:
+      - hadoop2_server

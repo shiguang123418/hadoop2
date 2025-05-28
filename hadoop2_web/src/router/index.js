@@ -42,18 +42,6 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     { 
-      path: '/sensor-monitor', 
-      component: () => import('../views/SensorMonitorView.vue'),
-      name: 'sensor-monitor',
-      meta: { requiresAuth: true }
-    },
-    { 
-      path: '/sensor-dashboard', 
-      component: () => import('../components/SensorDashboard.vue'),
-      name: 'sensor-dashboard',
-      meta: { requiresAuth: true }
-    },
-    { 
       path: '/user-management', 
       component: () => import('../views/UserManagement.vue'),
       name: 'user-management',
@@ -99,6 +87,13 @@ const router = createRouter({
       name: 'realtime-visualization',
       component: () => import('../views/RealtimeVisualization.vue'),
       meta: { requiresAuth: false, title: '实时数据可视化' }
+    },
+    // 农业传感器监控
+    {
+      path: '/agriculture-monitor',
+      name: 'agriculture-monitor',
+      component: () => import('../views/AgricultureMonitor.vue'),
+      meta: { requiresAuth: false, title: '农业传感器监控' }
     },
     // 新增路由 - 个人信息
     {

@@ -9,6 +9,8 @@ app:
     host: shiguang
 
 spring:
+  application:
+    name: hadoop2-kafka-ws
   datasource:
     url: jdbc:mysql://${app.host}:3306/agri_big_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
     username: root
@@ -36,6 +38,12 @@ spring:
       allowed-headers: "*"
       allow-credentials: true
       max-age: 3600
+  websocket:
+    enabled: true
+    endpoint: /api/ws
+    allowed-origins: "*"
+    max-text-message-size: 8192
+    max-binary-message-size: 8192
 
 hadoop:
   hdfs:
@@ -84,7 +92,7 @@ debug: false
 spark:
   app:
     name: HadoopSparkApp
-  master: local[2]
+  master: local[*]
   executor:
     memory: 512m
   driver:

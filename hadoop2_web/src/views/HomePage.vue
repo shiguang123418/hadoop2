@@ -276,8 +276,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Folder, 
   DataAnalysis, 
-  TrendCharts, 
-  Monitor, 
   Refresh, 
   VideoPlay, 
   CaretTop, 
@@ -304,8 +302,6 @@ export default {
   components: {
     Folder,
     DataAnalysis,
-    TrendCharts,
-    Monitor,
     Refresh,
     VideoPlay,
     CaretTop,
@@ -623,10 +619,6 @@ export default {
       router.push('/crop-analysis')
     }
 
-    const goToMonitor = () => {
-      router.push('/sensor-monitor')
-    }
-
     const goToRoute = (route) => {
       router.push(route)
     }
@@ -681,7 +673,6 @@ export default {
       goToHdfs,
       goToHive,
       goToAnalysis,
-      goToMonitor,
       goToRoute,
       formatLabel
     }

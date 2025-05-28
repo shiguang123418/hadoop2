@@ -34,7 +34,7 @@ public class SparkStreamingService {
     @Autowired
     private SparkClient sparkClient;
     
-    @Autowired
+    @Autowired(required = false)  // 将required设置为false，使其变为可选
     private SimpMessagingTemplate messagingTemplate;
     
     @Autowired
@@ -201,8 +201,10 @@ public class SparkStreamingService {
                             
                             // 将结果发送到WebSocket
                             try {
-                                messagingTemplate.convertAndSend("/topic/weather-stats", jsonResults);
-                                logger.info("已通过WebSocket发送 {} 条天气统计数据", jsonResults.size());
+                                if (isWebSocketAvailable()) {
+                                    messagingTemplate.convertAndSend("/topic/weather-stats", jsonResults);
+                                    logger.info("已通过WebSocket发送 {} 条天气统计数据", jsonResults.size());
+                                }
                             } catch (Exception e) {
                                 logger.error("发送数据到WebSocket失败: {}", e.getMessage(), e);
                             }
@@ -349,10 +351,21 @@ public class SparkStreamingService {
                             // 注册为临时视图以便SQL查询
                             productDF.createOrReplaceTempView("product_data");
                             
-                            // 执行自定义分析
+                            // 执行自定义分析：按农作物分析平均产量和各项参数的关系
                             Dataset<Row> results = sparkSession.sql(
-                                    "SELECT * FROM product_data LIMIT 50"
+                                    "SELECT Crop, " +
+                                    "AVG(CAST(Rainfall AS DOUBLE)) as avg_rainfall, " +
+                                    "AVG(CAST(Temperature AS DOUBLE)) as avg_temperature, " +
+                                    "AVG(CAST(Ph AS DOUBLE)) as avg_ph, " +
+                                    "AVG(CAST(Production AS DOUBLE)) as avg_production, " +
+                                    "COUNT(*) as sample_count " +
+                                    "FROM product_data " +
+                                    "GROUP BY Crop " +
+                                    "ORDER BY avg_production DESC"
                             );
+                            
+                            // 限制结果以避免过多数据传输
+                            results = results.limit(20);
                             
                             // 转换结果为JSON字符串
                             List<String> jsonResults = new ArrayList<>();
@@ -370,8 +383,10 @@ public class SparkStreamingService {
                             
                             // 将结果发送到WebSocket
                             try {
-                                messagingTemplate.convertAndSend("/topic/product-stats", jsonResults);
-                                logger.info("已通过WebSocket发送 {} 条产品统计数据", jsonResults.size());
+                                if (isWebSocketAvailable()) {
+                                    messagingTemplate.convertAndSend("/topic/product-stats", jsonResults);
+                                    logger.info("已通过WebSocket发送 {} 条产品统计数据", jsonResults.size());
+                                }
                             } catch (Exception e) {
                                 logger.error("发送数据到WebSocket失败: {}", e.getMessage(), e);
                             }
@@ -428,5 +443,10 @@ public class SparkStreamingService {
      */
     public boolean isStreamingRunning() {
         return isRunning.get();
+    }
+    
+    // 增加一个方法来检查WebSocket是否可用
+    private boolean isWebSocketAvailable() {
+        return messagingTemplate != null;
     }
 } 

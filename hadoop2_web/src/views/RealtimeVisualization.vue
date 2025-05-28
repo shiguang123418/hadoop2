@@ -294,7 +294,7 @@ export default {
     const connectWebSocket = () => {
       try {
         // 使用直接导入的SockJS
-        const socket = new SockJS(`${apiConfig.baseUrl}/ws`)
+        const socket = new SockJS(`${apiConfig.baseUrl}/api/ws`)
         
         // 创建STOMP客户端
         stompClient = new Client({

@@ -47,17 +47,13 @@
               <el-icon><Crop /></el-icon>
               <span>产量预测</span>
             </el-menu-item>
-            <el-menu-item index="/sensor-monitor" class="menu-item">
-              <el-icon><Monitor /></el-icon>
-              <span>传感器监控</span>
-            </el-menu-item>
-            <el-menu-item index="/sensor-dashboard" class="menu-item">
-              <el-icon><TrendCharts /></el-icon>
-              <span>传感器仪表盘</span>
-            </el-menu-item>
             <el-menu-item index="/realtime-visualization" class="menu-item">
               <el-icon><DataAnalysis /></el-icon>
               <span>实时数据可视化</span>
+            </el-menu-item>
+            <el-menu-item index="/agriculture-monitor" class="menu-item">
+              <el-icon><Monitor /></el-icon>
+              <span>农业传感器监控</span>
             </el-menu-item>
           </el-sub-menu>
           
@@ -166,8 +162,6 @@ import {
   Document, 
   DataAnalysis, 
   Grid, 
-  Monitor, 
-  TrendCharts, 
   Setting, 
   User, 
   Tools,
@@ -175,7 +169,8 @@ import {
   ArrowDown,
   List,
   Bell,
-  Message
+  Message,
+  Monitor
 } from '@element-plus/icons-vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -194,15 +189,14 @@ export default {
     Document,
     DataAnalysis,
     Grid,
-    Monitor,
-    TrendCharts,
     Setting,
     User,
     Tools,
     Crop,
     ArrowDown,
     List,
-    Message
+    Message,
+    Monitor
   },
   setup() {
     const router = useRouter();
