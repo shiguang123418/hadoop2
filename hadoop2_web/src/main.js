@@ -21,6 +21,7 @@ import './assets/base.css'
 import './assets/main.css'
 import './assets/background-fix.css'
 import './assets/vue-cropper.css'  // 引入vue-cropper样式
+import './styles/variables.css'  // 引入CSS变量
 
 // 确保正确加载vue-cropper样式
 import 'vue-cropper/dist/index.css'

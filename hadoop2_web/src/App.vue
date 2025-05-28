@@ -47,10 +47,6 @@
               <el-icon><Crop /></el-icon>
               <span>产量预测</span>
             </el-menu-item>
-            <el-menu-item index="/realtime-visualization" class="menu-item">
-              <el-icon><DataAnalysis /></el-icon>
-              <span>实时数据可视化</span>
-            </el-menu-item>
             <el-menu-item index="/agriculture-monitor" class="menu-item">
               <el-icon><Monitor /></el-icon>
               <span>农业传感器监控</span>

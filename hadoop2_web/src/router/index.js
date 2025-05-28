@@ -81,13 +81,6 @@ const router = createRouter({
         title: '系统配置管理' 
       }
     },
-    // 实时数据可视化
-    {
-      path: '/realtime-visualization',
-      name: 'realtime-visualization',
-      component: () => import('../views/RealtimeVisualization.vue'),
-      meta: { requiresAuth: false, title: '实时数据可视化' }
-    },
     // 农业传感器监控
     {
       path: '/agriculture-monitor',
