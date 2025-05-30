@@ -1,5 +1,10 @@
 <template>
-  <el-container class="app-wrapper">
+  <!-- 使用路由来决定是否显示完整布局 -->
+  <template v-if="isFullScreenRoute">
+    <router-view />
+  </template>
+  
+  <el-container v-else class="app-wrapper">
     <el-aside width="220px" class="sidebar">
       <div class="logo-container">
         <img src="/logo.svg" alt="Logo" class="logo" v-if="false">
@@ -50,6 +55,10 @@
             <el-menu-item index="/agriculture-monitor" class="menu-item">
               <el-icon><Monitor /></el-icon>
               <span>农业传感器监控</span>
+            </el-menu-item>
+            <el-menu-item index="/agriculture-dashboard" class="menu-item">
+              <el-icon><DataBoard /></el-icon>
+              <span>农业大数据平台</span>
             </el-menu-item>
           </el-sub-menu>
           
@@ -166,10 +175,11 @@ import {
   List,
   Bell,
   Message,
-  Monitor
+  Monitor,
+  DataBoard
 } from '@element-plus/icons-vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AuthService from './services/auth'
 import avatarUtils from './utils/avatar'
@@ -192,14 +202,21 @@ export default {
     ArrowDown,
     List,
     Message,
-    Monitor
+    Monitor,
+    DataBoard
   },
   setup() {
     const router = useRouter();
+    const route = useRoute();
     const username = ref('管理员');
     const userAvatar = ref('');
     const unreadCount = ref(0);
     let notificationTimer = null;
+    
+    // 判断是否为全屏路由
+    const isFullScreenRoute = computed(() => {
+      return route.meta.fullScreen === true;
+    });
     
     // 判断是否为管理员
     const isAdmin = computed(() => {
@@ -395,7 +412,8 @@ export default {
       avatarLoadError,
       goToNotification,
       Bell,
-      updateUserInfo
+      updateUserInfo,
+      isFullScreenRoute
     };
   }
 }

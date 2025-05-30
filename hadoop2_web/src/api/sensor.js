@@ -10,7 +10,18 @@ export default {
    * @returns {Promise} API响应
    */
   sendTestData() {
-    return axios.get('/api/sensor/direct-test')
+    console.log('API: 发送测试数据请求');
+    return axios.get('/api/sensor/direct-test', {
+      timeout: 10000, // 添加10秒超时
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    }).catch(error => {
+      console.error('API: 发送测试数据请求失败', error);
+      // 重新抛出错误，让调用者处理
+      throw error;
+    });
   },
 
   /**
@@ -18,7 +29,13 @@ export default {
    * @returns {Promise} API响应
    */
   getSystemStatus() {
-    return axios.get('/api/system/status')
+    console.log('API: 获取系统状态');
+    return axios.get('/api/system/status', {
+      timeout: 5000 // 添加5秒超时
+    }).catch(error => {
+      console.error('API: 获取系统状态失败', error);
+      throw error;
+    });
   },
 
   /**
@@ -26,7 +43,13 @@ export default {
    * @returns {Promise} API响应
    */
   testWebSocket() {
-    return axios.get('/api/system/test-websocket')
+    console.log('API: 测试WebSocket连接');
+    return axios.get('/api/system/test-websocket', {
+      timeout: 5000 // 添加5秒超时
+    }).catch(error => {
+      console.error('API: 测试WebSocket连接失败', error);
+      throw error;
+    });
   },
 
   /**
@@ -38,7 +61,14 @@ export default {
    * @returns {Promise} API响应
    */
   getSensorHistory(params) {
-    return axios.get('/api/sensor/history', { params })
+    console.log('API: 获取传感器历史数据', params);
+    return axios.get('/api/sensor/history', { 
+      params,
+      timeout: 10000 // 添加10秒超时
+    }).catch(error => {
+      console.error('API: 获取传感器历史数据失败', error);
+      throw error;
+    });
   },
 
   /**
@@ -47,6 +77,13 @@ export default {
    * @returns {Promise} API响应
    */
   getAnomalyData(params) {
-    return axios.get('/api/sensor/anomalies', { params })
+    console.log('API: 获取异常数据', params);
+    return axios.get('/api/sensor/anomalies', { 
+      params,
+      timeout: 10000 // 添加10秒超时
+    }).catch(error => {
+      console.error('API: 获取异常数据失败', error);
+      throw error;
+    });
   }
 } 

@@ -126,7 +126,10 @@ export default {
       if (topic === '/topic/agriculture-sensor-data') {
         // 处理传感器数据
         updateSensorData(data)
-        addMessage('received', `传感器数据: ${data.sensorId} (${data.sensorType}) = ${data.value}${data.unit}`)
+        // 使用正确的单位显示
+        const unit = getCorrectUnit(data.sensorType)
+        const typeDisplay = getSensorTypeDisplay(data.sensorType)
+        addMessage('received', `${typeDisplay}传感器(${data.sensorId})：${data.value}${unit} - ${data.location}`)
       } else if (topic === '/topic/spark-stats') {
         // 处理Spark统计数据
         updateSparkStats(data)
@@ -139,8 +142,26 @@ export default {
     
     // 更新传感器数据
     const updateSensorData = (data) => {
+      try {
+        // 验证数据合法性
+        if (!data || !data.sensorId || !data.sensorType) {
+          console.warn('收到无效传感器数据:', data)
+          return
+        }
+        
       const sensorId = data.sensorId
       const sensorType = data.sensorType
+        
+        // 验证传感器类型与ID的一致性
+        if (sensorData[sensorId] && sensorData[sensorId].type !== sensorType) {
+          console.warn(`传感器${sensorId}类型变更: ${sensorData[sensorId].type} -> ${sensorType}，将创建新的数据记录`)
+          // 如果传感器类型发生变化，我们删除旧记录（这种情况应该不会发生，因为后端已修复为固定类型）
+          delete sensorData[sensorId]
+        }
+        
+        // 验证传感器值的合理性
+        const value = validateSensorValue(data.value, sensorType)
+        const movingAverage = validateSensorValue(data.movingAverage, sensorType)
       
       // 如果是新传感器，初始化数据结构
       if (!sensorData[sensorId]) {
@@ -148,7 +169,10 @@ export default {
           type: sensorType,
           values: [],
           timestamps: [],
-          location: data.location
+            location: data.location,
+            // 添加类型说明，便于UI显示
+            typeDisplay: getSensorTypeDisplay(sensorType),
+            unit: getCorrectUnit(sensorType)
         }
       }
       
@@ -158,24 +182,110 @@ export default {
         sensorData[sensorId].timestamps.shift()
       }
       
-      // 更新数据
-      sensorData[sensorId].values.push(data.value)
+        // 更新数据 - 使用验证后的值
+        sensorData[sensorId].values.push(value)
       sensorData[sensorId].timestamps.push(data.readableTime)
-      sensorData[sensorId].lastValue = data.value
-      sensorData[sensorId].lastUnit = data.unit
+        sensorData[sensorId].lastValue = value
+        sensorData[sensorId].lastUnit = getCorrectUnit(sensorType) // 使用前端确定的单位
       sensorData[sensorId].lastTime = data.readableTime
       sensorData[sensorId].isAnomaly = data.isAnomaly
-      sensorData[sensorId].movingAverage = data.movingAverage
+        sensorData[sensorId].movingAverage = movingAverage
       sensorData[sensorId].trend = data.stats?.trend || calculateTrend(sensorData[sensorId].values)
       sensorData[sensorId].location = data.location
+      } catch (error) {
+        console.error('处理传感器数据时出错:', error)
+        addMessage('error', `处理传感器数据时出错: ${error.message}`)
+      }
+    }
+    
+    // 获取传感器类型显示名
+    const getSensorTypeDisplay = (type) => {
+      switch (type) {
+        case 'temperature': return '温度'
+        case 'humidity': return '湿度'
+        case 'soilMoisture': return '土壤湿度'
+        case 'light': return '光照强度'
+        case 'co2': return 'CO₂浓度'
+        default: return type
+      }
+    }
+    
+    // 获取正确的传感器单位
+    const getCorrectUnit = (type) => {
+      switch (type) {
+        case 'temperature': return '°C'
+        case 'humidity': return '%'
+        case 'soilMoisture': return '%'
+        case 'light': return 'lux'
+        case 'co2': return 'ppm'
+        default: return ''
+      }
+    }
+    
+    // 验证传感器值的合理性
+    const validateSensorValue = (value, type) => {
+      if (value === undefined || value === null || isNaN(Number(value))) {
+        // 返回一个合理的默认值
+        switch (type) {
+          case 'temperature': return 25
+          case 'humidity': return 60
+          case 'soilMoisture': return 50
+          case 'light': return 5000
+          case 'co2': return 400
+          default: return 0
+        }
+      }
+      
+      // 将值转换为数字
+      let numValue = Number(value)
+      
+      // 定义各类型传感器的合理值范围
+      const ranges = {
+        temperature: { min: -20, max: 50 },
+        humidity: { min: 0, max: 100 },
+        soilMoisture: { min: 0, max: 100 },
+        light: { min: 0, max: 100000 },
+        co2: { min: 300, max: 5000 }
+      }
+      
+      if (!ranges[type]) return numValue
+      
+      // 限制值在合理范围内
+      if (numValue < ranges[type].min) return ranges[type].min
+      if (numValue > ranges[type].max) return ranges[type].max
+      
+      return numValue
     }
     
     // 更新Spark统计数据
     const updateSparkStats = (data) => {
+      try {
+        // 验证数据
+        if (!data || typeof data !== 'object') {
+          console.warn('收到无效的Spark统计数据:', data)
+          return
+        }
+        
       // 更新所有传感器类型的统计数据
       Object.keys(data).forEach(sensorType => {
-        sparkStats[sensorType] = data[sensorType]
+          // 验证数据有效性
+          if (data[sensorType] && typeof data[sensorType] === 'object') {
+            // 验证统计值
+            const stats = { ...data[sensorType] }
+            
+            // 确保数值在合理范围内
+            if (stats.min !== undefined) stats.min = validateSensorValue(stats.min, sensorType)
+            if (stats.max !== undefined) stats.max = validateSensorValue(stats.max, sensorType)
+            if (stats.avg !== undefined) stats.avg = validateSensorValue(stats.avg, sensorType)
+            if (stats.count !== undefined) stats.count = Math.max(0, Number(stats.count) || 0)
+            
+            sparkStats[sensorType] = stats
+          }
       })
+      } catch (error) {
+        console.error('处理Spark统计数据时出错:', error)
+        addMessage('error', `处理Spark统计数据时出错: ${error.message}`)
+      }
     }
     
     // 添加消息到日志
@@ -238,16 +348,18 @@ export default {
       })
     })
     
-    // 组件挂载
+    // 组件挂载时
     onMounted(() => {
+      console.log('AgricultureSensorMonitor 组件已挂载，自动连接WebSocket');
       // 自动连接WebSocket
-      connectWebSocket()
+      connectWebSocket();
     })
     
-    // 组件卸载
+    // 组件卸载时
     onUnmounted(() => {
+      console.log('AgricultureSensorMonitor 组件卸载，断开WebSocket连接');
       // 断开WebSocket连接
-      disconnectWebSocket()
+      disconnectWebSocket();
     })
     
     return {

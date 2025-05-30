@@ -119,6 +119,17 @@ const router = createRouter({
         requiresAdmin: true, 
         title: '通知管理' 
       }
+    },
+    // 新增大屏展示页面路由
+    {
+      path: '/agriculture-dashboard',
+      name: 'agriculture-dashboard',
+      component: () => import('../views/AgricultureDataDashboard.vue'),
+      meta: { 
+        requiresAuth: false, 
+        title: '农业大数据监控平台',
+        fullScreen: true // 添加全屏标记
+      }
     }
   ]
 })

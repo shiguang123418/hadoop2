@@ -6,12 +6,25 @@
 </template>
 
 <script>
+import { ref } from 'vue'
 import AgricultureSensorMonitor from '@/components/AgricultureSensorMonitor.vue'
 
 export default {
   name: 'AgricultureMonitorView',
   components: {
     AgricultureSensorMonitor
+  },
+  setup() {
+    const showAlert = ref(true)
+    
+    const closeAlert = () => {
+      showAlert.value = false
+    }
+    
+    return {
+      showAlert,
+      closeAlert
+    }
   }
 }
 </script>

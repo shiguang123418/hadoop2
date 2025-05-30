@@ -2,7 +2,7 @@
   <el-card :class="['sensor-card', { 'anomaly': sensor.isAnomaly }]">
     <template #header>
       <div class="sensor-header">
-        <span>{{ getSensorTypeDisplay(sensor.type) }} {{ id }}</span>
+        <span>{{ getSensorTypeDisplay(sensor.type) }} {{ getSensorNumber(id) }}</span>
         <el-tag :type="sensor.isAnomaly ? 'danger' : 'success'" size="small">
           {{ sensor.isAnomaly ? '异常' : '正常' }}
         </el-tag>
@@ -10,7 +10,7 @@
     </template>
     
     <div class="sensor-value">
-      {{ sensor.lastValue }} <span class="unit">{{ sensor.lastUnit }}</span>
+      {{ formatSensorValue(sensor.lastValue, sensor.type) }} <span class="unit">{{ getCorrectUnit(sensor.type) }}</span>
       <span :class="getTrendClass(sensor.trend)">{{ getTrendIcon(sensor.trend) }}</span>
     </div>
     
@@ -18,7 +18,7 @@
       <div><strong>位置:</strong> {{ sensor.location }}</div>
       <div><strong>更新时间:</strong> {{ sensor.lastTime }}</div>
       <div v-if="sensor.movingAverage !== undefined">
-        <strong>移动平均值:</strong> {{ Number(sensor.movingAverage).toFixed(2) }}
+        <strong>移动平均值:</strong> {{ formatSensorValue(sensor.movingAverage, sensor.type) }} {{ getCorrectUnit(sensor.type) }}
       </div>
     </div>
     
@@ -59,9 +59,18 @@ export default {
     const updateChart = () => {
       if (!chart || !props.sensor) return
       
+      // 进行数据验证，确保值是合理的
+      const validValues = props.sensor.values ? 
+        props.sensor.values.map(v => validateSensorValue(v, props.sensor.type)) : []
+      
       chart.setOption({
         tooltip: {
-          trigger: 'axis'
+          trigger: 'axis',
+          formatter: function(params) {
+            const param = params[0]
+            const value = formatSensorValue(param.value, props.sensor.type)
+            return `${param.name}<br />${param.seriesName}: ${value} ${getCorrectUnit(props.sensor.type)}`
+          }
         },
         grid: {
           left: '3%',
@@ -79,13 +88,18 @@ export default {
         },
         yAxis: {
           type: 'value',
-          scale: true
+          scale: true,
+          axisLabel: {
+            formatter: function(value) {
+              return formatSensorValue(value, props.sensor.type, true)
+            }
+          }
         },
         series: [
           {
             name: getSensorTypeDisplay(props.sensor.type),
             type: 'line',
-            data: props.sensor.values || [],
+            data: validValues,
             smooth: true,
             lineStyle: {
               width: 3
@@ -110,6 +124,54 @@ export default {
           }
         ]
       })
+    }
+    
+    // 格式化传感器值，确保数据显示正确
+    const formatSensorValue = (value, type, isAxisLabel = false) => {
+      if (value === undefined || value === null) return '暂无数据'
+      
+      // 验证并限制异常数据
+      value = validateSensorValue(value, type)
+      
+      // 根据不同类型格式化显示
+      switch (type) {
+        case 'temperature':
+          return Number(value).toFixed(1)
+        case 'humidity':
+        case 'soilMoisture':
+          return Number(value).toFixed(1)
+        case 'light':
+          // 光照值通常较大，可以考虑缩写
+          return isAxisLabel && value >= 1000 ? (value / 1000).toFixed(1) + 'k' : Number(value).toFixed(0)
+        case 'co2':
+          return Number(value).toFixed(0)
+        default:
+          return Number(value).toFixed(2)
+      }
+    }
+    
+    // 验证传感器值，确保在合理范围内
+    const validateSensorValue = (value, type) => {
+      if (typeof value !== 'number' || isNaN(value)) {
+        return 0
+      }
+      
+      // 定义各类型传感器的合理值范围
+      const ranges = {
+        temperature: { min: -20, max: 50 },
+        humidity: { min: 0, max: 100 },
+        soilMoisture: { min: 0, max: 100 },
+        light: { min: 0, max: 100000 },
+        co2: { min: 300, max: 5000 }
+      }
+      
+      if (!ranges[type]) return value
+      
+      // 限制值在合理范围内
+      if (value < ranges[type].min) return ranges[type].min
+      if (value > ranges[type].max) return ranges[type].max
+      
+      return value
     }
     
     // 获取传感器类型显示名
@@ -163,6 +225,24 @@ export default {
       return color
     }
     
+    // 获取正确的传感器单位
+    const getCorrectUnit = (type) => {
+      switch (type) {
+        case 'temperature': return '°C'
+        case 'humidity': return '%'
+        case 'soilMoisture': return '%'
+        case 'light': return 'lux'
+        case 'co2': return 'ppm'
+        default: return ''
+      }
+    }
+    
+    // 获取传感器编号（从ID中提取数字部分）
+    const getSensorNumber = (id) => {
+      const match = id.match(/\d+/)
+      return match ? match[0] : id
+    }
+    
     // 监听传感器数据变化
     watch(() => props.sensor, () => {
       updateChart()
@@ -191,7 +271,11 @@ export default {
       chartContainer,
       getSensorTypeDisplay,
       getTrendIcon,
-      getTrendClass
+      getTrendClass,
+      formatSensorValue,
+      validateSensorValue,
+      getCorrectUnit,
+      getSensorNumber
     }
   }
 }

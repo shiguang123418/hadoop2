@@ -39,21 +39,43 @@ class WebSocketManager {
         } else if (window.location.hostname === '192.168.1.192') {
           // 开发服务器环境，直接连接
           wsUrl = 'http://192.168.1.192:8001/api/ws'
-        } else {
-          // 其他环境，基于当前域名构建WebSocket地址
-          const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:'
-          const host = window.location.hostname
-          wsUrl = `${protocol}//${host}:8001/api/ws`
         }
-
         console.log('使用WebSocket连接地址:', wsUrl)
+        
+        // 尝试创建连接前，先释放之前的连接（如果存在）
+        if (this.client) {
+          console.log('存在旧的客户端连接，正在释放...')
+          try {
+            this.client.deactivate()
+          } catch (e) {
+            console.warn('释放旧连接时出错:', e)
+          }
+          this.client = null
+        }
+        
         const socket = new SockJS(wsUrl)
+        
+        // 添加低级别的WebSocket事件监听
+        socket.onopen = () => {
+          console.log('WebSocket底层连接已打开')
+        }
+        
+        socket.onerror = (error) => {
+          console.error('WebSocket底层连接错误:', error)
+        }
+        
+        socket.onclose = (event) => {
+          console.log('WebSocket底层连接已关闭:', event)
+        }
 
         this.client = new Client({
           webSocketFactory: () => socket,
           debug: function(str) {
             console.log('STOMP: ' + str)
           },
+          reconnectDelay: 5000, // 添加自动重连配置，5秒后重试
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
           onConnect: frame => {
             this.connected = true
             console.log('WebSocket连接成功:', frame)

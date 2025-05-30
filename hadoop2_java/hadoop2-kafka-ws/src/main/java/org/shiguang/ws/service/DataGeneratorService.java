@@ -53,6 +53,9 @@ public class DataGeneratorService {
             "sensor-001", "sensor-002", "sensor-003", "sensor-004", "sensor-005"
     );
     
+    // 传感器ID与类型的映射关系
+    private final Map<String, String> sensorTypeMap = new HashMap<>();
+    
     // 传感器类型和对应的数据范围
     private final Map<String, Map<String, Double>> sensorTypes = new HashMap<>();
     
@@ -60,6 +63,7 @@ public class DataGeneratorService {
     public void init() {
         logger.info("初始化数据生成器，Kafka地址: {}, 主题: {}", bootstrapServers, sensorTopic);
         initSensorTypes();
+        initSensorTypeMapping();
         if (dataGeneratorEnabled) {
             logger.info("数据生成器已启用，数据生成间隔: {}ms", dataGenerationInterval);
             executorService = Executors.newSingleThreadScheduledExecutor();
@@ -120,6 +124,20 @@ public class DataGeneratorService {
     }
     
     /**
+     * 初始化传感器ID与类型的映射关系
+     */
+    private void initSensorTypeMapping() {
+        // 为每个传感器ID分配固定的类型
+        sensorTypeMap.put("sensor-001", "temperature");  // 温度传感器
+        sensorTypeMap.put("sensor-002", "humidity");     // 湿度传感器
+        sensorTypeMap.put("sensor-003", "soilMoisture"); // 土壤湿度传感器
+        sensorTypeMap.put("sensor-004", "light");        // 光照传感器
+        sensorTypeMap.put("sensor-005", "co2");          // CO2传感器
+        
+        logger.info("已为{}个传感器分配固定类型", sensorTypeMap.size());
+    }
+    
+    /**
      * 初始化Kafka生产者
      */
     private void initProducer() {
@@ -163,9 +181,12 @@ public class DataGeneratorService {
             int sentCount = 0;
             
             for (String sensorId : sensorIds) {
-                // 为每个传感器随机选择一种类型
-                List<String> types = new ArrayList<>(sensorTypes.keySet());
-                String sensorType = types.get(random.nextInt(types.size()));
+                // 获取传感器固定的类型
+                String sensorType = sensorTypeMap.get(sensorId);
+                if (sensorType == null) {
+                    logger.warn("传感器 {} 未定义类型，跳过数据生成", sensorId);
+                    continue;
+                }
                 
                 // 生成在范围内的随机值
                 Map<String, Double> range = sensorTypes.get(sensorType);
@@ -174,16 +195,16 @@ public class DataGeneratorService {
                 double value = min + (max - min) * random.nextDouble();
                 
                 // 有5%的概率生成异常值
-                if (random.nextDouble() < 0.05) {
-                    if (random.nextBoolean()) {
-                        value = max + (max * 0.2 * random.nextDouble());
-                    } else {
-                        value = min - (min * 0.2 * random.nextDouble());
-                    }
-                }
+                // if (random.nextDouble() < 0.05) {
+                //     if (random.nextBoolean()) {
+                //         value = max + (max * 0.2 * random.nextDouble());
+                //     } else {
+                //         value = min - (min * 0.2 * random.nextDouble());
+                //     }
+                // }
                 
                 // 格式化值，保留两位小数
-                value = Math.round(value * 100.0) / 100.0;
+                value = Math.round(value * 100) / 100.0;
                 
                 // 创建传感器数据JSON
                 ObjectNode dataNode = objectMapper.createObjectNode();

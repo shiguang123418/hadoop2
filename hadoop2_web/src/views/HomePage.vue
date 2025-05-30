@@ -25,6 +25,10 @@
                 <el-icon><Monitor /></el-icon>
                 <span>实时传感器监控</span>
               </el-button>
+              <el-button type="danger" @click="goToDashboard">
+                <el-icon><DataBoard /></el-icon>
+                <span>农业大数据平台</span>
+              </el-button>
             </div>
           </div>
           <div class="welcome-image">
@@ -289,7 +293,8 @@ import {
   InfoFilled,
   CircleCheckFilled,
   CircleCloseFilled,
-  RefreshRight
+  RefreshRight,
+  DataBoard
 } from '@element-plus/icons-vue'
 import HDFSService from '../services/HDFSService'
 import HiveService from '../services/HiveService'
@@ -315,7 +320,8 @@ export default {
     InfoFilled,
     CircleCheckFilled,
     CircleCloseFilled,
-    RefreshRight
+    RefreshRight,
+    DataBoard
   },
   setup() {
     const router = useRouter()
@@ -402,6 +408,12 @@ export default {
         description: '配置系统参数和服务', 
         icon: 'Setting',
         route: '/system-settings'
+      },
+      { 
+        title: '农业大数据平台', 
+        description: '高科技风格的大数据监控大屏', 
+        icon: 'DataBoard',
+        route: '/agriculture-dashboard'
       }
     ]
 
@@ -619,6 +631,14 @@ export default {
       router.push('/crop-analysis')
     }
 
+    const goToMonitor = () => {
+      router.push('/agriculture-monitor')
+    }
+
+    const goToDashboard = () => {
+      router.push('/agriculture-dashboard')
+    }
+
     const goToRoute = (route) => {
       router.push(route)
     }
@@ -673,6 +693,8 @@ export default {
       goToHdfs,
       goToHive,
       goToAnalysis,
+      goToMonitor,
+      goToDashboard,
       goToRoute,
       formatLabel
     }
