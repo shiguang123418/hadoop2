@@ -1,28 +1,26 @@
 import axios from 'axios'
+import ApiService from '../services/api.service'
+import { buildApiPath } from '../utils/service-helper'
 
 /**
  * 传感器API服务
  * 封装传感器相关的API请求
  */
-export default {
+class SensorApiService extends ApiService {
+  constructor() {
+    // 使用服务名称
+    super('realtime');
+    console.log('传感器服务初始化');
+  }
+
   /**
    * 发送测试数据
    * @returns {Promise} API响应
    */
   sendTestData() {
     console.log('API: 发送测试数据请求');
-    return axios.get('/api/sensor/direct-test', {
-      timeout: 10000, // 添加10秒超时
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    }).catch(error => {
-      console.error('API: 发送测试数据请求失败', error);
-      // 重新抛出错误，让调用者处理
-      throw error;
-    });
-  },
+    return this.get('/sensor/direct-test');
+  }
 
   /**
    * 获取系统状态
@@ -30,13 +28,8 @@ export default {
    */
   getSystemStatus() {
     console.log('API: 获取系统状态');
-    return axios.get('/api/system/status', {
-      timeout: 5000 // 添加5秒超时
-    }).catch(error => {
-      console.error('API: 获取系统状态失败', error);
-      throw error;
-    });
-  },
+    return this.get('/system/status');
+  }
 
   /**
    * 测试WebSocket连接
@@ -44,13 +37,8 @@ export default {
    */
   testWebSocket() {
     console.log('API: 测试WebSocket连接');
-    return axios.get('/api/system/test-websocket', {
-      timeout: 5000 // 添加5秒超时
-    }).catch(error => {
-      console.error('API: 测试WebSocket连接失败', error);
-      throw error;
-    });
-  },
+    return this.get('/system/test-websocket');
+  }
 
   /**
    * 获取传感器历史数据
@@ -62,14 +50,8 @@ export default {
    */
   getSensorHistory(params) {
     console.log('API: 获取传感器历史数据', params);
-    return axios.get('/api/sensor/history', { 
-      params,
-      timeout: 10000 // 添加10秒超时
-    }).catch(error => {
-      console.error('API: 获取传感器历史数据失败', error);
-      throw error;
-    });
-  },
+    return this.get('/sensor/history', params);
+  }
 
   /**
    * 获取异常数据
@@ -78,12 +60,15 @@ export default {
    */
   getAnomalyData(params) {
     console.log('API: 获取异常数据', params);
-    return axios.get('/api/sensor/anomalies', { 
-      params,
-      timeout: 10000 // 添加10秒超时
-    }).catch(error => {
-      console.error('API: 获取异常数据失败', error);
-      throw error;
-    });
+    return this.get('/sensor/anomalies', params);
   }
-} 
+}
+
+// 创建单例
+const SensorApi = new SensorApiService();
+
+// 导出服务单例
+export default SensorApi;
+
+// 命名导出，用于从index.js中导入
+export { SensorApi }; 

@@ -31,15 +31,8 @@ class WebSocketManager {
       }
 
       try {
-        // 根据环境确定WebSocket连接地址
-        let wsUrl
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          // 本地开发环境，使用代理
-          wsUrl = '/api_ws'
-        } else if (window.location.hostname === '192.168.1.192') {
-          // 开发服务器环境，直接连接
-          wsUrl = 'http://192.168.1.192:8001/api/ws'
-        }
+        // 对所有环境都使用统一的代理地址
+        let wsUrl = '/api_ws'
         console.log('使用WebSocket连接地址:', wsUrl)
         
         // 尝试创建连接前，先释放之前的连接（如果存在）

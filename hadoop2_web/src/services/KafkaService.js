@@ -3,9 +3,11 @@ import ApiService from './api.service';
 /**
  * Kafka服务 - 提供与Kafka消息系统交互的功能
  */
-class KafkaService extends ApiService {
+class KafkaServiceClass extends ApiService {
   constructor() {
-    super('/kafka');
+    // 使用服务名称
+    super('kafka');
+    console.log('Kafka服务初始化');
   }
   
   /**
@@ -116,5 +118,11 @@ class KafkaService extends ApiService {
   }
 }
 
-// 导出单例
-export default new KafkaService(); 
+// 创建单例
+const KafkaService = new KafkaServiceClass();
+
+// 导出服务单例
+export default KafkaService;
+
+// 命名导出，用于从index.js中导入
+export { KafkaService }; 

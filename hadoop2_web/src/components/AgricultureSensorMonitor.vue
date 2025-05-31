@@ -43,7 +43,7 @@ import SensorCard from './agriculture/SensorCard.vue'
 import StatsPanel from './agriculture/StatsPanel.vue'
 import MessageLog from './agriculture/MessageLog.vue'
 import websocketManager from '../utils/websocket'
-import sensorApi from '../api/sensor'
+import { SensorApi } from '../api/sensor'
 import { calculateTrend } from '../utils/sensorUtils'
 
 export default {
@@ -307,7 +307,7 @@ export default {
     // 发送测试数据
     const sendTestData = async () => {
       try {
-        const response = await sensorApi.sendTestData()
+        const response = await SensorApi.sendTestData()
         addMessage('system', `测试数据已发送: ${response.data.message || 'success'}`)
       } catch (error) {
         console.error('发送测试数据失败:', error)

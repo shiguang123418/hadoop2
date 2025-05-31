@@ -4,11 +4,11 @@ import serviceHelper from '../utils/service-helper';
 /**
  * Hive服务 - 提供与Hive数据库交互的功能
  */
-class HiveService extends ApiService {
+class HiveServiceClass extends ApiService {
   constructor() {
-    // 使用/api前缀
-    super('/api/hive');
-    console.log('Hive服务初始化，完整路径:', serviceHelper.getServicePath('hive'));
+    // 使用服务名称
+    super('hive');
+    console.log('Hive服务初始化');
   }
   
   /**
@@ -294,5 +294,11 @@ class HiveService extends ApiService {
   }
 }
 
-// 导出单例
-export default new HiveService(); 
+// 创建单例
+const HiveService = new HiveServiceClass();
+
+// 导出服务单例
+export default HiveService;
+
+// 命名导出，用于从index.js中导入
+export { HiveService }; 

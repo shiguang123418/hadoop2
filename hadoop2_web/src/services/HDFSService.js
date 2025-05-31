@@ -4,11 +4,11 @@ import serviceHelper from '../utils/service-helper';
 /**
  * HDFS服务 - 提供与HDFS文件系统交互的功能
  */
-class HDFSService extends ApiService {
+class HDFSServiceClass extends ApiService {
   constructor() {
-    // 使用/api前缀
-    super('/api/hdfs');
-    console.log('HDFS服务初始化，完整路径:', serviceHelper.getServicePath('hdfs'));
+    // 使用服务名称
+    super('hdfs');
+    console.log('HDFS服务初始化');
   }
   
   /**
@@ -158,5 +158,11 @@ class HDFSService extends ApiService {
   }
 }
 
-// 导出单例
-export default new HDFSService(); 
+// 创建单例
+const HDFSService = new HDFSServiceClass();
+
+// 导出服务单例
+export default HDFSService;
+
+// 命名导出，用于从index.js中导入
+export { HDFSService }; 

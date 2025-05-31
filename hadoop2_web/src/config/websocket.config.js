@@ -7,11 +7,12 @@ import apiConfig from './api.config';
 
 // 配置WebSocket连接
 const config = {
-  // WebSocket服务器地址 - 使用与API相同的服务器
-  wsHost: window.location.hostname || 'localhost',
-  
-  // WebSocket服务端点 - 需与后端Spring配置一致
-  wsEndpoint: '/api/ws',
+  // WebSocket端点路径
+  // 使用统一的代理路径
+  get wsUrl() {
+    // 对所有环境都使用统一代理地址
+    return '/api_ws';
+  },
   
   // 是否使用SockJS
   useSockJS: true,
@@ -25,20 +26,10 @@ const config = {
     weatherStats: '/topic/weather-stats',
     productStats: '/topic/product-stats',
     generalUpdates: '/topic/updates',
-    notifications: '/topic/notifications'
-  },
-  
-  // 计算完整的WebSocket URL
-  get wsUrl() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = this.wsHost;
-    const port = window.location.port ? `:${window.location.port}` : '';
-    const endpoint = this.wsEndpoint;
-    
-    // 如果使用SockJS，添加sockjs后缀
-    const sockjsSuffix = this.useSockJS ? '' : '';
-    
-    return `${protocol}//${host}${port}${endpoint}${sockjsSuffix}`;
+    notifications: '/topic/notifications',
+    agricultureSensorData: '/topic/agriculture-sensor-data',
+    sparkStats: '/topic/spark-stats',
+    systemNotifications: '/topic/system-notifications'
   }
 };
 

@@ -98,7 +98,7 @@ export default {
     const fetchDataSources = async () => {
       loading.value = true
       try {
-        const response = await axios.get('/api/datasources')
+        const response = await axios.get('/datasources')
         dataSources.value = response.data
       } catch (error) {
         ElMessage.error('获取数据源列表失败')

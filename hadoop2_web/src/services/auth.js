@@ -1,15 +1,16 @@
 import axios from 'axios';
 import apiConfig from '../config/api.config';
+import ApiService from './api.service';
+import { getServiceConfig } from '../utils/service-helper';
 
 /**
  * 身份验证服务
  */
-class AuthService {
+class AuthServiceClass extends ApiService {
   constructor() {
-    // 构建基础URL，使用apiConfig中配置的服务路径
-    // 确保路径以/api开头
-    this.baseUrl = apiConfig.services.auth;
-    console.log('Auth服务初始化，baseUrl:', this.baseUrl, '完整URL:', axios.defaults.baseURL + this.baseUrl);
+    // 使用服务名称
+    super('auth');
+    console.log('Auth服务初始化');
   }
   
   /**
@@ -107,31 +108,20 @@ class AuthService {
         throw new Error('用户名和密码不能为空');
       }
 
-      console.log(`发送登录请求到: ${this.baseUrl}/login`);
+      console.log(`发送登录请求`);
       
-      // 使用相对路径，让代理处理路由
-      const loginUrl = `${this.baseUrl}/login`;
-      console.log(`实际请求URL: ${loginUrl}，完整URL: ${axios.defaults.baseURL}${loginUrl}`);
+      // 使用API服务类提供的post方法
+      const response = await this.post('/login', { username, password });
       
-      const response = await axios.post(loginUrl, { username, password }, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        // 添加超时设置
-        timeout: 10000
-      });
-      
-      console.log('登录响应数据:', response.data);
+      console.log('登录响应数据:', response);
       
       // 检查响应中是否包含token
-      if (response.data && response.data.token) {
+      if (response && response.token) {
         console.log('保存登录凭证到本地存储');
-        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('token', response.token);
         
         // 保存用户信息
-        const userData = response.data.user || { username: username, role: 'user' };
+        const userData = response.user || { username: username, role: 'user' };
         
         // 打印用户数据，检查是否包含avatar
         console.log('保存用户数据:', userData);
@@ -142,14 +132,14 @@ class AuthService {
         localStorage.setItem('user', JSON.stringify(userData));
         
         // 设置默认Authorization头
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
         
         console.log('登录成功，已设置认证头');
-      } else if (response.data && response.data.data && response.data.data.token) {
+      } else if (response && response.data && response.data.token) {
         // 处理嵌套在data字段中的情况
         console.log('从嵌套的data字段中提取登录凭证');
-        const token = response.data.data.token;
-        const userData = response.data.data.user || { username: username, role: 'user' };
+        const token = response.data.token;
+        const userData = response.data.user || { username: username, role: 'user' };
         
         // 打印用户数据，检查是否包含avatar
         console.log('保存用户数据(嵌套):', userData);
@@ -165,11 +155,11 @@ class AuthService {
         
         console.log('登录成功，已设置认证头');
       } else {
-        console.warn('响应中未找到token', response.data);
+        console.warn('响应中未找到token', response);
         throw new Error('服务器返回数据格式不正确，未找到令牌信息');
       }
       
-      return response.data;
+      return response;
     } catch (error) {
       console.error('登录失败:', error);
       
@@ -198,260 +188,109 @@ class AuthService {
   }
   
   /**
-   * 注册
+   * 注册新用户
    * @param {Object} userData 用户数据
    */
   async register(userData) {
-    try {
-      const response = await axios.post(`${this.baseUrl}/register`, userData);
-      return response.data;
-    } catch (error) {
-      console.error('注册失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    // 使用API服务类提供的post方法
+    return this.post('/register', userData);
   }
   
   /**
-   * 注销
+   * 退出登录
    */
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    axios.defaults.headers.common['Authorization'] = '';
-    
-    // 触发用户信息更新事件，通知全局组件刷新状态
-    window.dispatchEvent(new Event('user-info-updated'));
-    
-    console.log('用户已退出登录，所有用户信息已清除');
+    delete axios.defaults.headers.common['Authorization'];
   }
   
   /**
-   * 设置身份验证头
+   * 设置认证头
    */
   setupAuthHeader() {
     const token = this.getToken();
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
+      return true;
     }
+    return false;
   }
   
   /**
-   * 获取用户列表
-   * 需要管理员权限
+   * 获取所有用户（管理员功能）
    */
   async getUsers() {
-    try {
-      const response = await axios.get(`${this.baseUrl}/users`, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('获取用户列表失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    return this.get('/users');
   }
   
   /**
-   * 获取单个用户信息
+   * 获取特定用户信息
    * @param {string} userId 用户ID
    */
   async getUser(userId) {
-    try {
-      const response = await axios.get(`${this.baseUrl}/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('获取用户信息失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    return this.get(`/users/${userId}`);
   }
   
   /**
-   * 创建用户
-   * 需要管理员权限
+   * 创建新用户（管理员功能）
    * @param {Object} userData 用户数据
    */
   async createUser(userData) {
-    try {
-      const response = await axios.post(`${this.baseUrl}/users`, userData, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('创建用户失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    return this.post('/users', userData);
   }
   
   /**
-   * 更新用户
-   * 需要管理员权限或者是用户本人
+   * 更新用户信息（管理员功能）
    * @param {string} userId 用户ID
    * @param {Object} userData 用户数据
    */
   async updateUser(userId, userData) {
-    try {
-      const response = await axios.put(`${this.baseUrl}/users/${userId}`, userData, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      
-      // 如果更新的是当前用户，同步更新本地存储
-      const currentUser = this.getCurrentUser();
-      if (currentUser && currentUser.id === userId) {
-        localStorage.setItem('user', JSON.stringify({
-          ...currentUser,
-          ...userData
-        }));
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('更新用户失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    return this.put(`/users/${userId}`, userData);
   }
   
   /**
-   * 删除用户
-   * 需要管理员权限
+   * 删除用户（管理员功能）
    * @param {string} userId 用户ID
    */
   async deleteUser(userId) {
-    try {
-      const response = await axios.delete(`${this.baseUrl}/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('删除用户失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    return this.delete(`/users/${userId}`);
   }
   
   /**
-   * 更改用户密码
+   * 修改当前用户密码
    * @param {string} currentPassword 当前密码
    * @param {string} newPassword 新密码
    */
   async changePassword(currentPassword, newPassword) {
-    try {
-      const response = await axios.post(`${this.baseUrl}/change-password`, {
-        currentPassword,
-        newPassword
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('更改密码失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    return this.post('/change-password', {
+      currentPassword,
+      newPassword
+    });
   }
   
   /**
-   * 更新当前用户资料
-   * @param {Object} profileData 用户资料数据
+   * 更新当前用户个人资料
+   * @param {Object} profileData 个人资料数据
    */
   async updateProfile(profileData) {
-    try {
-      const currentUser = this.getCurrentUser();
-      if (!currentUser) {
-        throw new Error('未登录');
-      }
-      
-      // 创建一个副本，只包含需要更新的字段
-      const profileToUpdate = {...profileData};
-      
-      // 确保不发送角色信息，避免角色格式问题
-      if (profileToUpdate.role) delete profileToUpdate.role;
-      if (profileToUpdate.roles) delete profileToUpdate.roles;
-      
-      console.log('发送个人资料更新请求，数据:', profileToUpdate);
-      
-      // 特殊处理头像更新
-      const isAvatarUpdate = profileToUpdate.avatar && Object.keys(profileToUpdate).length === 1;
-      if (isAvatarUpdate) {
-        console.log('检测到这是头像更新请求');
-      }
-      
-      // 设置超时和重试
-      const response = await axios.put(`${this.baseUrl}/profile`, profileToUpdate, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: isAvatarUpdate ? 30000 : 10000 // 头像更新给予更长的超时时间
-      });
-      
-      console.log('个人资料更新响应:', response.data);
-      
-      // 如果更新成功
-      if (response.data && response.data.code === 200) {
-        // 更新本地存储的用户信息
-        const updatedUser = {
-          ...currentUser,
-          ...profileToUpdate
-        };
-        
-        // 确保avatar字段正确保存
-        if (profileToUpdate.avatar) {
-          console.log('更新本地用户头像:', profileToUpdate.avatar);
-          updatedUser.avatar = profileToUpdate.avatar;
-        }
-        
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        console.log('本地用户信息已更新');
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('更新用户资料失败:', error);
-      
-      // 详细记录错误信息
-      if (error.response) {
-        console.error('错误状态码:', error.response.status);
-        console.error('错误详情:', error.response.data);
-      } else if (error.request) {
-        console.error('未收到响应:', error.request);
-      }
-      
-      throw error;
-    }
+    return this.put('/profile', profileData);
   }
   
   /**
-   * 管理员重置用户密码
-   * 需要管理员权限
+   * 重置用户密码（管理员功能）
    * @param {string} userId 用户ID
    */
   async resetUserPassword(userId) {
-    try {
-      const response = await axios.post(`${this.baseUrl}/users/${userId}/reset-password`, {}, {
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('重置用户密码失败:', error.response?.data?.message || error.message);
-      throw error;
-    }
+    return this.post(`/users/${userId}/reset-password`);
   }
 }
 
-export default new AuthService(); 
+// 创建单例
+const AuthService = new AuthServiceClass();
+
+// 导出服务单例
+export default AuthService;
+
+// 命名导出，用于从index.js中导入
+export { AuthService }; 

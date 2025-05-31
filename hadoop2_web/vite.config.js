@@ -2,6 +2,25 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+// 多后端API服务器配置
+const apiServers = {
+  // API服务1配置 - 保留原有API
+  api1: {
+    target: 'http://14.103.176.218:8000',
+    pathRewrite: path => path.replace(/^\/api1/, '/api')
+  },
+  // API服务2配置 - 新增API
+  api2: {
+    target: 'http://14.103.176.218:8001', 
+    pathRewrite: path => path.replace(/^\/api2/, '/api')
+  },
+  // WebSocket服务配置 - 使用IP地址确保更好的兼容性
+  ws: {
+    target: 'http://14.103.176.218:8001',
+    pathRewrite: path => path.replace(/^\/api_ws/, '/api/ws')
+  }
+};
+
 // 默认API服务器配置
 // 注意：此处的配置应与api.config.js中保持一致
 // https://vite.dev/config/
@@ -16,59 +35,76 @@ export default defineConfig({
   },
   define: {
     global: 'window',
+    // 将API服务器配置暴露给前端代码
+    'process.env.API_SERVERS': JSON.stringify(apiServers)
   },
   server: {
     port: 5173,
     host: '0.0.0.0',
     cors: true, // 设置没有访问限制
     proxy: {
-      '/api': {
-        target: 'http://shiguang:8000',
+      // API1代理配置
+      '/api1': {
+        target: apiServers.api1.target,
         changeOrigin: true,
         secure: false,
-        ws: true,
-        // 不要重写路径，保持/api前缀
-        rewrite: (path) => path.replace(/^\/api/, '/api'),
-        // 添加日志以便调试
+        ws: false,
+        rewrite: apiServers.api1.pathRewrite,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
-            console.log('代理错误:', err);
+            console.log('API1代理错误:', err);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('代理请求:', req.method, req.url, '->',
+            console.log('API1代理请求:', req.method, req.url, '->',
                          options.target + proxyReq.path);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('代理响应:', proxyRes.statusCode, req.url);
+            console.log('API1代理响应:', proxyRes.statusCode, req.url);
           });
         }
       },
-      '/api_ws': {
-        target: 'ws://192.168.1.192:8001',
-        ws: true,
+      // API2代理配置
+      '/api2': {
+        target: apiServers.api2.target,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api_ws/, '/api/ws'),
-        // 添加详细日志，帮助调试WebSocket代理
+        ws: false,
+        rewrite: apiServers.api2.pathRewrite,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('API2代理错误:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('API2代理请求:', req.method, req.url, '->',
+                         options.target + proxyReq.path);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('API2代理响应:', proxyRes.statusCode, req.url);
+          });
+        }
+      },
+      
+      // WebSocket代理配置
+      '/api_ws': {
+        target: apiServers.ws.target,
+        changeOrigin: true,
+        secure: false,
+        ws: true, // 启用WebSocket代理
+        rewrite: apiServers.ws.pathRewrite,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.error('WebSocket代理错误:', err);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
             console.log('WebSocket代理请求:', req.method, req.url, '->',
-                       options.target + proxyReq.path);
+                         options.target + proxyReq.path);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             console.log('WebSocket代理响应:', proxyRes.statusCode, req.url);
           });
-          proxy.on('open', () => {
-            console.log('WebSocket代理连接打开');
-          });
-          proxy.on('close', () => {
-            console.log('WebSocket代理连接关闭');
-          });
         }
-      }
+      },
+
     }
   },
   build: {

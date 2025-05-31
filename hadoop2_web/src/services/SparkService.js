@@ -3,9 +3,11 @@ import ApiService from './api.service';
 /**
  * Spark服务 - 提供与Spark集群交互的功能
  */
-class SparkService extends ApiService {
+class SparkServiceClass extends ApiService {
   constructor() {
-    super('/spark');
+    // 使用服务名称
+    super('spark');
+    console.log('Spark服务初始化');
   }
   
   /**
@@ -78,5 +80,11 @@ class SparkService extends ApiService {
   }
 }
 
-// 导出单例
-export default new SparkService(); 
+// 创建单例
+const SparkService = new SparkServiceClass();
+
+// 导出服务单例
+export default SparkService;
+
+// 命名导出，用于从index.js中导入
+export { SparkService }; 

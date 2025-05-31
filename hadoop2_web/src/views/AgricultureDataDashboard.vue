@@ -118,7 +118,9 @@ import * as echarts from 'echarts'
 import chinaGeoJson from '../assets/map/full/china.json'
 import websocketManager from '../utils/websocket'
 import { calculateTrend } from '../utils/sensorUtils'
-import sensorApi from '../api/sensor'
+import { SensorApi } from '../api/sensor'
+import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
 // 确保echarts正确导入
 if (!echarts || typeof echarts.registerMap !== 'function') {
@@ -1027,7 +1029,7 @@ export default {
       
       try {
         console.log('AgricultureDataDashboard: 开始发送测试数据...');
-        const response = await sensorApi.sendTestData();
+        const response = await SensorApi.sendTestData();
         console.log('测试数据发送响应:', response);
         
         if (response.data && response.data.status === 'success') {

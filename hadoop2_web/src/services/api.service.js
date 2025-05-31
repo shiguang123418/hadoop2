@@ -1,6 +1,6 @@
 import axios from 'axios';
-import AuthService from './auth';
 import apiConfig from '../config/api.config';
+import { buildApiPath, getServiceConfig } from '../utils/service-helper';
 
 /**
  * API服务基类 - 提供统一的API调用方法
@@ -8,15 +8,16 @@ import apiConfig from '../config/api.config';
 class ApiService {
   /**
    * 构造函数，设置API路径
-   * @param {string} basePath API基础路径
+   * @param {string} serviceName 服务名称，如 'hdfs', 'hive', 'kafka' 等
    */
-  constructor(basePath) {
-    // 确保basePath有正确的格式
-    if (basePath.startsWith('/')) {
-      this.servicePath = basePath;
-    } else {
-      this.servicePath = '/' + basePath;
-    }
+  constructor(serviceName) {
+    // 获取服务配置
+    const serviceConfig = getServiceConfig(serviceName);
+    
+    // 保存服务信息
+    this.serviceName = serviceName;
+    this.servicePath = serviceConfig.path;
+    this.serverPrefix = serviceConfig.server;
     
     // 创建axios实例，baseURL为空字符串，让全局axios配置处理
     this.api = axios.create({
@@ -26,13 +27,13 @@ class ApiService {
       }
     });
     
-    console.log(`初始化服务 ${basePath}, 全局axios baseURL: ${axios.defaults.baseURL}`);
+    console.log(`初始化服务 ${serviceName}, 路径: ${this.serverPrefix}${this.servicePath}`);
     
     // 请求拦截器
     this.api.interceptors.request.use(
       config => {
         // 设置认证头
-        const token = AuthService.getToken();
+        const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -128,8 +129,8 @@ class ApiService {
     // 确保endpoint格式正确
     endpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
     
-    // 返回服务路径和端点的组合，不添加/api前缀，由拦截器统一处理
-    return `${this.servicePath}${endpoint}`;
+    // 返回完整路径
+    return `${this.serverPrefix}${this.servicePath}${endpoint}`;
   }
 }
 

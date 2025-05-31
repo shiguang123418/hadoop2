@@ -130,6 +130,16 @@ const router = createRouter({
         title: '农业大数据监控平台',
         fullScreen: true // 添加全屏标记
       }
+    },
+    // WebSocket调试器
+    {
+      path: '/ws-debug',
+      name: 'ws-debug',
+      component: () => import('../components/WebSocketDebugger.vue'),
+      meta: {
+        requiresAuth: false,
+        title: 'WebSocket连接调试器'
+      }
     }
   ]
 })
