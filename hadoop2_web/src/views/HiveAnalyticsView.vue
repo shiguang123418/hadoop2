@@ -808,13 +808,19 @@ export default {
         // 检查时间序列数据格式
         if (task.analysisType === 'time_series') {
           // 检查是否至少有一条数据包含必要的字段
+          // 修改：允许包含month和value字段，或者是月份和其他数值字段
           const hasValidData = task.result.some(item => 
-            item && typeof item === 'object' && 
-            ('month' in item) && ('value' in item)
+            item && typeof item === 'object' && (
+              // 标准格式：包含month和value
+              (('month' in item) && ('value' in item)) || 
+              // 多值字段格式：包含month和至少一个其他字段
+              (('month' in item) && Object.keys(item).length > 1)
+            )
           );
           
           if (!hasValidData) {
-            console.error('时间序列数据格式不正确，缺少month或value字段');
+            console.error('时间序列数据格式不正确，缺少month或值字段');
+            console.log('数据示例:', task.result.slice(0, 3));
             ElMessage.warning('时间序列数据格式不正确，请重新运行分析');
             return;
           }
@@ -1013,6 +1019,9 @@ export default {
               return { title: { text: '无数据' } };
             }
             
+            console.log('样本数据项:', sampleItem);
+            console.log('样本数据字段:', Object.keys(sampleItem));
+            
             // 确定是单字段还是多字段值
             let isMultiValueField = false;
             let valueFields = [];
@@ -1068,10 +1077,19 @@ export default {
                 }
               }
             } else if ('month' in sampleItem) {
-              // 可能是多值字段格式
+              // 多值字段格式（如maxtemp和mintemp）
               isMultiValueField = true;
-              // 获取所有非month的字段作为值字段
-              valueFields = Object.keys(sampleItem).filter(key => key !== 'month');
+              
+              // 直接检查是否有currentTask.params中的valueFields可用
+              if (currentTask && currentTask.params && currentTask.params.valueFields && currentTask.params.valueFields.length > 0) {
+                // 优先使用任务参数中指定的值字段
+                valueFields = currentTask.params.valueFields;
+                console.log('使用任务参数中的值字段:', valueFields);
+              } else {
+                // 获取所有非month的字段作为值字段
+                valueFields = Object.keys(sampleItem).filter(key => key !== 'month');
+              }
+              
               console.log('识别到多值字段:', valueFields);
               
               // 初始化每个字段的monthDataMap
@@ -1278,6 +1296,89 @@ export default {
             const labels = [];
             const seriesData = [];
             
+            // 直接使用任务结果数据的情况 - 针对已经格式化好的数据，如你提供的示例
+            if (currentTask && currentTask.params && currentTask.params.valueFields && 
+                currentTask.params.valueFields.includes('maxtemp') && 
+                currentTask.params.valueFields.includes('mintemp') &&
+                data.length > 0 && 'month' in data[0] && 'maxtemp' in data[0] && 'mintemp' in data[0]) {
+              
+              console.log('检测到格式化好的温度数据，直接使用');
+              
+              // 对月份进行排序
+              const monthOrder = {
+                'January': 0, 'February': 1, 'March': 2, 'April': 3, 'May': 4, 'June': 5,
+                'July': 6, 'August': 7, 'September': 8, 'October': 9, 'November': 10, 'December': 11
+              };
+              
+              // 排序数据
+              const sortedData = [...data].sort((a, b) => {
+                return monthOrder[a.month] - monthOrder[b.month];
+              });
+              
+              // 使用排序后的月份作为标签
+              const months = sortedData.map(item => item.month);
+              labels.push(...months);
+              
+              // 准备最高温度数据
+              const maxTempData = {
+                name: '最高温度',
+                type: currentTask.params.chartType || 'line',
+                data: sortedData.map(item => item.maxtemp),
+                itemStyle: { color: '#EE6666' },
+                smooth: true,
+                symbolSize: 6,
+                lineStyle: { width: 2 }
+              };
+              
+              // 准备最低温度数据
+              const minTempData = {
+                name: '最低温度',
+                type: currentTask.params.chartType || 'line',
+                data: sortedData.map(item => item.mintemp),
+                itemStyle: { color: '#5470C6' },
+                smooth: true,
+                symbolSize: 6,
+                lineStyle: { width: 2 }
+              };
+              
+              // 添加到系列
+              seriesData.push(maxTempData, minTempData);
+              
+              // 返回图表配置
+              return {
+                title: {
+                  text: '月度温度变化',
+                  left: 'center'
+                },
+                tooltip: {
+                  trigger: 'axis'
+                },
+                legend: {
+                  data: ['最高温度', '最低温度'],
+                  bottom: 10
+                },
+                grid: {
+                  left: '3%',
+                  right: '4%',
+                  bottom: '15%',
+                  containLabel: true
+                },
+                xAxis: {
+                  type: 'category',
+                  data: labels,
+                  axisLabel: {
+                    interval: 0,
+                    rotate: 30
+                  }
+                },
+                yAxis: {
+                  type: 'value',
+                  name: '温度 (°C)'
+                },
+                series: seriesData
+              };
+            }
+            
             // 首先确定有数据的月份
             const monthsWithData = new Set();
             valueFields.forEach(field => {
@@ -1329,10 +1430,17 @@ export default {
               // 添加系列
               seriesData.push({
                 name: displayName,
-                type: 'bar',
+                // 如果任务配置了图表类型为line，则使用line类型，否则默认使用bar
+                type: currentTask && currentTask.params && currentTask.params.chartType === 'line' ? 'line' : 'bar',
                 data: values,
                 itemStyle: {
                   color: color
+                },
+                // 为折线图添加平滑和点的样式
+                smooth: true,
+                symbolSize: 6,
+                lineStyle: {
+                  width: 2
                 }
               });
             });
@@ -1365,7 +1473,8 @@ export default {
                 }
               },
               yAxis: {
-                type: 'value'
+                type: 'value',
+                name: '数值'
               },
               series: seriesData
             };
