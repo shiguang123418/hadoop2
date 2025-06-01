@@ -7,8 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +49,11 @@ public class HiveAnalyticsController {
             
             logger.info("提交分析任务: {}, 数据库: {}, 表: {}", analysisType, database, table);
             
+            // 获取当前用户
+            String username = getCurrentUsername();
+            
             // 提交任务
-            String taskId = taskManagerService.submitAnalysisTask(analysisType, database, table, request);
+            String taskId = taskManagerService.submitAnalysisTask(analysisType, database, table, request, username);
             
             Map<String, Object> response = new HashMap<>();
             response.put("taskId", taskId);
@@ -96,9 +102,53 @@ public class HiveAnalyticsController {
     }
     
     /**
-     * 取消任务
+     * 获取当前用户的任务列表
+     */
+    @GetMapping("/user-tasks")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserTasks() {
+        try {
+            String username = getCurrentUsername();
+            List<Map<String, Object>> tasks = taskManagerService.getUserTasks(username);
+            return ResponseEntity.ok(new ApiResponse<>(200, "获取用户任务成功", tasks));
+        } catch (Exception e) {
+            logger.error("获取用户任务失败", e);
+            return ResponseEntity.ok(new ApiResponse<>(500, "获取用户任务失败: " + e.getMessage(), null));
+        }
+    }
+    
+    /**
+     * 获取最近的任务
+     */
+    @GetMapping("/recent-tasks")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRecentTasks(
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<Map<String, Object>> tasks = taskManagerService.getRecentTasks(limit);
+            return ResponseEntity.ok(new ApiResponse<>(200, "获取最近任务成功", tasks));
+        } catch (Exception e) {
+            logger.error("获取最近任务失败", e);
+            return ResponseEntity.ok(new ApiResponse<>(500, "获取最近任务失败: " + e.getMessage(), null));
+        }
+    }
+    
+    /**
+     * 删除任务
      */
     @DeleteMapping("/task/{taskId}")
+    public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable String taskId) {
+        try {
+            taskManagerService.deleteTask(taskId);
+            return ResponseEntity.ok(new ApiResponse<>(200, "删除任务成功", null));
+        } catch (Exception e) {
+            logger.error("删除任务失败", e);
+            return ResponseEntity.ok(new ApiResponse<>(500, "删除任务失败: " + e.getMessage(), null));
+        }
+    }
+    
+    /**
+     * 取消任务
+     */
+    @PostMapping("/task/{taskId}/cancel")
     public ResponseEntity<ApiResponse<Map<String, Object>>> cancelTask(
             @PathVariable String taskId) {
         try {
@@ -210,13 +260,28 @@ public class HiveAnalyticsController {
                     timeField, valueField, database, table, timeField);
             
             logger.info("执行时间序列分析: {}", sql);
-            List<Map<String, Object>> results = hiveService.executeQuery(sql);
+            List<Map<String, Object>> rawResults = hiveService.executeQuery(sql);
+            
+            // 处理返回结果，确保字段名称是明确的
+            List<Map<String, Object>> processedResults = new ArrayList<>();
+            for (Map<String, Object> row : rawResults) {
+                Map<String, Object> newRow = new HashMap<>();
+                // 确保使用标准字段名
+                Object timeValue = row.get(timeField);
+                Object dataValue = row.get(valueField);
+                
+                // 明确设置字段名为month和value，避免前端解析问题
+                newRow.put("month", timeValue);
+                newRow.put("value", dataValue);
+                
+                processedResults.add(newRow);
+            }
             
             Map<String, Object> response = new HashMap<>();
-            response.put("data", results);
+            response.put("data", processedResults);
             response.put("type", "time_series");
-            response.put("timeField", timeField);
-            response.put("valueField", valueField);
+            response.put("timeField", "month"); // 固定使用month作为时间字段名
+            response.put("valueField", "value"); // 固定使用value作为值字段名
             
             return ResponseEntity.ok(new ApiResponse<>(200, "时间序列分析执行成功", response));
         } catch (Exception e) {
@@ -325,5 +390,16 @@ public class HiveAnalyticsController {
             logger.error("保存分析结果失败", e);
             return ResponseEntity.ok(new ApiResponse<>(500, "保存分析结果失败: " + e.getMessage(), null));
         }
+    }
+    
+    /**
+     * 获取当前登录用户名
+     */
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return authentication.getName();
+        }
+        return "anonymous";
     }
 } 

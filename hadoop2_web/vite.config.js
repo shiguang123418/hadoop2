@@ -2,21 +2,23 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+
+const host = '192.168.1.192'
 // 多后端API服务器配置
 const apiServers = {
   // API服务1配置 - 保留原有API
   api1: {
-    target: 'http://14.103.176.218:8000',
+    target: `http://${host}:8000`,
     pathRewrite: path => path.replace(/^\/api1/, '/api')
   },
   // API服务2配置 - 新增API
   api2: {
-    target: 'http://14.103.176.218:8001', 
+    target: `http://${host}:8001`, 
     pathRewrite: path => path.replace(/^\/api2/, '/api')
   },
   // WebSocket服务配置 - 使用IP地址确保更好的兼容性
   ws: {
-    target: 'http://14.103.176.218:8001',
+    target: `http://${host}:8001`,
     pathRewrite: path => path.replace(/^\/api_ws/, '/api/ws')
   }
 };
