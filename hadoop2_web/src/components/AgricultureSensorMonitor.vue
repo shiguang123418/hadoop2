@@ -42,7 +42,6 @@ import SensorCard from './agriculture/SensorCard.vue'
 import StatsPanel from './agriculture/StatsPanel.vue'
 import MessageLog from './agriculture/MessageLog.vue'
 import websocketManager from '../utils/websocket'
-import { SensorApi } from '../api/sensor'
 import { calculateTrend } from '../utils/sensorUtils'
 
 export default {

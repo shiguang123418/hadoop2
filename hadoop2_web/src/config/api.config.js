@@ -31,12 +31,12 @@ const services = {
   // Spark服务 - 使用服务器2
   spark: {
     path: '/spark',
-    server: servers.server2
+    server: servers.server1
   },
   // Kafka服务 - 使用服务器2
   kafka: {
     path: '/kafka',
-    server: servers.server2
+    server: servers.server1
   },
   // 认证服务 - 使用默认服务器
   auth: {

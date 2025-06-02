@@ -67,6 +67,37 @@
           <div ref="sensorMapChart" class="map-chart" style="width: 100%; height: 300px;"></div>
         </div>
         
+        <!-- 添加实时传感器数据监控模块 -->
+        <div class="chart-container sensor-realtime-data">
+          <h3>实时传感器数据监控</h3>
+          <div class="sensor-grid">
+            <div v-for="(sensor, sensorId) in activeSensors" :key="sensorId" 
+                 class="sensor-card" :class="[sensor.type, sensor.isAnomaly ? 'anomaly' : 'normal']">
+              <div class="sensor-header">
+                <div class="sensor-name">{{ getSensorTypeDisplay(sensor.type) }}传感器</div>
+                <div class="sensor-id">#{{ sensorId.substring(0, 6) }}</div>
+                <div class="sensor-status" :class="sensor.isAnomaly ? 'anomaly' : 'normal'">
+                  <span class="status-dot"></span>
+                  {{ sensor.isAnomaly ? '异常' : '正常' }}
+                </div>
+              </div>
+              <div class="sensor-value-container">
+                <div class="sensor-value">{{ sensor.lastValue || '0' }}<span class="sensor-unit">{{ sensor.lastUnit || '' }}</span></div>
+                <div class="sensor-trend" :class="sensor.trend">
+                  <i v-if="sensor.trend === 'up'" class="el-icon-top"></i>
+                  <i v-else-if="sensor.trend === 'down'" class="el-icon-bottom"></i>
+                  <i v-else class="el-icon-minus"></i>
+                </div>
+              </div>
+              <div class="sensor-location">{{ sensor.location || '未知位置' }}</div>
+              <div class="sensor-time">{{ sensor.lastTime || '无数据' }}</div>
+              <div class="sensor-chart">
+                <mini-chart :sensor-data="sensor.values" :sensor-type="sensor.type"></mini-chart>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- 异常监测图 -->
         <div class="chart-container anomaly-chart">
           <h3>异常数据监测</h3>
@@ -164,13 +195,13 @@
 import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 // 导入全部echarts
 import * as echarts from 'echarts'
-// 导入echarts中国地图数据 - 使用更完整的地图数据
+
 import chinaGeoJson from '../assets/map/full/china.json'
 import websocketManager from '../utils/websocket'
 import { calculateTrend } from '../utils/sensorUtils'
-import { SensorApi } from '../api/sensor'
-import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+// 导入迷你图表组件
+import MiniChart from '../components/agriculture/MiniChart.vue'
+
 
 // 确保echarts正确导入
 if (!echarts || typeof echarts.registerMap !== 'function') {
@@ -185,6 +216,9 @@ if (!chinaGeoJson || !chinaGeoJson.features || !Array.isArray(chinaGeoJson.featu
 export default {
   name: 'AgricultureDataDashboard',
   inheritAttrs: false,
+  components: {
+    MiniChart
+  },
   setup() {
     // 连接状态
     const isConnected = ref(false)
@@ -480,6 +514,11 @@ export default {
       sensorData[sensorId].movingAverage = data.movingAverage
       sensorData[sensorId].trend = data.stats?.trend || calculateTrend(sensorData[sensorId].values)
       sensorData[sensorId].location = data.location
+      
+      // 更新活跃传感器列表（最多显示6个传感器）
+      if (Object.keys(activeSensors).length < 6 || activeSensors[sensorId]) {
+        activeSensors[sensorId] = sensorData[sensorId]
+      }
       
       // 更新总数据点
       totalDataPoints.value++
@@ -1390,7 +1429,7 @@ export default {
       }
     }
     
-    // 初始化传感器数据，确保有合理的初始数据显示
+    // 初始化传感器数据，模拟实时数据以便测试
     const initSensorData = () => {
       console.log('初始化传感器数据 - 开始', { 
         sensorCounts: JSON.stringify(sensorCounts),
@@ -1420,10 +1459,132 @@ export default {
                                sensorDataCounts.co2;
       }
       
+      // 创建一些初始传感器数据用于展示
+      const generateTestSensorData = () => {
+        // 传感器类型
+        const sensorTypes = ['temperature', 'humidity', 'soilMoisture', 'light', 'co2'];
+        // 传感器位置
+        const locations = ['北京市大兴区', '河北省石家庄市', '山东省济南市', '四川省成都市', '湖北省武汉市', '广东省广州市'];
+        // 单位
+        const units = {
+          temperature: '°C',
+          humidity: '%',
+          soilMoisture: '%',
+          light: 'lux',
+          co2: 'ppm'
+        };
+        // 基础值范围
+        const baseValues = {
+          temperature: {min: 18, max: 32},
+          humidity: {min: 40, max: 85},
+          soilMoisture: {min: 30, max: 70},
+          light: {min: 5000, max: 30000},
+          co2: {min: 400, max: 1200}
+        };
+        
+        // 为每个传感器类型创建1-2个传感器
+        sensorTypes.forEach((type, index) => {
+          const numSensors = Math.floor(Math.random() * 2) + 1; // 1-2个传感器
+          
+          for (let i = 0; i < numSensors; i++) {
+            const sensorId = `test-${type}-${index}-${i}`;
+            const location = locations[Math.floor(Math.random() * locations.length)];
+            const isAnomaly = Math.random() < 0.2; // 20%的概率是异常数据
+            
+            // 生成历史数据点
+            const values = [];
+            const timestamps = [];
+            const numPoints = Math.floor(Math.random() * 30) + 20; // 20-50个数据点
+            
+            const now = new Date();
+            for (let j = 0; j < numPoints; j++) {
+              const baseValue = baseValues[type];
+              let value;
+              
+              // 生成呈一定趋势的数据
+              if (j < numPoints / 3) {
+                // 前1/3略微上升
+                value = baseValue.min + (baseValue.max - baseValue.min) * (0.3 + j / (numPoints * 1.5));
+              } else if (j < numPoints * 2 / 3) {
+                // 中间1/3保持稳定
+                value = baseValue.min + (baseValue.max - baseValue.min) * 0.5;
+              } else {
+                // 后1/3略微下降或上升
+                const trend = Math.random() < 0.5 ? -1 : 1;
+                value = baseValue.min + (baseValue.max - baseValue.min) * (0.5 + trend * (j - numPoints * 2/3) / (numPoints * 2));
+              }
+              
+              // 添加一些随机波动
+              value += (Math.random() - 0.5) * (baseValue.max - baseValue.min) * 0.1;
+              
+              // 如果是异常数据，在末尾添加异常值
+              if (isAnomaly && j > numPoints - 5) {
+                if (type === 'temperature') {
+                  value = baseValue.max + (Math.random() * 5);
+                } else if (type === 'humidity' || type === 'soilMoisture') {
+                  value = baseValue.min - (Math.random() * 15);
+                } else if (type === 'light') {
+                  value = baseValue.min - (Math.random() * 3000);
+                } else if (type === 'co2') {
+                  value = baseValue.max + (Math.random() * 300);
+                }
+              }
+              
+              // 根据类型格式化数值
+              if (type === 'temperature') {
+                value = parseFloat(value.toFixed(1));
+              } else if (type === 'humidity' || type === 'soilMoisture') {
+                value = parseFloat(value.toFixed(1));
+              } else if (type === 'light' || type === 'co2') {
+                value = Math.round(value);
+              }
+              
+              values.push(value);
+              
+              // 生成递减的时间戳（从现在往前）
+              const timestamp = new Date(now);
+              timestamp.setMinutes(now.getMinutes() - (numPoints - j) * 2);
+              timestamps.push(timestamp.toLocaleTimeString());
+            }
+            
+            // 确定趋势
+            const lastFew = values.slice(-4);
+            let trend = 'stable';
+            if (lastFew[lastFew.length - 1] > lastFew[0] + (baseValues[type].max - baseValues[type].min) * 0.05) {
+              trend = 'up';
+            } else if (lastFew[lastFew.length - 1] < lastFew[0] - (baseValues[type].max - baseValues[type].min) * 0.05) {
+              trend = 'down';
+            }
+            
+            // 创建传感器数据
+            sensorData[sensorId] = {
+              type,
+              values,
+              timestamps,
+              lastValue: values[values.length - 1],
+              lastUnit: units[type],
+              lastTime: timestamps[timestamps.length - 1],
+              isAnomaly,
+              trend,
+              location
+            };
+            
+            // 添加到活跃传感器
+            if (Object.keys(activeSensors).length < 6) {
+              activeSensors[sensorId] = sensorData[sensorId];
+            }
+          }
+        });
+      };
+      
+      // 生成测试数据
+      generateTestSensorData();
+      
       console.log('初始化传感器数据 - 完成', { 
         sensorCounts: JSON.stringify(sensorCounts),
         sensorDataCounts: JSON.stringify(sensorDataCounts),
-        totalDataPoints: totalDataPoints.value
+        totalDataPoints: totalDataPoints.value,
+        activeSensors: Object.keys(activeSensors).length
       });
       
       // 更新图表数据
@@ -1890,6 +2051,96 @@ export default {
       }
     }
     
+    // 活跃传感器列表（实时数据展示用）
+    const activeSensors = reactive({})
+    
+    // 组件挂载时
+    onMounted(() => {
+      // ... existing code ...
+      
+      // 模拟新数据的到来
+      const simulateNewData = () => {
+        if (!isConnected.value) return;
+        
+        // 从activeSensors中随机选择一个传感器
+        const sensors = Object.keys(activeSensors);
+        if (sensors.length === 0) return;
+        
+        const randomSensorId = sensors[Math.floor(Math.random() * sensors.length)];
+        const sensor = activeSensors[randomSensorId];
+        
+        // 基于上一个值生成新的随机值
+        const lastValue = parseFloat(sensor.lastValue);
+        const sensorType = sensor.type;
+        
+        let newValue;
+        // 根据传感器类型计算新值
+        if (sensorType === 'temperature') {
+          // 温度在±1.5°C范围内浮动
+          newValue = lastValue + (Math.random() - 0.5) * 3;
+          newValue = parseFloat(newValue.toFixed(1));
+        } else if (sensorType === 'humidity' || sensorType === 'soilMoisture') {
+          // 湿度在±3%范围内浮动
+          newValue = lastValue + (Math.random() - 0.5) * 6;
+          newValue = Math.max(0, Math.min(100, parseFloat(newValue.toFixed(1))));
+        } else if (sensorType === 'light') {
+          // 光照强度浮动较大
+          newValue = lastValue + (Math.random() - 0.5) * lastValue * 0.2;
+          newValue = Math.max(0, Math.round(newValue));
+        } else if (sensorType === 'co2') {
+          // CO2浓度小幅浮动
+          newValue = lastValue + (Math.random() - 0.5) * 60;
+          newValue = Math.max(300, Math.round(newValue));
+        }
+        
+        // 随机决定是否是异常值(5%概率)
+        const isAnomaly = Math.random() < 0.05;
+        
+        if (isAnomaly) {
+          if (sensorType === 'temperature') {
+            newValue = Math.random() < 0.5 ? 38 + Math.random() * 4 : 5 + Math.random() * 4;
+          } else if (sensorType === 'humidity') {
+            newValue = Math.random() < 0.5 ? 95 + Math.random() * 5 : 10 + Math.random() * 10;
+          } else if (sensorType === 'soilMoisture') {
+            newValue = Math.random() < 0.5 ? 90 + Math.random() * 10 : 5 + Math.random() * 10;
+          } else if (sensorType === 'light') {
+            newValue = Math.random() < 0.5 ? 80000 + Math.random() * 20000 : 500 + Math.random() * 500;
+          } else if (sensorType === 'co2') {
+            newValue = 1500 + Math.random() * 1000;
+          }
+        }
+        
+        // 创建新的数据点
+        const now = new Date();
+        const readableTime = now.toLocaleTimeString();
+        
+        // 生成数据
+        const data = {
+          sensorId: randomSensorId,
+          sensorType: sensorType,
+          value: newValue,
+          unit: sensor.lastUnit,
+          timestamp: now.getTime(),
+          readableTime: readableTime,
+          location: sensor.location,
+          isAnomaly: isAnomaly
+        };
+        
+        // 处理数据
+        handleSensorData(data);
+      };
+      
+      // 定时添加模拟数据
+      const dataInterval = setInterval(() => {
+        simulateNewData();
+      }, 5000); // 每5秒更新一次数据
+      
+      // 组件卸载时清除定时器
+      onUnmounted(() => {
+        clearInterval(dataInterval);
+      });
+    })
+    
     return {
       isConnected,
       currentTime,
@@ -1910,7 +2161,9 @@ export default {
       activeAlerts,
       alertStats,
       getAlertIcon,
-      refreshAlerts
+      refreshAlerts,
+      activeSensors,
+      getSensorTypeDisplay
     }
   }
 }
@@ -1933,6 +2186,7 @@ export default {
   animation: fadeIn 0.8s ease-out;
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjMDAxNTI5Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDVMNSAwWk02IDRMNCA2Wk0tMSAxTDEgLTFaIiBzdHJva2U9IiMwMDM2NjAiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=');
   background-attachment: fixed;
+  position: relative;
 }
 
 @keyframes fadeIn {
@@ -1978,13 +2232,32 @@ export default {
   letter-spacing: 1.5px;
   background: linear-gradient(90deg, #ffffff, #69c0ff);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: titlePulse 3s infinite alternate;
+  position: relative;
+  display: inline-block;
 }
 
 @keyframes titlePulse {
   0% { text-shadow: 0 0 10px rgba(24, 144, 255, 0.8); }
   100% { text-shadow: 0 0 20px rgba(24, 144, 255, 1), 0 0 30px rgba(24, 144, 255, 0.6); }
+}
+
+.title::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(24, 144, 255, 0), rgba(24, 144, 255, 0.8), rgba(24, 144, 255, 0));
+  animation: titleUnderline 3s infinite alternate;
+}
+
+@keyframes titleUnderline {
+  0% { width: 0; left: 50%; }
+  100% { width: 100%; left: 0; }
 }
 
 .connection-status {
@@ -2104,7 +2377,9 @@ export default {
   position: relative;
   padding: 18px;
   border-radius: 8px;
-  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.2), 
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 
+              inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, rgba(0, 35, 60, 0.8) 0%, rgba(0, 21, 41, 0.9) 100%);
@@ -2209,6 +2484,7 @@ export default {
               box-shadow 0.3s ease, 
               border-color 0.3s ease;
   animation: cardAppear 0.6s backwards;
+  backdrop-filter: blur(5px);
 }
 
 .data-card:nth-child(1) { animation-delay: 0.1s; }
@@ -2350,11 +2626,13 @@ export default {
   opacity: 0.15;
   transform: rotate(-5deg);
   transition: all 0.3s ease;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
 }
 
 .data-card:hover .card-icon {
   opacity: 0.25;
   transform: rotate(0deg) scale(1.1);
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.2));
 }
 
 .realtime-data {
@@ -2367,6 +2645,9 @@ export default {
   padding-right: 5px;
   scrollbar-width: thin;
   scrollbar-color: #1890ff rgba(0, 21, 41, 0.5);
+  position: relative;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
 }
 
 .data-item {
@@ -2381,6 +2662,7 @@ export default {
   opacity: 0;
   animation: messageAppear 0.5s forwards;
   position: relative;
+  backdrop-filter: blur(3px);
 }
 
 @keyframes messageAppear {
@@ -2521,6 +2803,44 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+}
+
+.chart-container.map-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(24, 144, 255, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 添加动态脉冲边框效果 */
+.chart-container.map-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(24, 144, 255, 0), rgba(24, 144, 255, 0.5), rgba(24, 144, 255, 0)) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  animation: pulsingBorder 3s infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes pulsingBorder {
+  0% { border-color: rgba(24, 144, 255, 0.2); }
+  50% { border-color: rgba(24, 144, 255, 0.5); }
+  100% { border-color: rgba(24, 144, 255, 0.2); }
 }
 
 .chart-container::after {
@@ -2531,6 +2851,13 @@ export default {
   right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(24, 144, 255, 0.5), transparent);
+  opacity: 0.7;
+  animation: glowLine 3s infinite alternate;
+}
+
+@keyframes glowLine {
+  from { opacity: 0.4; transform: translateY(0); }
+  to { opacity: 0.8; transform: translateY(1px); }
 }
 
 /* 实时警报样式 */
@@ -2758,5 +3085,251 @@ export default {
 .refresh-button .el-button:hover {
   background: rgba(24, 144, 255, 0.3);
   border-color: rgba(24, 144, 255, 0.5);
+}
+
+/* 实时传感器数据监控样式 */
+.chart-container.sensor-realtime-data {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  height: calc(100% - 30px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sensor-card {
+  background: rgba(0, 21, 41, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.sensor-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+}
+
+.sensor-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.sensor-card.temperature {
+  border-left-color: #ff7875;
+  background: linear-gradient(135deg, rgba(255, 120, 117, 0.15) 0%, rgba(0, 21, 41, 0.5) 100%);
+}
+
+.sensor-card.humidity {
+  border-left-color: #69c0ff;
+  background: linear-gradient(135deg, rgba(105, 192, 255, 0.15) 0%, rgba(0, 21, 41, 0.5) 100%);
+}
+
+.sensor-card.soilMoisture {
+  border-left-color: #b37feb;
+  background: linear-gradient(135deg, rgba(179, 127, 235, 0.15) 0%, rgba(0, 21, 41, 0.5) 100%);
+}
+
+.sensor-card.light {
+  border-left-color: #ffd666;
+  background: linear-gradient(135deg, rgba(255, 214, 102, 0.15) 0%, rgba(0, 21, 41, 0.5) 100%);
+}
+
+.sensor-card.co2 {
+  border-left-color: #5cdbd3;
+  background: linear-gradient(135deg, rgba(92, 219, 211, 0.15) 0%, rgba(0, 21, 41, 0.5) 100%);
+}
+
+.sensor-card.anomaly {
+  animation: anomalyPulse 2s infinite alternate;
+  box-shadow: 0 0 15px rgba(245, 34, 45, 0.4);
+}
+
+@keyframes anomalyPulse {
+  0% { box-shadow: 0 0 10px rgba(245, 34, 45, 0.3); }
+  100% { box-shadow: 0 0 20px rgba(245, 34, 45, 0.6); }
+}
+
+.sensor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.sensor-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.sensor-id {
+  font-size: 12px;
+  opacity: 0.7;
+  font-family: 'Courier New', monospace;
+}
+
+.sensor-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(5px);
+}
+
+.sensor-status.normal {
+  background: rgba(82, 196, 26, 0.2);
+  color: #52c41a;
+  border: 1px solid rgba(82, 196, 26, 0.3);
+}
+
+.sensor-status.anomaly {
+  background: rgba(245, 34, 45, 0.2);
+  color: #ff4d4f;
+  border: 1px solid rgba(245, 34, 45, 0.3);
+  animation: statusPulse 1.5s infinite alternate;
+}
+
+@keyframes statusPulse {
+  0% { background: rgba(245, 34, 45, 0.1); }
+  100% { background: rgba(245, 34, 45, 0.3); }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  display: inline-block;
+}
+
+.normal .status-dot {
+  background-color: #52c41a;
+  box-shadow: 0 0 5px #52c41a;
+  animation: normalPulse 2s infinite;
+}
+
+.anomaly .status-dot {
+  background-color: #ff4d4f;
+  box-shadow: 0 0 8px #ff4d4f;
+  animation: anomalyDotPulse 1s infinite;
+}
+
+@keyframes normalPulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
+}
+
+@keyframes anomalyDotPulse {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.8; }
+}
+
+.sensor-value-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sensor-value {
+  font-size: 28px;
+  font-weight: bold;
+  background: linear-gradient(90deg, #ffffff, #e6f7ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+}
+
+.sensor-unit {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-left: 2px;
+  font-weight: normal;
+  background: none;
+  -webkit-text-fill-color: #e6f7ff;
+}
+
+.sensor-trend {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.sensor-trend.up {
+  color: #ff4d4f;
+  background: rgba(245, 34, 45, 0.1);
+}
+
+.sensor-trend.down {
+  color: #69c0ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.sensor-trend.stable {
+  color: #d9d9d9;
+  background: rgba(217, 217, 217, 0.1);
+}
+
+.sensor-location {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.sensor-time {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-bottom: 8px;
+  font-family: 'Courier New', monospace;
+}
+
+.sensor-chart {
+  flex: 1;
+  min-height: 60px;
+}
+
+/* 响应式调整 */
+@media (min-width: 1400px) {
+  .sensor-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1399px) and (min-width: 992px) {
+  .sensor-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 991px) {
+  .sensor-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style> 

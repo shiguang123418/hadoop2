@@ -15,6 +15,7 @@ const log = {
 
 const host = '192.168.1.192'
 // 多后端API服务器配置
+
 const apiServers = {
   // API服务1配置 - 保留原有API
   api1: {
@@ -33,9 +34,7 @@ const apiServers = {
   }
 };
 
-// 默认API服务器配置
-// 注意：此处的配置应与api.config.js中保持一致
-// https://vite.dev/config/
+
 export default defineConfig({
   plugins: [
     vue()
@@ -62,18 +61,6 @@ export default defineConfig({
         secure: false,
         ws: false,
         rewrite: apiServers.api1.pathRewrite,
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            log.error('API1代理错误:', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            log.debug('API1代理请求:', req.method, req.url, '->',
-                     options.target + proxyReq.path);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            log.debug('API1代理响应:', proxyRes.statusCode, req.url);
-          });
-        }
       },
       // API2代理配置
       '/api2': {
@@ -82,20 +69,7 @@ export default defineConfig({
         secure: false,
         ws: false,
         rewrite: apiServers.api2.pathRewrite,
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            log.error('API2代理错误:', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            log.debug('API2代理请求:', req.method, req.url, '->',
-                     options.target + proxyReq.path);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            log.debug('API2代理响应:', proxyRes.statusCode, req.url);
-          });
-        }
       },
-      
       // WebSocket代理配置
       '/api_ws': {
         target: apiServers.ws.target,
@@ -103,19 +77,7 @@ export default defineConfig({
         secure: false,
         ws: true, // 启用WebSocket代理
         rewrite: apiServers.ws.pathRewrite,
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            log.error('WebSocket代理错误:', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            log.debug('WebSocket代理请求:', req.method, req.url, '->',
-                     options.target + proxyReq.path);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            log.debug('WebSocket代理响应:', proxyRes.statusCode, req.url);
-          });
-        }
-      },
+      }
 
     }
   },

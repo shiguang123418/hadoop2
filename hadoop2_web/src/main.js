@@ -17,7 +17,6 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 // 导入WebSocket相关依赖
 import SockJS from 'sockjs-client'
 import { Stomp } from '@stomp/stompjs'
-
 // 导入样式文件
 import './assets/base.css'
 import './assets/main.css'
@@ -45,37 +44,17 @@ logger.info('WebSocket客户端加载:', SockJS ? '成功' : '失败', Stomp ? '
 setupApiInterceptor();
 
 // 添加请求拦截器
-axios.interceptors.request.use(
-  config => {
-    logger.debug(`发送请求: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`)
-    return config
-  },
-  error => {
-    logger.error('请求拦截器错误:', error)
-    return Promise.reject(error)
-  }
-)
+// axios.interceptors.request.use(
+//   config => {
+//     logger.debug(`发送请求: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`)
+//     return config
+//   },
+//   error => {
+//     logger.error('请求拦截器错误:', error)
+//     return Promise.reject(error)
+//   }
+// )
 
-// 添加响应拦截器
-axios.interceptors.response.use(
-  response => {
-    logger.debug(`接收响应: ${response.config.url}`, response.status)
-    return response
-  },
-  error => {
-    if (error.response) {
-      // 服务器返回错误状态码
-      logger.error(`服务器错误: ${error.response.status}`, error.response.data)
-    } else if (error.request) {
-      // 请求发送但没收到响应
-      logger.error('网络错误: 没有收到响应', error.request)
-    } else {
-      // 请求配置出错
-      logger.error('请求错误:', error.message)
-    }
-    return Promise.reject(error)
-  }
-)
 
 // 设置认证头
 AuthService.setupAuthHeader();
