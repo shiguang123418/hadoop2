@@ -25,12 +25,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        // 主页重定向
-        registry.addViewController("/").setViewName("forward:/index.html");
-    }
-
-    @Override
     public void addCorsMappings(CorsRegistry registry) {
         // 配置CORS
         registry.addMapping("/**")

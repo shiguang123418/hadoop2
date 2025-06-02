@@ -1,4 +1,4 @@
-package org.shiguang.module.common.filter;
+package org.shiguang.filter;
 
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;

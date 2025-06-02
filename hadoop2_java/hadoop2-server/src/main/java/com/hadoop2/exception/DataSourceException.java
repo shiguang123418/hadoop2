@@ -1,4 +1,4 @@
-package com.hadoop2.server.exception;
+package com.hadoop2.exception;
 
 /**
  * 数据源通用异常

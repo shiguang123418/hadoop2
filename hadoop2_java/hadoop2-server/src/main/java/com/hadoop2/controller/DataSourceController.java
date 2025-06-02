@@ -1,7 +1,7 @@
-package com.hadoop2.server.controller;
+package com.hadoop2.controller;
 
-import com.hadoop2.server.entity.DataSource;
-import com.hadoop2.server.service.DataSourceService;
+import com.hadoop2.entity.DataSource;
+import com.hadoop2.service.DataSourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

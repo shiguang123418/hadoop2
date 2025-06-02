@@ -242,7 +242,7 @@ export default defineComponent({
     const fetchConfigs = async () => {
       loading.value = true
       try {
-        const response = await axios.get('/api/system/configs/search', {
+        const response = await axios.get('/system/configs/search', {
           params: {
             configKey: filters.configKey || null,
             configValue: filters.configValue || null,
@@ -274,7 +274,7 @@ export default defineComponent({
     // 获取所有分组
     const fetchGroups = async () => {
       try {
-        const response = await axios.get('/api/system/configs')
+        const response = await axios.get('/system/configs')
         
         if (response.data.code === 200) {
           const configs = response.data.data
@@ -364,10 +364,10 @@ export default defineComponent({
             
             if (dialogIsCreate.value) {
               // 创建配置
-              response = await axios.post('/api/system/configs', formData)
+              response = await axios.post('/system/configs', formData)
             } else {
               // 更新配置
-              response = await axios.put(`/api/system/configs/${formData.id}`, formData)
+              response = await axios.put(`/system/configs/${formData.id}`, formData)
             }
             
             if (response.data.code === 200) {
@@ -399,7 +399,7 @@ export default defineComponent({
       
       submitLoading.value = true
       try {
-        const response = await axios.put(`/api/system/configs/${valueForm.id}/value`, {
+        const response = await axios.put(`/system/configs/${valueForm.id}/value`, {
           configValue: valueForm.configValue
         })
         
@@ -430,7 +430,7 @@ export default defineComponent({
         type: 'warning'
       }).then(async () => {
         try {
-          const response = await axios.delete(`/api/system/configs/${row.id}`)
+          const response = await axios.delete(`/system/configs/${row.id}`)
           
           if (response.data.code === 200) {
             ElMessage.success('删除配置成功')
@@ -447,7 +447,7 @@ export default defineComponent({
     // 刷新缓存
     const refreshCache = async () => {
       try {
-        const response = await axios.post('/api/system/configs/refresh-cache')
+        const response = await axios.post('/system/configs/refresh-cache')
         
         if (response.data.code === 200) {
           ElMessage.success('刷新配置缓存成功')

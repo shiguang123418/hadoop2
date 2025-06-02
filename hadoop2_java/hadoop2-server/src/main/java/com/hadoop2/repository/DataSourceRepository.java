@@ -1,6 +1,6 @@
-package com.hadoop2.server.repository;
+package com.hadoop2.repository;
 
-import com.hadoop2.server.entity.DataSource;
+import com.hadoop2.entity.DataSource;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

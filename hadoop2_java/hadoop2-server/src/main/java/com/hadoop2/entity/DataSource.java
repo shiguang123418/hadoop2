@@ -1,4 +1,4 @@
-package com.hadoop2.server.entity;
+package com.hadoop2.entity;
 
 import lombok.Data;
 import javax.persistence.*;

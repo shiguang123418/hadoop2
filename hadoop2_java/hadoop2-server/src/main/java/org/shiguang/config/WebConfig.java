@@ -1,12 +1,15 @@
-package org.shiguang.module.common.config;
+package org.shiguang.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.concurrent.Executor;
 
 /**
  * Web相关配置，处理CORS等问题
@@ -43,5 +46,20 @@ public class WebConfig implements WebMvcConfigurer {
         
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
+    }
+
+
+    /**
+     * 配置线程池，用于异步任务处理
+     */
+    @Bean(name = "taskExecutor")
+    public Executor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("HiveAnalytics-");
+        executor.initialize();
+        return executor;
     }
 }

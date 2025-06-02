@@ -18,22 +18,5 @@ public class WebSocketApplication {
     public static void main(String[] args) {
         SpringApplication.run(WebSocketApplication.class, args);
     }
-    
-    /**
-     * 配置CORS，允许前端跨域访问
-     */
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")
-                        .allowedOriginPatterns("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(true)
-                        .maxAge(3600);
-            }
-        };
-    }
+
 } 

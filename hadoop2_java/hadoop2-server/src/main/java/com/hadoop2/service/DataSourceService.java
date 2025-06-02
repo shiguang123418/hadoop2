@@ -1,6 +1,6 @@
-package com.hadoop2.server.service;
+package com.hadoop2.service;
 
-import com.hadoop2.server.entity.DataSource;
+import com.hadoop2.entity.DataSource;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 

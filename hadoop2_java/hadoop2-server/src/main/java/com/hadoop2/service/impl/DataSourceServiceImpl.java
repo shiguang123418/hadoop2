@@ -1,10 +1,10 @@
-package com.hadoop2.server.service.impl;
+package com.hadoop2.service.impl;
 
-import com.hadoop2.server.entity.DataSource;
-import com.hadoop2.server.repository.DataSourceRepository;
-import com.hadoop2.server.service.DataSourceService;
-import com.hadoop2.server.exception.DataSourceException;
-import com.hadoop2.server.exception.DataSourceNotFoundException;
+import com.hadoop2.entity.DataSource;
+import com.hadoop2.repository.DataSourceRepository;
+import com.hadoop2.service.DataSourceService;
+import com.hadoop2.exception.DataSourceException;
+import com.hadoop2.exception.DataSourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
