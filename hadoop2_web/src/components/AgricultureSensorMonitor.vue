@@ -9,7 +9,6 @@
       v-model:subscribedTopics="subscribedTopics"
       @connect="connectWebSocket"
       @disconnect="disconnectWebSocket"
-      @send-test="sendTestData"
     />
     
     <!-- 传感器数据卡片 -->
@@ -304,17 +303,6 @@ export default {
       messages.value = []
     }
     
-    // 发送测试数据
-    const sendTestData = async () => {
-      try {
-        const response = await SensorApi.sendTestData()
-        addMessage('system', `测试数据已发送: ${response.data.message || 'success'}`)
-      } catch (error) {
-        console.error('发送测试数据失败:', error)
-        addMessage('error', `发送测试数据失败: ${error.message}`)
-      }
-    }
-    
     // 监听WebSocket事件
     websocketManager.on('connect', () => {
       isConnected.value = true
@@ -371,7 +359,6 @@ export default {
       messages,
       connectWebSocket,
       disconnectWebSocket,
-      sendTestData,
       clearMessages
     }
   }

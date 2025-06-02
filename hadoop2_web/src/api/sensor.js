@@ -15,15 +15,6 @@ class SensorApiService extends ApiService {
   }
 
   /**
-   * 发送测试数据
-   * @returns {Promise} API响应
-   */
-  sendTestData() {
-    logger.debug('API: 发送测试数据请求');
-    return this.get('/sensor/direct-test');
-  }
-
-  /**
    * 获取系统状态
    * @returns {Promise} API响应
    */

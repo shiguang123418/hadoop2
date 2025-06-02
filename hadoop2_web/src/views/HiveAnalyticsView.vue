@@ -797,6 +797,12 @@ export default {
       // 设置分析类型以匹配历史任务的类型
       analysisType.value = task.analysisType
       
+      // 如果任务参数中包含图表类型，则设置为当前图表类型
+      if (task.params && task.params.chartType) {
+        analysisConfig.chartType = task.params.chartType
+        console.log('从任务参数中恢复图表类型:', task.params.chartType)
+      }
+      
       try {
         // 确保任务结果数据存在
         if (!task.result || !Array.isArray(task.result) || task.result.length === 0) {
@@ -874,6 +880,9 @@ export default {
           return
         }
         
+        // 输出任务参数，检查是否包含图表类型
+        console.log('任务参数:', task.params)
+        
         // 生成适合当前分析类型的图表配置
         const option = generateChartOption(task.analysisType, data, task)
         
@@ -941,6 +950,13 @@ export default {
           console.log('解析后的类别:', categories)
           console.log('解析后的计数:', counts)
           
+          // 获取图表类型，默认为柱状图，但如果任务参数中指定了图表类型则使用指定的类型
+          let chartType = 'bar';
+          if (currentTask && currentTask.params && currentTask.params.chartType) {
+            chartType = currentTask.params.chartType;
+            console.log('使用任务参数中指定的图表类型:', chartType);
+          }
+          
           return {
             title: {
               text: '数据分布分析'
@@ -967,10 +983,16 @@ export default {
             series: [
               {
                 name: '计数',
-                type: 'bar',
+                type: chartType, // 使用确定的图表类型
                 data: counts,
                 itemStyle: {
                   color: '#5470C6'
+                },
+                // 为折线图添加平滑和点的样式
+                smooth: true,
+                symbolSize: 6,
+                lineStyle: {
+                  width: 2
                 }
               }
             ]
@@ -1286,7 +1308,12 @@ export default {
               const monthDataArray = monthDataMap[field];
               for (let i = 0; i < 12; i++) {
                 const monthData = monthDataArray[i];
-                monthData.avg = monthData.count > 0 ? monthData.sum / monthData.count : 0;
+                // 计算平均值
+                let avgValue = 0;
+                if (monthData.count > 0) {
+                  avgValue = monthData.sum / monthData.count;
+                }
+                monthData.avg = avgValue;
                 monthData.min = monthData.values.length > 0 ? Math.min(...monthData.values) : 0;
                 monthData.max = monthData.values.length > 0 ? Math.max(...monthData.values) : 0;
               }
@@ -1424,14 +1451,22 @@ export default {
               const values = [];
               sortedMonths.forEach(monthIndex => {
                 const monthData = monthDataMap[field][monthIndex];
+                // 使用已计算好的avg属性
                 values.push(parseFloat(monthData.avg.toFixed(2)));
               });
+              
+              // 获取图表类型
+              let chartType = 'line'; // 默认使用折线图
+              if (currentTask && currentTask.params && currentTask.params.chartType) {
+                chartType = currentTask.params.chartType; // 使用任务参数中的图表类型
+                console.log(`为${displayName}应用图表类型: ${chartType}`);
+              }
               
               // 添加系列
               seriesData.push({
                 name: displayName,
-                // 如果任务配置了图表类型为line，则使用line类型，否则默认使用bar
-                type: currentTask && currentTask.params && currentTask.params.chartType === 'line' ? 'line' : 'bar',
+                // 使用确定的图表类型
+                type: chartType,
                 data: values,
                 itemStyle: {
                   color: color

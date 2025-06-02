@@ -234,7 +234,6 @@
             
             <button id="subscribe">订阅</button>
             <button id="unsubscribe">取消订阅</button>
-            <button id="sendTest" class="secondary">发送测试数据</button>
         </div>
     </div>
 
@@ -277,7 +276,6 @@
             const subscribeBtn = document.getElementById('subscribe');
             const unsubscribeBtn = document.getElementById('unsubscribe');
             const clearBtn = document.getElementById('clear');
-            const sendTestBtn = document.getElementById('sendTest');
             const statusDiv = document.getElementById('status');
             const messagesDiv = document.getElementById('messages');
             const topicSelect = document.getElementById('topic');
@@ -637,19 +635,6 @@
                 messagesDiv.innerHTML = '';
             }
             
-            function sendTestData() {
-                fetch('/api/sensor/test-data', {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    addMessage('system', `测试数据请求结果: ${JSON.stringify(data)}`);
-                })
-                .catch(error => {
-                    addMessage('error', `发送测试数据失败: ${error}`);
-                });
-            }
-            
             // 绑定按钮事件
             connectBtn.addEventListener('click', connect);
             disconnectBtn.addEventListener('click', disconnect);
@@ -658,7 +643,6 @@
             });
             unsubscribeBtn.addEventListener('click', unsubscribe);
             clearBtn.addEventListener('click', clearMessages);
-            sendTestBtn.addEventListener('click', sendTestData);
             
             // 页面卸载时断开连接
             window.addEventListener('beforeunload', function() {

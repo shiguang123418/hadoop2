@@ -24,10 +24,6 @@
           </el-checkbox-group>
         </div>
       </div>
-      
-      <div class="actions">
-        <el-button type="success" @click="sendTest" :disabled="!isConnected">发送测试数据</el-button>
-      </div>
     </div>
   </el-card>
 </template>
@@ -51,7 +47,7 @@ export default {
       required: true
     }
   },
-  emits: ['connect', 'disconnect', 'update:subscribedTopics', 'send-test'],
+  emits: ['connect', 'disconnect', 'update:subscribedTopics'],
   setup(props, { emit }) {
     // 使用computed属性实现v-model绑定
     const topicsModel = computed({
@@ -71,16 +67,10 @@ export default {
       emit('disconnect')
     }
     
-    // 发送测试数据
-    const sendTest = () => {
-      emit('send-test')
-    }
-    
     return {
       topicsModel,
       connect,
-      disconnect,
-      sendTest
+      disconnect
     }
   }
 }
