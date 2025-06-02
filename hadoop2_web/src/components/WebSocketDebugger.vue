@@ -73,6 +73,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import websocketManager from '../utils/websocket';
 import { SensorApi } from '../api/sensor';
+import logger from '../utils/logger';
 
 // WebSocket连接地址
 const wsUrl = ref('/api_ws');
@@ -122,7 +123,7 @@ async function connect() {
     }
   } catch (error) {
     addLog(`WebSocket连接失败: ${error.message || '未知错误'}`, 'error');
-    console.error('WebSocket连接异常:', error);
+    logger.error('WebSocket连接异常:', error);
   }
 }
 
@@ -134,7 +135,7 @@ function disconnect() {
     addLog('WebSocket连接已断开', 'info');
   } catch (error) {
     addLog(`WebSocket断开失败: ${error.message || '未知错误'}`, 'error');
-    console.error('WebSocket断开异常:', error);
+    logger.error('WebSocket断开异常:', error);
   }
 }
 
@@ -163,7 +164,7 @@ async function subscribeToTopics() {
     addLog('已订阅系统通知主题', 'success');
   } catch (error) {
     addLog(`订阅主题失败: ${error.message || '未知错误'}`, 'error');
-    console.error('订阅主题异常:', error);
+    logger.error('订阅主题异常:', error);
   }
 }
 
@@ -175,7 +176,7 @@ async function sendTestData() {
     addLog(`测试数据发送成功: ${JSON.stringify(response.data || {})}`, 'success');
   } catch (error) {
     addLog(`测试数据发送失败: ${error.message || '未知错误'}`, 'error');
-    console.error('测试数据发送异常:', error);
+    logger.error('测试数据发送异常:', error);
   }
 }
 

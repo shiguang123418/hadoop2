@@ -1,6 +1,7 @@
 import axios from 'axios'
 import ApiService from '../services/api.service'
 import { buildApiPath } from '../utils/service-helper'
+import logger from '../utils/logger'
 
 /**
  * 传感器API服务
@@ -10,7 +11,7 @@ class SensorApiService extends ApiService {
   constructor() {
     // 使用服务名称
     super('realtime');
-    console.log('传感器服务初始化');
+    logger.debug('传感器服务初始化');
   }
 
   /**
@@ -18,7 +19,7 @@ class SensorApiService extends ApiService {
    * @returns {Promise} API响应
    */
   sendTestData() {
-    console.log('API: 发送测试数据请求');
+    logger.debug('API: 发送测试数据请求');
     return this.get('/sensor/direct-test');
   }
 
@@ -27,7 +28,7 @@ class SensorApiService extends ApiService {
    * @returns {Promise} API响应
    */
   getSystemStatus() {
-    console.log('API: 获取系统状态');
+    logger.debug('API: 获取系统状态');
     return this.get('/system/status');
   }
 
@@ -36,7 +37,7 @@ class SensorApiService extends ApiService {
    * @returns {Promise} API响应
    */
   testWebSocket() {
-    console.log('API: 测试WebSocket连接');
+    logger.debug('API: 测试WebSocket连接');
     return this.get('/system/test-websocket');
   }
 
@@ -49,7 +50,7 @@ class SensorApiService extends ApiService {
    * @returns {Promise} API响应
    */
   getSensorHistory(params) {
-    console.log('API: 获取传感器历史数据', params);
+    logger.debug('API: 获取传感器历史数据', params);
     return this.get('/sensor/history', params);
   }
 
@@ -59,7 +60,7 @@ class SensorApiService extends ApiService {
    * @returns {Promise} API响应
    */
   getAnomalyData(params) {
-    console.log('API: 获取异常数据', params);
+    logger.debug('API: 获取异常数据', params);
     return this.get('/sensor/anomalies', params);
   }
 }

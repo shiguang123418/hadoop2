@@ -1,6 +1,8 @@
 import axios from 'axios';
 import apiConfig from '../config/api.config';
 import { buildApiPath, getServiceConfig } from '../utils/service-helper';
+import logger from '../utils/logger';
+import { handleApiError } from '../utils/error-handler';
 
 /**
  * API服务基类 - 提供统一的API调用方法
@@ -27,7 +29,7 @@ class ApiService {
       }
     });
     
-    console.log(`初始化服务 ${serviceName}, 路径: ${this.serverPrefix}${this.servicePath}`);
+    logger.debug(`初始化服务 ${serviceName}, 路径: ${this.serverPrefix}${this.servicePath}`);
     
     // 请求拦截器
     this.api.interceptors.request.use(
@@ -40,7 +42,7 @@ class ApiService {
         
         // 记录请求URL信息
         const fullUrl = (config.baseURL || '') + config.url;
-        console.log(`发送API请求: ${config.method.toUpperCase()} ${fullUrl}`);
+        logger.debug(`发送API请求: ${config.method.toUpperCase()} ${fullUrl}`);
         
         return config;
       },
@@ -55,8 +57,7 @@ class ApiService {
         return response.data;
       },
       error => {
-        // 处理错误响应
-        console.error('API请求失败:', error);
+        // 使用统一错误处理工具
         return Promise.reject(error);
       }
     );
@@ -67,15 +68,28 @@ class ApiService {
    * @param {string} endpoint API端点
    * @param {Object} params URL参数
    * @param {Object} config 请求配置
+   * @param {boolean} config.handleError 是否自动处理错误
    * @returns {Promise} 响应结果
    */
-  get(endpoint, params = {}, config = {}) {
+  async get(endpoint, params = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`GET请求: ${url}`);
-    return this.api.get(url, {
-      params,
-      ...config
-    });
+    logger.debug(`GET请求: ${url}`);
+    
+    try {
+      const response = await this.api.get(url, {
+        params,
+        ...config
+      });
+      return response;
+    } catch (error) {
+      if (config.handleError !== false) {
+        return handleApiError(error, {
+          showMessage: config.showErrorMessage !== false,
+          throwError: config.throwError === true
+        });
+      }
+      throw error;
+    }
   }
   
   /**
@@ -83,12 +97,25 @@ class ApiService {
    * @param {string} endpoint API端点
    * @param {Object} data 请求体数据
    * @param {Object} config 请求配置
+   * @param {boolean} config.handleError 是否自动处理错误
    * @returns {Promise} 响应结果
    */
-  post(endpoint, data = {}, config = {}) {
+  async post(endpoint, data = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`POST请求: ${url}`);
-    return this.api.post(url, data, config);
+    logger.debug(`POST请求: ${url}`);
+    
+    try {
+      const response = await this.api.post(url, data, config);
+      return response;
+    } catch (error) {
+      if (config.handleError !== false) {
+        return handleApiError(error, {
+          showMessage: config.showErrorMessage !== false,
+          throwError: config.throwError === true
+        });
+      }
+      throw error;
+    }
   }
   
   /**
@@ -96,12 +123,25 @@ class ApiService {
    * @param {string} endpoint API端点
    * @param {Object} data 请求体数据
    * @param {Object} config 请求配置
+   * @param {boolean} config.handleError 是否自动处理错误
    * @returns {Promise} 响应结果
    */
-  put(endpoint, data = {}, config = {}) {
+  async put(endpoint, data = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`PUT请求: ${url}`);
-    return this.api.put(url, data, config);
+    logger.debug(`PUT请求: ${url}`);
+    
+    try {
+      const response = await this.api.put(url, data, config);
+      return response;
+    } catch (error) {
+      if (config.handleError !== false) {
+        return handleApiError(error, {
+          showMessage: config.showErrorMessage !== false,
+          throwError: config.throwError === true
+        });
+      }
+      throw error;
+    }
   }
   
   /**
@@ -109,15 +149,28 @@ class ApiService {
    * @param {string} endpoint API端点
    * @param {Object} params URL参数
    * @param {Object} config 请求配置
+   * @param {boolean} config.handleError 是否自动处理错误
    * @returns {Promise} 响应结果
    */
-  delete(endpoint, params = {}, config = {}) {
+  async delete(endpoint, params = {}, config = {}) {
     const url = this.buildUrl(endpoint);
-    console.log(`DELETE请求: ${url}`);
-    return this.api.delete(url, {
-      params,
-      ...config
-    });
+    logger.debug(`DELETE请求: ${url}`);
+    
+    try {
+      const response = await this.api.delete(url, {
+        params,
+        ...config
+      });
+      return response;
+    } catch (error) {
+      if (config.handleError !== false) {
+        return handleApiError(error, {
+          showMessage: config.showErrorMessage !== false,
+          throwError: config.throwError === true
+        });
+      }
+      throw error;
+    }
   }
   
   /**

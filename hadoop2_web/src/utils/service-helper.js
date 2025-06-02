@@ -3,6 +3,7 @@
  */
 import apiConfig from '../config/api.config';
 import axios from 'axios';
+import logger from './logger';
 
 /**
  * 构建API路径
@@ -28,7 +29,7 @@ export function buildApiPath(serviceName, endpoint = '') {
  */
 export function getServiceConfig(serviceName) {
   if (!apiConfig.services[serviceName]) {
-    console.warn(`未找到服务配置: ${serviceName}，使用默认配置`);
+    logger.warn(`未找到服务配置: ${serviceName}，使用默认配置`);
     return {
       path: `/${serviceName}`,
       server: apiConfig.servers.default
@@ -46,7 +47,7 @@ export function getServiceConfig(serviceName) {
  * @deprecated 请使用getServiceConfig代替
  */
 export function getServicePath(serviceName) {
-  console.warn('getServicePath方法已废弃，请使用getServiceConfig获取完整服务配置');
+  logger.warn('getServicePath方法已废弃，请使用getServiceConfig获取完整服务配置');
   return getServiceConfig(serviceName).path;
 }
 
@@ -56,9 +57,9 @@ export function getServicePath(serviceName) {
  * @param {string} path 请求路径
  */
 export function logRequestPath(method, path) {
-  console.log(`${method.toUpperCase()} 请求: ${path}`);
+  logger.debug(`${method.toUpperCase()} 请求: ${path}`);
   // 不再使用baseURL，因为完整路径已经包含了服务器前缀
-  console.log(`完整URL: ${window.location.origin}${path}`);
+  logger.debug(`完整URL: ${window.location.origin}${path}`);
 }
 
 /**
@@ -87,13 +88,13 @@ export function setupApiInterceptor() {
         // 查找服务配置
         if (apiConfig.services[possibleService]) {
           targetServer = apiConfig.services[possibleService].server;
-          console.log(`识别到服务 ${possibleService}，使用服务器 ${targetServer}`);
+          logger.debug(`识别到服务 ${possibleService}，使用服务器 ${targetServer}`);
         }
       }
       
       // 使用识别到的服务器前缀
       config.url = targetServer + (url.startsWith('/') ? url : '/' + url);
-      console.log('API拦截器处理路径:', url, '->', config.url);
+      logger.debug('API拦截器处理路径:', url, '->', config.url);
       
       return config;
     },
@@ -102,7 +103,7 @@ export function setupApiInterceptor() {
     }
   );
   
-  console.log('多后端API请求拦截器已设置，将根据服务自动路由请求');
+  logger.info('多后端API请求拦截器已设置，将根据服务自动路由请求');
 }
 
 export default {

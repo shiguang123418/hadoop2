@@ -2,6 +2,16 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+// 简单的日志工具函数
+const logLevel = process.env.NODE_ENV === 'production' ? 'error' : 'debug';
+const log = {
+  debug: (...args) => {
+    if (logLevel === 'debug') console.log('[vite:debug]', ...args);
+  },
+  info: (...args) => console.log('[vite:info]', ...args),
+  warn: (...args) => console.warn('[vite:warn]', ...args),
+  error: (...args) => console.error('[vite:error]', ...args),
+};
 
 const host = '192.168.1.192'
 // 多后端API服务器配置
@@ -54,14 +64,14 @@ export default defineConfig({
         rewrite: apiServers.api1.pathRewrite,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
-            console.log('API1代理错误:', err);
+            log.error('API1代理错误:', err);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('API1代理请求:', req.method, req.url, '->',
-                         options.target + proxyReq.path);
+            log.debug('API1代理请求:', req.method, req.url, '->',
+                     options.target + proxyReq.path);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('API1代理响应:', proxyRes.statusCode, req.url);
+            log.debug('API1代理响应:', proxyRes.statusCode, req.url);
           });
         }
       },
@@ -74,14 +84,14 @@ export default defineConfig({
         rewrite: apiServers.api2.pathRewrite,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
-            console.log('API2代理错误:', err);
+            log.error('API2代理错误:', err);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('API2代理请求:', req.method, req.url, '->',
-                         options.target + proxyReq.path);
+            log.debug('API2代理请求:', req.method, req.url, '->',
+                     options.target + proxyReq.path);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('API2代理响应:', proxyRes.statusCode, req.url);
+            log.debug('API2代理响应:', proxyRes.statusCode, req.url);
           });
         }
       },
@@ -95,14 +105,14 @@ export default defineConfig({
         rewrite: apiServers.ws.pathRewrite,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
-            console.error('WebSocket代理错误:', err);
+            log.error('WebSocket代理错误:', err);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('WebSocket代理请求:', req.method, req.url, '->',
-                         options.target + proxyReq.path);
+            log.debug('WebSocket代理请求:', req.method, req.url, '->',
+                     options.target + proxyReq.path);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('WebSocket代理响应:', proxyRes.statusCode, req.url);
+            log.debug('WebSocket代理响应:', proxyRes.statusCode, req.url);
           });
         }
       },

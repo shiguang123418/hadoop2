@@ -4,6 +4,25 @@
 import ApiService from '../services/api.service';
 import axios from 'axios';
 import apiConfig from '../config/api.config';
+import logger from '../utils/logger';
+
+// 常量定义
+const MOCK_DELAY = {
+  SHORT: 300,
+  MEDIUM: 500,
+  RANDOM_RANGE: 500
+};
+
+const RANDOM_THRESHOLD = {
+  SERVICE_FAILURE: 0.9
+};
+
+const HEALTH_SCORE = {
+  MIN: 70,
+  MAX: 100,
+  RANGE: 30, // MAX - MIN
+  FAILURE: 0
+};
 
 // 服务状态API服务类
 class ServiceStatusApi extends ApiService {
@@ -158,7 +177,7 @@ class ServiceStatusApi extends ApiService {
       return new Promise(resolve => {
         setTimeout(() => {
           resolve(this.mockResponses.getAllStatus);
-        }, 500);  // 模拟网络延迟
+        }, MOCK_DELAY.MEDIUM);  // 模拟网络延迟
       });
     }
     
@@ -178,13 +197,13 @@ class ServiceStatusApi extends ApiService {
         setTimeout(() => {
           if (this.mockResponses.getStatus[serviceName]) {
             // 随机模拟偶发故障
-            if (Math.random() > 0.9) {
+            if (Math.random() > RANDOM_THRESHOLD.SERVICE_FAILURE) {
               this.mockResponses.getStatus[serviceName].status = 'stopped';
-              this.mockResponses.getStatus[serviceName].health = 0;
+              this.mockResponses.getStatus[serviceName].health = HEALTH_SCORE.FAILURE;
             } else {
               this.mockResponses.getStatus[serviceName].status = 'running';
               this.mockResponses.getStatus[serviceName].health = 
-                70 + Math.floor(Math.random() * 30);
+                HEALTH_SCORE.MIN + Math.floor(Math.random() * HEALTH_SCORE.RANGE);
             }
             
             // 更新检查时间
@@ -195,7 +214,7 @@ class ServiceStatusApi extends ApiService {
           } else {
             reject(new Error(`未知服务: ${serviceName}`));
           }
-        }, 300 + Math.random() * 500);  // 模拟网络延迟
+        }, MOCK_DELAY.SHORT + Math.random() * MOCK_DELAY.RANDOM_RANGE);  // 模拟网络延迟
       });
     }
     

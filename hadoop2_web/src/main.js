@@ -6,6 +6,7 @@ import AuthService from './services/auth'
 import router from './router'
 import apiConfig from './config/api.config'
 import { setupApiInterceptor } from './utils/service-helper'
+import logger from './utils/logger'
 
 // 导入Element Plus
 import ElementPlus from 'element-plus'
@@ -37,8 +38,8 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 window.SockJS = SockJS
 window.Stomp = Stomp
 
-console.log('API基础路径:', apiConfig.baseUrl)
-console.log('WebSocket客户端加载:', SockJS ? '成功' : '失败', Stomp ? '成功' : '失败')
+logger.info('API基础路径:', apiConfig.baseUrl)
+logger.info('WebSocket客户端加载:', SockJS ? '成功' : '失败', Stomp ? '成功' : '失败')
 
 // 设置API请求拦截器，统一添加/api前缀
 setupApiInterceptor();
@@ -46,11 +47,11 @@ setupApiInterceptor();
 // 添加请求拦截器
 axios.interceptors.request.use(
   config => {
-    console.log(`发送请求: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`)
+    logger.debug(`发送请求: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`)
     return config
   },
   error => {
-    console.error('请求拦截器错误:', error)
+    logger.error('请求拦截器错误:', error)
     return Promise.reject(error)
   }
 )
@@ -58,19 +59,19 @@ axios.interceptors.request.use(
 // 添加响应拦截器
 axios.interceptors.response.use(
   response => {
-    console.log(`接收响应: ${response.config.url}`, response.status)
+    logger.debug(`接收响应: ${response.config.url}`, response.status)
     return response
   },
   error => {
     if (error.response) {
       // 服务器返回错误状态码
-      console.error(`服务器错误: ${error.response.status}`, error.response.data)
+      logger.error(`服务器错误: ${error.response.status}`, error.response.data)
     } else if (error.request) {
       // 请求发送但没收到响应
-      console.error('网络错误: 没有收到响应', error.request)
+      logger.error('网络错误: 没有收到响应', error.request)
     } else {
       // 请求配置出错
-      console.error('请求错误:', error.message)
+      logger.error('请求错误:', error.message)
     }
     return Promise.reject(error)
   }
@@ -84,9 +85,9 @@ const app = createApp(App)
 
 // 全局错误处理器
 app.config.errorHandler = (err, instance, info) => {
-  console.error('Vue Error:', err);
-  console.log('Component:', instance);
-  console.log('Error Info:', info);
+  logger.error('Vue Error:', err);
+  logger.debug('Component:', instance);
+  logger.debug('Error Info:', info);
 };
 
 // 使用插件

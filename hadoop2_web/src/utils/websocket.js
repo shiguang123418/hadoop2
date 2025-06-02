@@ -1,5 +1,6 @@
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
+import logger from './logger'
 
 /**
  * WebSocket连接管理工具
@@ -25,7 +26,7 @@ class WebSocketManager {
   connect() {
     return new Promise((resolve, reject) => {
       if (this.client && this.connected) {
-        console.log('WebSocket已连接，跳过重复连接')
+        logger.debug('WebSocket已连接，跳过重复连接')
         resolve(this.client)
         return
       }
@@ -33,15 +34,15 @@ class WebSocketManager {
       try {
         // 对所有环境都使用统一的代理地址
         let wsUrl = '/api_ws'
-        console.log('使用WebSocket连接地址:', wsUrl)
+        logger.info('使用WebSocket连接地址:', wsUrl)
         
         // 尝试创建连接前，先释放之前的连接（如果存在）
         if (this.client) {
-          console.log('存在旧的客户端连接，正在释放...')
+          logger.debug('存在旧的客户端连接，正在释放...')
           try {
             this.client.deactivate()
           } catch (e) {
-            console.warn('释放旧连接时出错:', e)
+            logger.warn('释放旧连接时出错:', e)
           }
           this.client = null
         }
@@ -50,28 +51,28 @@ class WebSocketManager {
         
         // 添加低级别的WebSocket事件监听
         socket.onopen = () => {
-          console.log('WebSocket底层连接已打开')
+          logger.debug('WebSocket底层连接已打开')
         }
         
         socket.onerror = (error) => {
-          console.error('WebSocket底层连接错误:', error)
+          logger.error('WebSocket底层连接错误:', error)
         }
         
         socket.onclose = (event) => {
-          console.log('WebSocket底层连接已关闭:', event)
+          logger.debug('WebSocket底层连接已关闭:', event)
         }
 
         this.client = new Client({
           webSocketFactory: () => socket,
           debug: function(str) {
-            console.log('STOMP: ' + str)
+            logger.debug('STOMP: ' + str)
           },
           reconnectDelay: 5000, // 添加自动重连配置，5秒后重试
           heartbeatIncoming: 4000,
           heartbeatOutgoing: 4000,
           onConnect: frame => {
             this.connected = true
-            console.log('WebSocket连接成功:', frame)
+            logger.info('WebSocket连接成功:', frame)
             
             // 触发连接事件
             this._triggerEvent('connect', frame)
@@ -79,7 +80,7 @@ class WebSocketManager {
             resolve(this.client)
           },
           onStompError: error => {
-            console.error('STOMP错误:', error)
+            logger.error('STOMP错误:', error)
             this.connected = false
             
             // 触发错误事件
@@ -95,7 +96,7 @@ class WebSocketManager {
 
         this.client.activate()
       } catch (e) {
-        console.error('创建WebSocket连接异常:', e)
+        logger.error('创建WebSocket连接异常:', e)
         this._triggerEvent('error', {
           type: 'connection',
           error: e,
@@ -111,7 +112,7 @@ class WebSocketManager {
    */
   disconnect() {
     if (!this.client || !this.connected) {
-      console.log('WebSocket未连接，无需断开')
+      logger.debug('WebSocket未连接，无需断开')
       return
     }
 
@@ -173,7 +174,7 @@ class WebSocketManager {
               callback(data, message)
             }
           } catch (e) {
-            console.error(`处理主题 ${topic} 消息出错:`, e)
+            logger.error(`处理主题 ${topic} 消息出错:`, e)
             this._triggerEvent('error', {
               type: 'message',
               topic,
@@ -184,10 +185,10 @@ class WebSocketManager {
         })
 
         this.subscriptions[topic] = subscription
-        console.log(`已订阅主题: ${topic}`)
+        logger.debug(`已订阅主题: ${topic}`)
         resolve(subscription)
       } catch (e) {
-        console.error(`订阅主题 ${topic} 失败:`, e)
+        logger.error(`订阅主题 ${topic} 失败:`, e)
         this._triggerEvent('error', {
           type: 'subscription',
           topic,
@@ -200,32 +201,34 @@ class WebSocketManager {
   }
 
   /**
-   * 取消订阅主题
+   * 取消订阅
    * @param {string} topic 主题
    */
   unsubscribe(topic) {
     if (this.subscriptions[topic]) {
       this.subscriptions[topic].unsubscribe()
       delete this.subscriptions[topic]
-      console.log(`已取消订阅: ${topic}`)
+      logger.debug(`已取消订阅主题: ${topic}`)
+      return true
     }
+    return false
   }
 
   /**
-   * 判断是否已连接
-   * @returns {boolean} 是否已连接
+   * 检查是否已连接
+   * @returns {boolean} 连接状态
    */
   isConnected() {
-    return this.connected
+    return this.connected && this.client !== null
   }
 
   /**
    * 添加事件监听器
-   * @param {string} event 事件名称 (connect|disconnect|error|message)
+   * @param {string} event 事件名称
    * @param {Function} callback 回调函数
    */
   on(event, callback) {
-    if (this.listeners[event]) {
+    if (this.listeners[event] && typeof callback === 'function') {
       this.listeners[event].push(callback)
     }
   }
@@ -236,7 +239,7 @@ class WebSocketManager {
    * @param {Function} callback 回调函数
    */
   off(event, callback) {
-    if (this.listeners[event]) {
+    if (this.listeners[event] && typeof callback === 'function') {
       this.listeners[event] = this.listeners[event].filter(cb => cb !== callback)
     }
   }
@@ -253,13 +256,14 @@ class WebSocketManager {
         try {
           callback(data)
         } catch (e) {
-          console.error(`执行 ${event} 事件回调出错:`, e)
+          logger.error(`事件回调执行错误 (${event}):`, e)
         }
       })
     }
   }
 }
 
-// 导出单例
+// 创建单例
 const websocketManager = new WebSocketManager()
+
 export default websocketManager 

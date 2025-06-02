@@ -12,8 +12,12 @@ import java.util.List;
 @RequestMapping("/datasources")
 public class DataSourceController {
     
+    private final DataSourceService dataSourceService;
+
     @Autowired
-    private DataSourceService dataSourceService;
+    public DataSourceController(DataSourceService dataSourceService) {
+        this.dataSourceService = dataSourceService;
+    }
 
     @PostMapping
     public ResponseEntity<DataSource> createDataSource(@RequestBody DataSource dataSource) {

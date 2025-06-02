@@ -3,6 +3,8 @@ package com.hadoop2.server.service.impl;
 import com.hadoop2.server.entity.DataSource;
 import com.hadoop2.server.repository.DataSourceRepository;
 import com.hadoop2.server.service.DataSourceService;
+import com.hadoop2.server.exception.DataSourceException;
+import com.hadoop2.server.exception.DataSourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,14 +15,18 @@ import java.util.List;
 @Service
 public class DataSourceServiceImpl implements DataSourceService {
     
+    private final DataSourceRepository dataSourceRepository;
+
     @Autowired
-    private DataSourceRepository dataSourceRepository;
+    public DataSourceServiceImpl(DataSourceRepository dataSourceRepository) {
+        this.dataSourceRepository = dataSourceRepository;
+    }
 
     @Override
     @Transactional
     public DataSource createDataSource(DataSource dataSource) {
         if (dataSourceRepository.existsByName(dataSource.getName())) {
-            throw new RuntimeException("数据源名称已存在");
+            throw new DataSourceException("数据源名称已存在");
         }
         
         dataSource.setCreateTime(LocalDateTime.now());
@@ -33,12 +39,12 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Transactional
     public DataSource updateDataSource(DataSource dataSource) {
         DataSource existingDataSource = dataSourceRepository.findById(dataSource.getId())
-            .orElseThrow(() -> new RuntimeException("数据源不存在"));
+            .orElseThrow(() -> new DataSourceNotFoundException("数据源不存在"));
             
         // 检查名称是否重复（排除自身）
         if (!existingDataSource.getName().equals(dataSource.getName()) 
             && dataSourceRepository.existsByName(dataSource.getName())) {
-            throw new RuntimeException("数据源名称已存在");
+            throw new DataSourceException("数据源名称已存在");
         }
         
         dataSource.setUpdateTime(LocalDateTime.now());
@@ -49,7 +55,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Transactional
     public void deleteDataSource(Long id) {
         if (!dataSourceRepository.existsById(id)) {
-            throw new RuntimeException("数据源不存在");
+            throw new DataSourceNotFoundException("数据源不存在");
         }
         dataSourceRepository.deleteById(id);
     }
@@ -57,7 +63,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Override
     public DataSource getDataSource(Long id) {
         return dataSourceRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("数据源不存在"));
+            .orElseThrow(() -> new DataSourceNotFoundException("数据源不存在"));
     }
 
     @Override
