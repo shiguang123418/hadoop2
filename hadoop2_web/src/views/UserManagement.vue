@@ -20,9 +20,9 @@
       <div class="filter-controls">
         <select v-model="roleFilter" @change="applyFilters">
           <option value="">所有角色</option>
-          <option value="admin">管理员</option>
-          <option value="user">普通用户</option>
-          <option value="guest">访客</option>
+          <option value="ROLE_ADMIN">管理员</option>
+          <option value="ROLE_USER">普通用户</option>
+          <option value="ROLE_GUEST">访客</option>
         </select>
         <select v-model="statusFilter" @change="applyFilters">
           <option value="">所有状态</option>
@@ -71,7 +71,7 @@
             <td>{{ user.name || '-' }}</td>
             <td>{{ user.email }}</td>
             <td>
-              <span class="badge" :class="`role-${user.role}`">
+              <span class="badge" :class="getRoleClass(user.role)">
                 {{ getRoleName(user.role) }}
               </span>
             </td>
@@ -122,9 +122,9 @@
           <div class="form-group">
             <label for="role">角色 <span class="required">*</span></label>
             <select id="role" v-model="newUser.role" required>
-              <option value="admin">管理员</option>
-              <option value="user">普通用户</option>
-              <option value="guest">访客</option>
+              <option value="ROLE_ADMIN">管理员</option>
+              <option value="ROLE_USER">普通用户</option>
+              <option value="ROLE_GUEST">访客</option>
             </select>
           </div>
           <div class="form-group">
@@ -158,7 +158,7 @@
           </div>
           <div class="form-group">
             <label for="edit-name">姓名</label>
-            <input type="text" id="edit-name" v-model="editingUser.name" />
+            <input type="text" id="edit-name" v-model="editingUser.name" />F
           </div>
           <div class="form-group">
             <label for="edit-email">邮箱 <span class="required">*</span></label>
@@ -171,9 +171,9 @@
           <div class="form-group">
             <label for="edit-role">角色 <span class="required">*</span></label>
             <select id="edit-role" v-model="editingUser.role" required :disabled="editingUser.username === currentUser?.username">
-              <option value="admin">管理员</option>
-              <option value="user">普通用户</option>
-              <option value="guest">访客</option>
+              <option value="ROLE_ADMIN">管理员</option>
+              <option value="ROLE_USER">普通用户</option>
+              <option value="ROLE_GUEST">访客</option>
             </select>
           </div>
           <div class="form-group">
@@ -244,7 +244,7 @@ const newUser = ref({
   name: '',
   email: '',
   password: '',
-  role: 'user',
+  role: 'ROLE_USER',
   status: 'active'
 });
 
@@ -328,7 +328,7 @@ const addUser = async () => {
       name: '',
       email: '',
       password: '',
-      role: 'user',
+      role: 'ROLE_USER',
       status: 'active'
     };
     
@@ -368,7 +368,6 @@ const updateUser = async () => {
     if (!userData.password) {
       delete userData.password;
     }
-    
     // 调用实际的API更新用户
     const response = await AuthService.updateUser(editingUser.value.id, userData);
     
@@ -443,36 +442,18 @@ const getRoleName = (role) => {
   if (!role || typeof role !== 'string') {
     return '';
   }
-  
-  // 标准化角色名称
-  const normalizedRole = role.toLowerCase();
-  
+
   // 角色映射表
   const roleMap = {
-    'admin': '管理员',
-    'user': '普通用户',
-    'guest': '访客',
-    'role_admin': '管理员',
-    'role_user': '普通用户',
-    'role_guest': '访客',
-    'role_hdfs': 'HDFS管理员',
-    'role_hive': 'HIVE管理员'
+    'ROLE_ADMIN': '管理员',
+    'ROLE_USER': '普通用户',
+    'ROLE_GUEST': '访客',
+    'admin': '管理员', // 兼容旧数据
+    'user': '普通用户', // 兼容旧数据
+    'guest': '访客' // 兼容旧数据
   };
   
-  // 先检查完整映射
-  if (roleMap[normalizedRole]) {
-    return roleMap[normalizedRole];
-  }
-  
-  // 检查是否带有ROLE_前缀
-  if (normalizedRole.startsWith('role_')) {
-    // 尝试提取前缀后的部分
-    const roleSuffix = normalizedRole.substring(5); // 'role_'长度为5
-    return roleMap[roleSuffix] || role;
-  } else {
-    // 尝试加上前缀匹配
-    return roleMap['role_' + normalizedRole] || role;
-  }
+  return roleMap[role] || role;
 };
 
 // 获取状态名称
@@ -484,6 +465,26 @@ const getStatusName = (status) => {
   };
   
   return statusMap[status] || status;
+};
+
+// 获取角色类
+const getRoleClass = (role) => {
+  // 如果角色为空或非字符串类型，返回空字符串
+  if (!role || typeof role !== 'string') {
+    return '';
+  }
+
+  // 角色映射表
+  const roleMap = {
+    'ROLE_ADMIN': 'role-ROLE_ADMIN',
+    'ROLE_USER': 'role-ROLE_USER',
+    'ROLE_GUEST': 'role-ROLE_GUEST',
+    'admin': 'role-admin', // 兼容旧数据
+    'user': 'role-user', // 兼容旧数据
+    'guest': 'role-guest' // 兼容旧数据
+  };
+  
+  return roleMap[role] || '';
 };
 
 // 初始化
@@ -695,6 +696,22 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
+.role-ROLE_ADMIN {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.role-ROLE_USER {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.role-ROLE_GUEST {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+/* 保留旧的样式类以兼容旧数据 */
 .role-admin {
   background-color: #e3f2fd;
   color: #1976d2;

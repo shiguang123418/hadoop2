@@ -3,6 +3,7 @@ import HomePage from '../views/HomePage.vue'
 import Login from '../views/Login.vue'
 import AuthService from '../services/auth'
 import { ElMessage } from 'element-plus'
+import logger from "@/utils/logger.js";
 
 // 创建路由实例
 const router = createRouter({
@@ -130,16 +131,6 @@ const router = createRouter({
         title: '农业大数据监控平台',
         fullScreen: true // 添加全屏标记
       }
-    },
-    // WebSocket调试器
-    {
-      path: '/ws-debug',
-      name: 'ws-debug',
-      component: () => import('../components/WebSocketDebugger.vue'),
-      meta: {
-        requiresAuth: false,
-        title: 'WebSocket连接调试器'
-      }
     }
   ]
 })
@@ -156,7 +147,8 @@ router.beforeEach((to, from, next) => {
   
   // 检查用户是否为管理员
   const isAdmin = AuthService.isAdmin();
-  
+    // 输出调试信息
+
   console.log('路由守卫检查:', { 
     path: to.path, 
     requiresAuth, 

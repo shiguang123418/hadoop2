@@ -2,6 +2,7 @@ package org.shiguang.module.auth.controller;
 
 import org.shiguang.entity.User;
 import org.shiguang.entity.dto.ApiResponse;
+import org.shiguang.entity.dto.UserDTO;
 import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.auth.service.UserService;
@@ -42,14 +43,17 @@ public class UserProfileController {
      */
     @GetMapping
     @AuditOperation(operation = "查看个人资料", operationType = "QUERY", resourceType = "USER_PROFILE")
-    public ResponseEntity<ApiResponse<User>> getUserProfile() {
+    public ResponseEntity<ApiResponse<UserDTO>> getUserProfile() {
         User currentUser = authService.getCurrentUser();
         
         if (currentUser == null) {
             return ResponseEntity.ok(ApiResponse.error(401, "未登录或登录已过期"));
         }
         
-        return ResponseEntity.ok(ApiResponse.success("获取个人资料成功", currentUser));
+        // 转换为DTO，过滤敏感字段
+        UserDTO userDTO = UserDTO.fromUser(currentUser);
+        
+        return ResponseEntity.ok(ApiResponse.success("获取个人资料成功", userDTO));
     }
     
     /**
@@ -57,7 +61,7 @@ public class UserProfileController {
      */
     @PutMapping
     @AuditOperation(operation = "更新个人资料", operationType = "UPDATE", resourceType = "USER_PROFILE")
-    public ResponseEntity<ApiResponse<User>> updateProfile(@RequestBody Map<String, String> profileData) {
+    public ResponseEntity<ApiResponse<UserDTO>> updateProfile(@RequestBody Map<String, String> profileData) {
         User currentUser = authService.getCurrentUser();
         
         if (currentUser == null) {
@@ -92,7 +96,10 @@ public class UserProfileController {
         User updatedUser = userService.updateUser(currentUser);
         logger.info("用户资料已更新，头像URL: {}", updatedUser.getAvatar());
         
-        return ResponseEntity.ok(ApiResponse.success("个人资料更新成功", updatedUser));
+        // 转换为DTO，过滤敏感字段
+        UserDTO userDTO = UserDTO.fromUser(updatedUser);
+        
+        return ResponseEntity.ok(ApiResponse.success("个人资料更新成功", userDTO));
     }
     
     /**

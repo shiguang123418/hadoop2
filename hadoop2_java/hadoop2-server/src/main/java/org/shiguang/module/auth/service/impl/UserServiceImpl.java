@@ -159,28 +159,12 @@ public class UserServiceImpl implements UserService {
             
             // 更新角色（如果提供）
             if (user.getRole() != null && !user.getRole().isEmpty()) {
-                // 处理角色，移除可能存在的ROLE_前缀
-                String role = user.getRole();
-                if (role.startsWith("ROLE_")) {
-                    role = role.substring(5); // 去掉"ROLE_"前缀
-                }
-                
-                // 检查角色是否有效 - 转换为小写进行比较，忽略大小写
-                String roleLower = role.toLowerCase();
-                if (!"admin".equals(roleLower) && !"user".equals(roleLower) && !"guest".equals(roleLower)) {
-                    throw new RuntimeException("无效的角色值: " + user.getRole());
-                }
-                // 保存时使用小写形式的角色名
-                logger.info("更新用户角色: {}", roleLower);
-                existingUser.setRole(roleLower);
+                logger.info("更新用户角色: {}", user.getRole());
+                existingUser.setRole(user.getRole());
             }
             
             // 更新状态（如果提供）
             if (user.getStatus() != null && !user.getStatus().isEmpty()) {
-                // 检查状态是否有效
-                if (!"active".equals(user.getStatus()) && !"inactive".equals(user.getStatus()) && !"locked".equals(user.getStatus())) {
-                    throw new RuntimeException("无效的状态值: " + user.getStatus());
-                }
                 logger.info("更新用户状态: {}", user.getStatus());
                 existingUser.setStatus(user.getStatus());
             }

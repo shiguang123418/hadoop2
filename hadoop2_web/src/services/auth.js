@@ -1,7 +1,6 @@
 import axios from 'axios';
-import apiConfig from '../config/api.config';
+
 import ApiService from './api.service';
-import { getServiceConfig } from '../utils/service-helper';
 
 /**
  * 身份验证服务
@@ -10,7 +9,7 @@ class AuthServiceClass extends ApiService {
   constructor() {
     // 使用服务名称
     super('auth');
-    console.log('Auth服务初始化');
+    // console.log('Auth服务初始化');
   }
   
   /**
@@ -23,7 +22,7 @@ class AuthServiceClass extends ApiService {
     try {
       return JSON.parse(userStr);
     } catch (e) {
-      console.error('解析用户信息失败:', e);
+      // console.error('解析用户信息失败:', e);
       localStorage.removeItem('user');
       return null;
     }
@@ -34,7 +33,7 @@ class AuthServiceClass extends ApiService {
    */
   getToken() {
     const token = localStorage.getItem('token');
-    console.log('获取Token:', token ? '存在' : '不存在');
+    // console.log('获取Token:', token ? '存在' : '不存在');
     return token;
   }
   
@@ -43,7 +42,7 @@ class AuthServiceClass extends ApiService {
    */
   isLoggedIn() {
     const isLoggedIn = !!this.getToken();
-    console.log('检查登录状态:', isLoggedIn);
+    // console.log('检查登录状态:', isLoggedIn);
     return isLoggedIn;
   }
   
@@ -52,7 +51,7 @@ class AuthServiceClass extends ApiService {
    */
   isAdmin() {
     // 使用统一的角色检查，检查是否有 admin 或 ROLE_ADMIN 角色
-    return this.hasRole('role_admin');
+    return this.hasRole('ROLE_ADMIN');
   }
   
   /**
@@ -62,38 +61,21 @@ class AuthServiceClass extends ApiService {
    */
   hasRole(role) {
     const currentUser = this.getCurrentUser();
+    // logger.info("shigaung",currentUser)
     if (!currentUser) return false;
     
     // 如果提供的角色为空，返回false
     if (!role) return false;
-    
-    // 标准化角色名称（处理ROLE_前缀）
-    const normalizeRoleName = (roleName) => {
-      if (!roleName || typeof roleName !== 'string') return '';
-      
-      const lowerRole = roleName.toLowerCase();
-      // 如果已有前缀，直接返回；否则加上前缀
-      return lowerRole.startsWith('role_') ? lowerRole : 'role_' + lowerRole;
-    };
-    
-    const normalizedRoleToCheck = normalizeRoleName(role);
-    console.log('检查角色:', role, '标准化后:', normalizedRoleToCheck);
-    
-    // 检查roles数组
-    if (currentUser.roles && Array.isArray(currentUser.roles)) {
-      return currentUser.roles.some(userRole => {
-        const normalizedUserRole = normalizeRoleName(userRole);
-        console.log('比较用户角色:', userRole, '标准化后:', normalizedUserRole);
-        return normalizedUserRole === normalizedRoleToCheck;
-      });
-    }
-    
+
     // 检查role字段（兼容旧结构）
     if (!currentUser.role) return false;
-    
-    const normalizedUserRole = normalizeRoleName(currentUser.role);
-    console.log('比较单一角色:', currentUser.role, '标准化后:', normalizedUserRole);
-    return normalizedUserRole === normalizedRoleToCheck;
+
+    // 获取当前用户角色和需要检查的角色，去掉可能的ROLE_前缀以进行标准化比较
+    const userRole = currentUser.role.replace(/^ROLE_/, '').toLowerCase();
+    const checkRole = role.replace(/^ROLE_/, '').toLowerCase();
+
+    // 比较标准化后的角色
+    return userRole === checkRole;
   }
   
   /**
@@ -108,44 +90,38 @@ class AuthServiceClass extends ApiService {
         throw new Error('用户名和密码不能为空');
       }
 
-      console.log(`发送登录请求`);
+      // console.log(`发送登录请求`);
       
       // 使用API服务类提供的post方法
       const response = await this.post('/login', { username, password });
       
-      console.log('登录响应数据:', response);
+      // console.log('登录响应数据:', response);
       
       // 检查响应中是否包含token
       if (response && response.token) {
-        console.log('保存登录凭证到本地存储');
+        // console.log('保存登录凭证到本地存储');
         localStorage.setItem('token', response.token);
         
         // 保存用户信息
         const userData = response.user || { username: username, role: 'user' };
         
         // 打印用户数据，检查是否包含avatar
-        console.log('保存用户数据:', userData);
-        if (userData.avatar) {
-          console.log('用户头像URL:', userData.avatar);
-        }
+        // console.log('保存用户数据:', userData);
         
         localStorage.setItem('user', JSON.stringify(userData));
         
         // 设置默认Authorization头
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
         
-        console.log('登录成功，已设置认证头');
+        // console.log('登录成功，已设置认证头');
       } else if (response && response.data && response.data.token) {
         // 处理嵌套在data字段中的情况
-        console.log('从嵌套的data字段中提取登录凭证');
+        // console.log('从嵌套的data字段中提取登录凭证');
         const token = response.data.token;
         const userData = response.data.user || { username: username, role: 'user' };
         
         // 打印用户数据，检查是否包含avatar
-        console.log('保存用户数据(嵌套):', userData);
-        if (userData.avatar) {
-          console.log('用户头像URL:', userData.avatar);
-        }
+        // console.log('保存用户数据(嵌套):', userData);
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
@@ -153,9 +129,9 @@ class AuthServiceClass extends ApiService {
         // 设置默认Authorization头
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
-        console.log('登录成功，已设置认证头');
+        // console.log('登录成功，已设置认证头');
       } else {
-        console.warn('响应中未找到token', response);
+        // console.warn('响应中未找到token', response);
         throw new Error('服务器返回数据格式不正确，未找到令牌信息');
       }
       

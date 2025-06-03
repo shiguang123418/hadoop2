@@ -2,10 +2,12 @@ package org.shiguang.module.auth.controller;
 
 import org.shiguang.entity.User;
 import org.shiguang.entity.dto.ApiResponse;
+import org.shiguang.entity.dto.LoginRequest;
+import org.shiguang.entity.dto.LoginResponseDTO;
+import org.shiguang.entity.dto.UserDTO;
 import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.auth.service.UserService;
-import org.shiguang.module.auth.service.impl.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -31,19 +33,17 @@ public class AuthController {
     
     @Autowired
     private UserService userService;
-    
-    @Autowired
-    private LoginService loginService;
+
 
     /**
      * 用户登录
      */
     @PostMapping("/login")
     @AuditOperation(operation = "用户登录", operationType = "LOGIN", resourceType = "AUTH")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> login(@RequestBody LoginRequest loginRequest) {
         try {
-            String username = loginRequest.get("username");
-            String password = loginRequest.get("password");
+            String username = loginRequest.getUsername();
+            String password = loginRequest.getPassword();
             
             // 输入验证
             if (username == null || username.trim().isEmpty()) {
@@ -55,7 +55,7 @@ public class AuthController {
             }
             
             // 使用专门的登录服务处理登录
-            Map<String, Object> result = loginService.login(username, password);
+            LoginResponseDTO result = authService.login(username, password);
             
             return ResponseEntity.ok(ApiResponse.success("登录成功", result));
         } catch (BadCredentialsException e) {
@@ -86,10 +86,12 @@ public class AuthController {
      */
     @PostMapping("/register")
     @AuditOperation(operation = "用户注册", operationType = "REGISTER", resourceType = "USER")
-    public ResponseEntity<ApiResponse<User>> register(@RequestBody User user) {
+    public ResponseEntity<ApiResponse<UserDTO>> register(@RequestBody User user) {
         User createdUser = authService.register(user);
+        // 使用DTO过滤敏感信息
+        UserDTO userDTO = UserDTO.fromUser(createdUser);
         
-        return ResponseEntity.ok(ApiResponse.success("注册成功", createdUser));
+        return ResponseEntity.ok(ApiResponse.success("注册成功", userDTO));
     }
 
     /**
@@ -97,7 +99,7 @@ public class AuthController {
      */
     @GetMapping("/current")
     @AuditOperation(operation = "获取当前用户信息", operationType = "QUERY", resourceType = "USER")
-    public ResponseEntity<ApiResponse<User>> getCurrentUser() {
+    public ResponseEntity<ApiResponse<UserDTO>> getCurrentUser() {
         User currentUser = authService.getCurrentUser();
         
         if (currentUser == null) {
@@ -118,7 +120,10 @@ public class AuthController {
             logger.info("getCurrentUser: 返回用户头像URL: {}", currentUser.getAvatar());
         }
         
-        return ResponseEntity.ok(ApiResponse.success("获取当前用户信息成功", currentUser));
+        // 使用UserDTO过滤敏感字段
+        UserDTO userDTO = UserDTO.fromUser(currentUser);
+        
+        return ResponseEntity.ok(ApiResponse.success("获取当前用户信息成功", userDTO));
     }
     
     /**
@@ -126,7 +131,7 @@ public class AuthController {
      */
     @PutMapping("/profile")
     @AuditOperation(operation = "更新个人资料", operationType = "UPDATE", resourceType = "USER_PROFILE")
-    public ResponseEntity<ApiResponse<User>> updateProfile(@RequestBody Map<String, String> profileData) {
+    public ResponseEntity<ApiResponse<UserDTO>> updateProfile(@RequestBody Map<String, String> profileData) {
         User currentUser = authService.getCurrentUser();
         
         if (currentUser == null) {
@@ -159,7 +164,7 @@ public class AuthController {
         // 如果没有其他字段要更新，直接返回
         if (profileData.isEmpty() || (profileData.size() == 1 && profileData.containsKey("avatar"))) {
             logger.info("没有需要更新的基本资料字段，返回当前用户信息");
-            return ResponseEntity.ok(ApiResponse.success("用户资料更新成功", currentUser));
+            return ResponseEntity.ok(ApiResponse.success("用户资料更新成功", UserDTO.fromUser(currentUser)));
         }
         
         // 处理其他基本信息
@@ -208,7 +213,8 @@ public class AuthController {
             logger.info("用户资料更新成功，完整资料已更新");
         }
         
-        return ResponseEntity.ok(ApiResponse.success("个人资料更新成功", updatedUser));
+        // 使用UserDTO过滤敏感字段
+        return ResponseEntity.ok(ApiResponse.success("个人资料更新成功", UserDTO.fromUser(updatedUser)));
     }
     
     /**

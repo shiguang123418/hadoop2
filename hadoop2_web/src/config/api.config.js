@@ -13,7 +13,7 @@ const servers = {
   // 服务器1 - HDFS, Hive相关服务
   server1: '/api1',
   // 服务器2 - Kafka, Spark, Realtime相关服务
-  server2: '/api2'
+  server2: '/api_ws'
 };
 
 // 服务相关配置
@@ -41,7 +41,7 @@ const services = {
   // 认证服务 - 使用默认服务器
   auth: {
     path: '/auth',
-    server: servers.default
+    server: servers.server1
   },
   // 实时数据服务 - 使用服务器2
   realtime: {

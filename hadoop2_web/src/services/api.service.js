@@ -1,6 +1,5 @@
 import axios from 'axios';
-import apiConfig from '../config/api.config';
-import { buildApiPath, getServiceConfig } from '../utils/service-helper';
+import { getServiceConfig } from '../utils/service-helper';
 import logger from '../utils/logger';
 import { handleApiError } from '../utils/error-handler';
 

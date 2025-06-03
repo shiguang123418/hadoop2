@@ -5,6 +5,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.shiguang.entity.User;
+import org.shiguang.entity.dto.LoginResponseDTO;
+import org.shiguang.entity.dto.UserDTO;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.common.security.SecurityConstants;
 import org.shiguang.repository.UserRepository;
@@ -61,7 +63,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     }
 
     @Override
-    public Map<String, Object> login(String username, String password) {
+    public LoginResponseDTO login(String username, String password) {
         try {
             // 输入验证
             if (username == null || username.trim().isEmpty()) {
@@ -111,50 +113,12 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             // 生成令牌
             String token = createToken(username);
 
-            // 构建响应
-            Map<String, Object> response = new HashMap<>();
-            response.put("token", token);
+            // 使用UserDTO过滤敏感字段
+            UserDTO userDTO = UserDTO.fromUser(user);
             
-            // 复制用户信息，排除敏感字段
-            Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("id", user.getId());
-            userInfo.put("username", user.getUsername());
-            userInfo.put("email", user.getEmail());
-            userInfo.put("name", user.getName());
+            // 使用专门的DTO返回登录响应
+            return LoginResponseDTO.of(token, userDTO);
             
-            // 确保头像URL正确返回
-            if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
-                userInfo.put("avatar", user.getAvatar());
-                logger.info("返回用户头像URL: {}", user.getAvatar());
-            } else {
-                userInfo.put("avatar", null);
-                logger.info("用户没有头像");
-            }
-            
-            // 确保roles不为null
-            String role = user.getRole();
-            if (role != null && !role.isEmpty()) {
-                // 处理ROLE_前缀
-                if (!role.startsWith("ROLE_")) {
-                    role = "ROLE_" + role.toUpperCase();
-                }
-                userInfo.put("roles", Collections.singletonList(role));
-            } else {
-                // 默认为普通用户角色
-                userInfo.put("roles", Collections.singletonList("ROLE_USER"));
-            }
-            
-            userInfo.put("active", "active".equals(user.getStatus()));
-            
-            response.put("user", userInfo);
-            
-            // 打印完整响应，但排除敏感信息
-            logger.info("返回登录响应，用户: {}, 角色: {}, 有头像: {}", 
-                        username, 
-                        role, 
-                        user.getAvatar() != null);
-
-            return response;
         } catch (UsernameNotFoundException | BadCredentialsException e) {
             // 用户名或密码错误的情况，使用一致的错误消息
             logger.warn("登录认证失败: {}", e.getMessage());

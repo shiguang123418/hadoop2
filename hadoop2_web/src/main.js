@@ -37,24 +37,9 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 window.SockJS = SockJS
 window.Stomp = Stomp
 
-logger.info('API基础路径:', apiConfig.baseUrl)
-logger.info('WebSocket客户端加载:', SockJS ? '成功' : '失败', Stomp ? '成功' : '失败')
 
 // 设置API请求拦截器，统一添加/api前缀
 setupApiInterceptor();
-
-// 添加请求拦截器
-// axios.interceptors.request.use(
-//   config => {
-//     logger.debug(`发送请求: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`)
-//     return config
-//   },
-//   error => {
-//     logger.error('请求拦截器错误:', error)
-//     return Promise.reject(error)
-//   }
-// )
-
 
 // 设置认证头
 AuthService.setupAuthHeader();

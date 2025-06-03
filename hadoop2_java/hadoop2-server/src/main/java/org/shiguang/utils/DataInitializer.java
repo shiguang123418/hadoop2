@@ -58,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
             user.setName(fullName);
             
             // 确保admin用户获得ROLE_ADMIN角色
-            if ("ROLE_ADMIN".equals(username)) {
+            if ("admin".equals(username)) {
                 user.setRole(SecurityConstants.ROLE_ADMIN);
             } else {
                 user.setRole(roles.get(0));

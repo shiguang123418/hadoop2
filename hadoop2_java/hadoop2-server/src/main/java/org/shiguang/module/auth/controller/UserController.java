@@ -2,6 +2,8 @@ package org.shiguang.module.auth.controller;
 
 import org.shiguang.entity.User;
 import org.shiguang.entity.dto.ApiResponse;
+import org.shiguang.entity.dto.UserDTO;
+import org.shiguang.entity.dto.UserListDTO;
 import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,9 +32,10 @@ public class UserController {
      */
     @GetMapping
     @AuditOperation(operation = "获取所有用户列表", operationType = "QUERY", resourceType = "USER")
-    public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
+    public ResponseEntity<ApiResponse<List<UserListDTO>>> getAllUsers() {
         List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", users));
+        List<UserListDTO> userDTOs = UserListDTO.fromUserList(users);
+        return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", userDTOs));
     }
 
     /**
@@ -40,12 +43,13 @@ public class UserController {
      */
     @GetMapping("/{userId}")
     @AuditOperation(operation = "获取用户详情", operationType = "QUERY", resourceType = "USER", resourceIdIndex = 0)
-    public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<UserDTO>> getUserById(@PathVariable Long userId) {
         User user = userService.getUserById(userId);
         if (user == null) {
             return ResponseEntity.ok(ApiResponse.error(404, "用户不存在"));
         }
-        return ResponseEntity.ok(ApiResponse.success("获取用户信息成功", user));
+        UserDTO userDTO = UserDTO.fromUser(user);
+        return ResponseEntity.ok(ApiResponse.success("获取用户信息成功", userDTO));
     }
 
     /**
@@ -53,9 +57,10 @@ public class UserController {
      */
     @PostMapping
     @AuditOperation(operation = "创建新用户", operationType = "CREATE", resourceType = "USER")
-    public ResponseEntity<ApiResponse<User>> createUser(@RequestBody User user) {
+    public ResponseEntity<ApiResponse<UserDTO>> createUser(@RequestBody User user) {
         User createdUser = userService.createUser(user);
-        return ResponseEntity.ok(ApiResponse.success("创建用户成功", createdUser));
+        UserDTO userDTO = UserDTO.fromUser(createdUser);
+        return ResponseEntity.ok(ApiResponse.success("创建用户成功", userDTO));
     }
 
     /**
@@ -63,13 +68,14 @@ public class UserController {
      */
     @PutMapping("/{userId}")
     @AuditOperation(operation = "更新用户信息", operationType = "UPDATE", resourceType = "USER", resourceIdIndex = 0)
-    public ResponseEntity<ApiResponse<User>> updateUser(@PathVariable Long userId, @RequestBody User user) {
+    public ResponseEntity<ApiResponse<UserDTO>> updateUser(@PathVariable Long userId, @RequestBody User user) {
         user.setId(userId);
         User updatedUser = userService.updateUser(user);
         if (updatedUser == null) {
             return ResponseEntity.ok(ApiResponse.error(404, "用户不存在"));
         }
-        return ResponseEntity.ok(ApiResponse.success("更新用户成功", updatedUser));
+        UserDTO userDTO = UserDTO.fromUser(updatedUser);
+        return ResponseEntity.ok(ApiResponse.success("更新用户成功", userDTO));
     }
 
     /**
@@ -109,7 +115,7 @@ public class UserController {
      */
     @PutMapping("/{userId}/status")
     @AuditOperation(operation = "修改用户状态", operationType = "UPDATE", resourceType = "USER_STATUS", resourceIdIndex = 0)
-    public ResponseEntity<ApiResponse<User>> changeUserStatus(
+    public ResponseEntity<ApiResponse<UserDTO>> changeUserStatus(
             @PathVariable Long userId,
             @RequestBody Map<String, String> statusData) {
         
@@ -120,7 +126,8 @@ public class UserController {
             return ResponseEntity.ok(ApiResponse.error(404, "用户不存在"));
         }
         
-        return ResponseEntity.ok(ApiResponse.success("用户状态更新成功", updatedUser));
+        UserDTO userDTO = UserDTO.fromUser(updatedUser);
+        return ResponseEntity.ok(ApiResponse.success("用户状态更新成功", userDTO));
     }
 
     /**
@@ -128,7 +135,7 @@ public class UserController {
      */
     @PutMapping("/{userId}/role")
     @AuditOperation(operation = "修改用户角色", operationType = "UPDATE", resourceType = "USER_ROLE", resourceIdIndex = 0)
-    public ResponseEntity<ApiResponse<User>> changeUserRole(
+    public ResponseEntity<ApiResponse<UserDTO>> changeUserRole(
             @PathVariable Long userId,
             @RequestBody Map<String, String> roleData) {
         
@@ -139,7 +146,8 @@ public class UserController {
             return ResponseEntity.ok(ApiResponse.error(404, "用户不存在"));
         }
         
-        return ResponseEntity.ok(ApiResponse.success("用户角色更新成功", updatedUser));
+        UserDTO userDTO = UserDTO.fromUser(updatedUser);
+        return ResponseEntity.ok(ApiResponse.success("用户角色更新成功", userDTO));
     }
 
     /**

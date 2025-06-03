@@ -1,6 +1,7 @@
 package org.shiguang.module.auth.service;
 
 import org.shiguang.entity.User;
+import org.shiguang.entity.dto.LoginResponseDTO;
 import org.springframework.security.core.Authentication;
 
 import java.util.Map;
@@ -14,9 +15,9 @@ public interface AuthService {
      * 用户登录
      * @param username 用户名
      * @param password 密码
-     * @return 包含用户信息和令牌的Map
+     * @return 包含用户信息和令牌的响应DTO
      */
-    Map<String, Object> login(String username, String password);
+    LoginResponseDTO login(String username, String password);
     
     /**
      * 用户注册
