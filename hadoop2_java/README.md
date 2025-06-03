@@ -1,6 +1,6 @@
-# 农业大数据平台
+# 农业大数据平台 - Java后端
 
-本项目是一个基于Hadoop、Spark和Kafka的农业大数据处理平台，使用Spring Boot框架构建。
+本模块是农业大数据平台的主要后端服务，基于Hadoop、Spark和Spring Boot构建。
 
 ## 项目结构
 
@@ -63,10 +63,50 @@ hadoop_ws/
 - Hadoop 3.4.0
 - Hive 3.1.2
 - Spark 3.5.2
-- Kafka
+- Kafka 3.x
 - Log4j2
 
 ## 配置说明
+
+### application.yaml
+
+主配置文件包含通用设置：
+
+```yaml
+spring:
+  application:
+    name: hadoop2-java-backend
+  profiles:
+    active: dev
+    
+server:
+  port: 8000
+  servlet:
+    context-path: /api
+```
+
+### application-dev.yaml
+
+开发环境配置：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/agri_data?useSSL=false&serverTimezone=UTC
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    org.shiguang: DEBUG
+```
 
 ### Hadoop配置
 
@@ -101,19 +141,45 @@ kafka.default.topic.replication=1
 
 ## 编译与运行
 
-使用Maven编译项目：
+### 使用Maven编译项目
 
 ```bash
 mvn clean package
 ```
 
-运行Spring Boot应用：
+### 运行开发环境
 
 ```bash
-java -jar target/agri-big-data-0.0.1.jar
+mvn spring-boot:run -Dspring.profiles.active=dev
 ```
 
-## 模块使用方式
+### 运行生产环境
+
+```bash
+java -jar target/hadoop2-java-backend-1.0.0.jar --spring.profiles.active=prod
+```
+
+## API接口说明
+
+### HDFS相关接口
+
+```
+GET /api/hdfs/list?path={path} - 列出指定路径下的文件和目录
+GET /api/hdfs/file?path={path} - 获取文件内容
+POST /api/hdfs/upload - 上传文件到HDFS
+DELETE /api/hdfs/delete?path={path} - 删除文件或目录
+```
+
+### Hive相关接口
+
+```
+GET /api/hive/tables - 获取所有表
+GET /api/hive/schema?table={tableName} - 获取表结构
+POST /api/hive/query - 执行HiveQL查询
+POST /api/hive/create-table - 创建表
+```
+
+## 模块使用示例
 
 ### HDFS操作示例
 
@@ -138,25 +204,40 @@ private HiveClient hiveClient;
 List<Map<String, Object>> results = hiveClient.executeQuery("SELECT * FROM users LIMIT 10");
 ```
 
-### Kafka消息发送示例
+## 部署说明
 
-```java
-@Autowired
-private KafkaProducerClient producerClient;
+### 1. 设置环境变量
 
-// 发送消息
-producerClient.sendMessage("topic-name", "Hello, Kafka!");
+```bash
+export HADOOP_HOME=/path/to/hadoop
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export SPARK_HOME=/path/to/spark
+export HIVE_HOME=/path/to/hive
 ```
 
-### Spark Kafka流处理示例
+### 2. 配置数据库
 
-```java
-@Autowired
-private SparkKafkaStreamingService streamingService;
+```sql
+CREATE DATABASE agri_data;
+USE agri_data;
+-- 创建必要的表
+```
 
-// 启动流处理
-streamingService.startKafkaStreaming(
-    Arrays.asList("topic-name"),
-    message -> System.out.println("收到消息: " + message)
-);
+### 3. 构建并部署
+
+```bash
+mvn clean package
+nohup java -jar target/hadoop2-java-backend-1.0.0.jar --spring.profiles.active=prod > app.log &
+```
+
+### 4. 使用Nginx反向代理
+
+配置Nginx将`/api`路径代理到后端服务：
+
+```nginx
+location /api/ {
+    proxy_pass http://localhost:8000/api/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
 ``` 
