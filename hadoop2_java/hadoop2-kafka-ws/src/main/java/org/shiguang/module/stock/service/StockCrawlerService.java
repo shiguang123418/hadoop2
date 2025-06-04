@@ -8,8 +8,10 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.shiguang.model.StockData;
+import org.shiguang.module.stock.config.StockConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,9 @@ public class StockCrawlerService {
     @Value("${kafka.topics.stock-data:stock-data}")
     private String stockDataTopic;
     
+    @Autowired
+    private StockConfig stockConfig;
+    
     /**
      * 初始化Kafka生产者
      */
@@ -60,7 +65,7 @@ public class StockCrawlerService {
         
         // 创建Kafka生产者
         producer = new KafkaProducer<>(props);
-        logger.info("股票数据爬虫服务已初始化");
+        logger.info("股票数据爬虫服务已初始化，爬取功能状态: {}", stockConfig.isCrawlerEnabled() ? "已启用" : "已禁用");
     }
     
     /**
@@ -76,13 +81,19 @@ public class StockCrawlerService {
     
     /**
      * 定时爬取股票数据并发送到Kafka
-     * 每30秒执行一次
+     * 间隔由配置控制
      */
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRateString = "${stock.crawler.interval:10000}")
     public void scheduledCrawlStockData() {
+        // 检查爬取功能是否启用
+        if (!stockConfig.isCrawlerEnabled()) {
+            logger.debug("股票数据爬取功能已禁用，跳过本次爬取");
+            return;
+        }
+        
         logger.info("开始定时爬取股票数据");
         try {
-            List<StockData> stockDataList = crawlStockData("002714", 0);
+            List<StockData> stockDataList = crawlStockData(stockConfig.getDefaultStockCode(), 0);
             for (StockData stockData : stockDataList) {
                 sendToKafka(stockData);
             }

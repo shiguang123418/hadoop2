@@ -13,6 +13,7 @@ import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.shiguang.config.SparkContextManager;
+import org.shiguang.module.stock.config.StockConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,9 @@ public class StockDataProcessingService implements Serializable {
     @Autowired
     private transient SparkContextManager sparkContextManager;
     
+    @Autowired
+    private transient StockConfig stockConfig;
+    
     private transient JavaStreamingContext streamingContext;
     private transient Thread streamingThread;
     private transient AtomicBoolean running = new AtomicBoolean(false);
@@ -64,10 +68,11 @@ public class StockDataProcessingService implements Serializable {
      */
     @PostConstruct
     public void init() {
-        if (sparkEnabled) {
+        if (sparkEnabled && stockConfig.isProcessorEnabled()) {
             initSparkStreamingForStockData();
         } else {
-            logger.info("股票数据Spark Streaming已禁用");
+            logger.info("股票数据Spark Streaming已禁用 (sparkEnabled={}, processorEnabled={})",
+                    sparkEnabled, stockConfig.isProcessorEnabled());
         }
     }
     
@@ -156,6 +161,19 @@ public class StockDataProcessingService implements Serializable {
                                 "GROUP BY changeRange"
                         );
                         
+                        // 从配置中获取波动率阈值
+                        double volatilityThreshold = stockConfig.getVolatilityThreshold();
+                        
+                        // 识别波动率超过阈值的股票
+                        Dataset<Row> volatileStocksDF = spark.sql(
+                                String.format(
+                                "SELECT code, name, MAX(highPrice) - MIN(lowPrice) as priceRange, " +
+                                "((MAX(highPrice) - MIN(lowPrice)) / MIN(lowPrice)) * 100 as volatilityPercent " +
+                                "FROM stock_data " +
+                                "GROUP BY code, name " +
+                                "HAVING volatilityPercent > %.2f", volatilityThreshold)
+                        );
+                        
                         // 计算成交量的均值和标准差
                         Dataset<Row> volumeStatsDF = spark.sql(
                                 "SELECT " +
@@ -176,6 +194,7 @@ public class StockDataProcessingService implements Serializable {
                         // 收集计算结果
                         List<Row> statsRows = statsDF.collectAsList();
                         List<Row> changeDistRows = changePercentDistributionDF.collectAsList();
+                        List<Row> volatileStocksRows = volatileStocksDF.collectAsList();
                         List<Row> volumeStatRows = volumeStatsDF.collectAsList();
                         List<Row> trendRows = trendDF.collectAsList();
                         
@@ -207,6 +226,19 @@ public class StockDataProcessingService implements Serializable {
                         }
                         resultMap.put("changePercentDistribution", changeDist);
                         
+                        // 添加高波动率股票信息
+                        List<Map<String, Object>> volatileStocks = new ArrayList<>();
+                        for (Row row : volatileStocksRows) {
+                            Map<String, Object> stock = new HashMap<>();
+                            stock.put("code", row.getString(0));
+                            stock.put("name", row.getString(1));
+                            stock.put("priceRange", row.getDouble(2));
+                            stock.put("volatilityPercent", row.getDouble(3));
+                            volatileStocks.add(stock);
+                        }
+                        resultMap.put("volatileStocks", volatileStocks);
+                        resultMap.put("volatilityThreshold", stockConfig.getVolatilityThreshold());
+                        
                         if (!volumeStatRows.isEmpty()) {
                             Row volumeRow = volumeStatRows.get(0);
                             Map<String, Object> volumeStats = new HashMap<>();
@@ -237,6 +269,56 @@ public class StockDataProcessingService implements Serializable {
                         messagingTemplate.convertAndSend("/topic/stock-data-analytics", resultJson);
                         
                         processedCount.incrementAndGet();
+                        // 添加更详细的日志输出
+                        if (!statsRows.isEmpty()) {
+                            Row statsRow = statsRows.get(0);
+                            logger.info("处理股票数据 - 代码: {}, 名称: {}, 最低价: {}, 最高价: {}, 平均价: {}, 总量: {}", 
+                                statsRow.getString(0), 
+                                statsRow.getString(1),
+                                statsRow.getDouble(2),
+                                statsRow.getDouble(3),
+                                statsRow.getDouble(4),
+                                statsRow.getLong(8));
+                            
+                            if (!trendRows.isEmpty()) {
+                                Row trendRow = trendRows.get(0);
+                                double firstOpen = trendRow.getDouble(2);
+                                double lastClose = trendRow.getDouble(3);
+                                double change = lastClose - firstOpen;
+                                double changePercent = (change / firstOpen) * 100;
+                                logger.info("股票趋势 - 开盘: {}, 收盘: {}, 变化: {}, 变化率: {}%, 趋势: {}", 
+                                    firstOpen,
+                                    lastClose,
+                                    String.format("%.2f", change),
+                                    String.format("%.2f", changePercent),
+                                    change > 0 ? "上涨" : (change < 0 ? "下跌" : "持平"));
+                            }
+                            
+                            // 输出涨跌幅分布
+                            if (!changeDistRows.isEmpty()) {
+                                StringBuilder distBuilder = new StringBuilder("涨跌幅分布:");
+                                for (Row row : changeDistRows) {
+                                    distBuilder.append(" ").append(row.getString(0)).append(": ").append(row.getLong(1));
+                                }
+                                logger.info(distBuilder.toString());
+                            }
+                            
+                            // 输出高波动率股票信息
+                            if (!volatileStocksRows.isEmpty()) {
+                                logger.info("发现{}支高波动率股票 (阈值: {}%):", volatileStocksRows.size(), stockConfig.getVolatilityThreshold());
+                                for (Row row : volatileStocksRows) {
+                                    logger.info("  {} ({}) - 波动幅度: {}元, 波动率: {}%", 
+                                        row.getString(1), row.getString(0), 
+                                        String.format("%.2f", row.getDouble(2)),
+                                        String.format("%.2f", row.getDouble(3)));
+                                }
+                            } else {
+                                logger.info("未发现高波动率股票 (阈值: {}%)", stockConfig.getVolatilityThreshold());
+                            }
+                        } else {
+                            logger.info("未能解析到股票数据统计信息");
+                        }
+                        
                         logger.debug("已将股票数据分析结果发送到WebSocket: {}", resultJson);
                         
                     } catch (Exception e) {

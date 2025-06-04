@@ -45,8 +45,16 @@ data:
 
 # 股票数据配置
 stock:
+  # 爬取配置
   crawler:
-    enabled: false
-    interval: 10000  # 30秒
+    enabled: true
+    interval: 10000  # 10秒
     default-code: "002714"  # 牧原股份
-    default-market: 0  # 深圳市场
+  # 处理器配置  
+  processor:
+    enabled: true
+    batch-size: 100
+  # 分析配置
+  analysis:
+    enabled: true
+    volatility-threshold: 5.0

@@ -80,6 +80,7 @@
     <!-- 设置传感器和股票数据处理服务的日志级别为INFO，只输出关键信息 -->
     <logger name="org.shiguang.module.sensor.service" level="INFO" />
     <logger name="org.shiguang.module.stock.service" level="INFO" />
+    <logger name="org.shiguang.module.stock.service.StockDataProcessingService" level="INFO" />
     
     <!-- 过滤掉特定的警告消息 -->
     <logger name="org.apache.spark.sql.execution.window.WindowExec" level="ERROR" />
