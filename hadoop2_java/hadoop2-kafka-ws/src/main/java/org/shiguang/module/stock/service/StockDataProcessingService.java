@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,8 +31,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 使用Spark Streaming处理从Kafka接收的股票数据
  */
 @Service
-public class StockDataProcessingService {
+public class StockDataProcessingService implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(StockDataProcessingService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     
@@ -51,13 +53,13 @@ public class StockDataProcessingService {
     private boolean sparkEnabled;
     
     @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private transient SimpMessagingTemplate messagingTemplate;
     
-    private JavaStreamingContext streamingContext;
-    private Thread streamingThread;
-    private AtomicBoolean running = new AtomicBoolean(false);
-    private AtomicInteger processedCount = new AtomicInteger(0);
-    private AtomicInteger errorCount = new AtomicInteger(0);
+    private transient JavaStreamingContext streamingContext;
+    private transient Thread streamingThread;
+    private transient AtomicBoolean running = new AtomicBoolean(false);
+    private transient AtomicInteger processedCount = new AtomicInteger(0);
+    private transient AtomicInteger errorCount = new AtomicInteger(0);
     
     /**
      * 初始化并启动Spark Streaming
@@ -225,7 +227,8 @@ public class StockDataProcessingService {
                         }
                         
                         // 转换为JSON并发送到WebSocket
-                        String resultJson = objectMapper.writeValueAsString(resultMap);
+                        ObjectMapper localMapper = new ObjectMapper(); // 创建本地ObjectMapper
+                        String resultJson = localMapper.writeValueAsString(resultMap);
                         messagingTemplate.convertAndSend("/topic/stock-data-analytics", resultJson);
                         
                         processedCount.incrementAndGet();

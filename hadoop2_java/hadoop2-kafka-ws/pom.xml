@@ -73,6 +73,19 @@
             <version>${spark.version}</version>
         </dependency>
         
+        <!-- Janino编译器依赖 - Spark SQL代码生成必需 -->
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+            <version>3.0.16</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>commons-compiler</artifactId>
+            <version>3.0.16</version>
+        </dependency>
+        
         <!-- Jackson 依赖 -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
