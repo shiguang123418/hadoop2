@@ -7,6 +7,7 @@
    |\_________\        \|__|\|__|        \|__|        \|_______|        \|_______|        \|__|\|__|        \|__| \|__|        \|_______|
    \|_________|
 
+
 :: Spring Boot ::  ${spring-boot.version}
 :: WebSocket Server :: ${application.version}
-:: Server Port :: ${server.port} 
+:: Server Port :: ${server.port}
