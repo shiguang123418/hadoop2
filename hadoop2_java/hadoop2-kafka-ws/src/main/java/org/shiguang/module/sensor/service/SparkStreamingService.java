@@ -22,6 +22,7 @@ import scala.Tuple2;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,8 +31,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 使用Spark Streaming处理从Kafka接收的数据并计算统计信息
  */
 @Service
-public class SparkStreamingService {
+public class SparkStreamingService implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(SparkStreamingService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     
@@ -51,13 +53,13 @@ public class SparkStreamingService {
     private boolean sparkEnabled;
     
     @Autowired(required = false)
-    private SimpMessagingTemplate messagingTemplate;
+    private transient SimpMessagingTemplate messagingTemplate;
     
-    private JavaStreamingContext streamingContext;
-    private JavaSparkContext sparkContext;
-    private SparkSession sparkSession;
-    private Thread streamingThread;
-    private AtomicBoolean running = new AtomicBoolean(false);
+    private transient JavaStreamingContext streamingContext;
+    private transient JavaSparkContext sparkContext;
+    private transient SparkSession sparkSession;
+    private transient Thread streamingThread;
+    private transient AtomicBoolean running = new AtomicBoolean(false);
     
     /**
      * 初始化并启动Spark Streaming
@@ -114,78 +116,74 @@ public class SparkStreamingService {
             // 解析JSON并执行统计分析
             values.foreachRDD(rdd -> {
                 if (!rdd.isEmpty()) {
-                    // 转换为传感器对象
                     try {
-                        // 解析JSON并将传感器数据按类型分组
-                        JavaPairDStream<String, Double> sensorTypeValuePairs = values.mapToPair(jsonStr -> {
-                            JsonNode json = objectMapper.readTree(jsonStr);
+                        // 在每个执行器上创建ObjectMapper的本地实例
+                        // 在RDD上执行操作，而不是在DStream级别
+                        rdd.mapToPair(jsonStr -> {
+                            // 在执行器上创建本地ObjectMapper
+                            ObjectMapper mapper = new ObjectMapper();
+                            JsonNode json = mapper.readTree(jsonStr);
                             String sensorType = json.path("sensorType").asText();
                             double value = json.path("value").asDouble();
                             return new Tuple2<>(sensorType, value);
-                        });
-                        
-                        // 计算每种传感器类型的统计信息
-                        sensorTypeValuePairs.groupByKey().foreachRDD(typeRdd -> {
-                            Map<String, Map<String, Double>> statsMap = new HashMap<>();
+                        }).groupByKey().collectAsMap().forEach((sensorType, values2) -> {
+                            // 计算统计数据
+                            List<Double> valuesList = new ArrayList<>();
+                            values2.forEach(valuesList::add);
                             
-                            typeRdd.collect().forEach(tuple -> {
-                                String sensorType = tuple._1();
-                                Iterable<Double> values2 = tuple._2();
+                            if (!valuesList.isEmpty()) {
+                                // 计算最小值、最大值、平均值
+                                double min = Collections.min(valuesList);
+                                double max = Collections.max(valuesList);
+                                double sum = 0;
+                                double sumSquares = 0;
+                                int anomalyCount = 0;
                                 
-                                // 计算统计数据
-                                List<Double> valuesList = new ArrayList<>();
-                                values2.forEach(valuesList::add);
-                                
-                                if (!valuesList.isEmpty()) {
-                                    // 计算最小值、最大值、平均值
-                                    double min = Collections.min(valuesList);
-                                    double max = Collections.max(valuesList);
-                                    double sum = 0;
-                                    double sumSquares = 0;
-                                    int anomalyCount = 0;
-                                    
-                                    // 假设正常范围
-                                    double minNormal = 0;
-                                    double maxNormal = 100;
-                                    if ("temperature".equals(sensorType)) {
-                                        minNormal = -10;
-                                        maxNormal = 50;
-                                    } else if ("co2".equals(sensorType)) {
-                                        minNormal = 300;
-                                        maxNormal = 5000;
-                                    }
-                                    
-                                    for (double v : valuesList) {
-                                        sum += v;
-                                        sumSquares += v * v;
-                                        if (v < minNormal || v > maxNormal) {
-                                            anomalyCount++;
-                                        }
-                                    }
-                                    
-                                    double avg = sum / valuesList.size();
-                                    double variance = (sumSquares / valuesList.size()) - (avg * avg);
-                                    double stdDev = Math.sqrt(variance);
-                                    
-                                    // 存储统计结果
-                                    Map<String, Double> stats = new HashMap<>();
-                                    stats.put("min", min);
-                                    stats.put("max", max);
-                                    stats.put("avg", avg);
-                                    stats.put("stdDev", stdDev);
-                                    stats.put("count", (double) valuesList.size());
-                                    stats.put("anomalyCount", (double) anomalyCount);
-                                    stats.put("anomalyRate", (double) anomalyCount / valuesList.size());
-                                    
-                                    statsMap.put(sensorType, stats);
+                                // 假设正常范围
+                                double minNormal = 0;
+                                double maxNormal = 100;
+                                if ("temperature".equals(sensorType)) {
+                                    minNormal = -10;
+                                    maxNormal = 50;
+                                } else if ("co2".equals(sensorType)) {
+                                    minNormal = 300;
+                                    maxNormal = 5000;
                                 }
-                            });
-                            
-                            // 发送处理后的统计数据到WebSocket
-                            if (isWebSocketAvailable() && !statsMap.isEmpty()) {
-                                String jsonStats = objectMapper.writeValueAsString(statsMap);
-                                messagingTemplate.convertAndSend("/topic/spark-stats", jsonStats);
-                                logger.debug("发送Spark统计数据到WebSocket: {}", jsonStats);
+                                
+                                for (double v : valuesList) {
+                                    sum += v;
+                                    sumSquares += v * v;
+                                    if (v < minNormal || v > maxNormal) {
+                                        anomalyCount++;
+                                    }
+                                }
+                                
+                                double avg = sum / valuesList.size();
+                                double variance = (sumSquares / valuesList.size()) - (avg * avg);
+                                double stdDev = Math.sqrt(variance);
+                                
+                                // 存储统计结果
+                                Map<String, Double> stats = new HashMap<>();
+                                stats.put("min", min);
+                                stats.put("max", max);
+                                stats.put("avg", avg);
+                                stats.put("stdDev", stdDev);
+                                stats.put("count", (double) valuesList.size());
+                                stats.put("anomalyCount", (double) anomalyCount);
+                                stats.put("anomalyRate", (double) anomalyCount / valuesList.size());
+                                
+                                // 在驱动器上处理和发送WebSocket消息，防止序列化问题
+                                if (isWebSocketAvailable()) {
+                                    try {
+                                        Map<String, Map<String, Double>> statsMap = new HashMap<>();
+                                        statsMap.put(sensorType, stats);
+                                        String jsonStats = objectMapper.writeValueAsString(statsMap);
+                                        messagingTemplate.convertAndSend("/topic/spark-stats", jsonStats);
+                                        logger.debug("发送Spark统计数据到WebSocket: {}", jsonStats);
+                                    } catch (Exception e) {
+                                        logger.error("发送WebSocket消息时出错: {}", e.getMessage(), e);
+                                    }
+                                }
                             }
                         });
                     } catch (Exception e) {
