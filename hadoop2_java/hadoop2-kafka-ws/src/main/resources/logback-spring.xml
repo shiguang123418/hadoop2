@@ -65,21 +65,31 @@
     <logger name="org.springframework.messaging" level="INFO" />
     <logger name="org.springframework.web.socket" level="INFO" />
     
-    <!-- Spark相关日志配置，设置为WARN级别减少输出 -->
-    <logger name="org.apache.spark" level="WARN" />
-    <logger name="org.apache.spark.streaming" level="WARN" />
-    <logger name="org.apache.spark.scheduler" level="WARN" />
-    <logger name="org.apache.spark.storage" level="WARN" />
-    <logger name="org.apache.spark.executor" level="WARN" />
-    <logger name="org.apache.spark.sql" level="WARN" />
+    <!-- Spark相关日志配置，设置为ERROR级别减少输出 -->
+    <logger name="org.apache.spark" level="ERROR" />
+    <logger name="org.apache.spark.streaming" level="ERROR" />
+    <logger name="org.apache.spark.scheduler" level="ERROR" />
+    <logger name="org.apache.spark.storage" level="ERROR" />
+    <logger name="org.apache.spark.executor" level="ERROR" />
+    <logger name="org.apache.spark.sql" level="ERROR" />
     
-    <!-- Kafka相关日志配置，设置为WARN级别减少输出 -->
-    <logger name="org.apache.kafka" level="WARN" />
-    <logger name="kafka" level="WARN" />
+    <!-- Kafka相关日志配置，设置为ERROR级别减少输出 -->
+    <logger name="org.apache.kafka" level="ERROR" />
+    <logger name="kafka" level="ERROR" />
     
     <!-- 设置传感器和股票数据处理服务的日志级别为INFO，只输出关键信息 -->
     <logger name="org.shiguang.module.sensor.service" level="INFO" />
     <logger name="org.shiguang.module.stock.service" level="INFO" />
+    
+    <!-- 过滤掉特定的警告消息 -->
+    <logger name="org.apache.spark.sql.execution.window.WindowExec" level="ERROR" />
+    <logger name="org.apache.spark.sql.execution.aggregate.HashAggregateExec" level="ERROR" />
+    <logger name="org.apache.spark.sql.catalyst.expressions.codegen" level="ERROR" />
+    
+    <!-- 其他不必要的系统日志 -->
+    <logger name="org.apache.hadoop" level="ERROR" />
+    <logger name="io.netty" level="ERROR" />
+    <logger name="org.apache.zookeeper" level="ERROR" />
 
     <!-- 根日志级别 -->
     <root level="INFO">
