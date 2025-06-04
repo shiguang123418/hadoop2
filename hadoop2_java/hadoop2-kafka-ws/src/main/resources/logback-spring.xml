@@ -5,6 +5,10 @@
 
     <!-- 控制台输出 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- 添加过滤器，过滤掉低于INFO级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
             <charset>UTF-8</charset>
@@ -60,6 +64,22 @@
     <logger name="org.springframework.web" level="INFO" />
     <logger name="org.springframework.messaging" level="INFO" />
     <logger name="org.springframework.web.socket" level="INFO" />
+    
+    <!-- Spark相关日志配置，设置为WARN级别减少输出 -->
+    <logger name="org.apache.spark" level="WARN" />
+    <logger name="org.apache.spark.streaming" level="WARN" />
+    <logger name="org.apache.spark.scheduler" level="WARN" />
+    <logger name="org.apache.spark.storage" level="WARN" />
+    <logger name="org.apache.spark.executor" level="WARN" />
+    <logger name="org.apache.spark.sql" level="WARN" />
+    
+    <!-- Kafka相关日志配置，设置为WARN级别减少输出 -->
+    <logger name="org.apache.kafka" level="WARN" />
+    <logger name="kafka" level="WARN" />
+    
+    <!-- 设置传感器和股票数据处理服务的日志级别为INFO，只输出关键信息 -->
+    <logger name="org.shiguang.module.sensor.service" level="INFO" />
+    <logger name="org.shiguang.module.stock.service" level="INFO" />
 
     <!-- 根日志级别 -->
     <root level="INFO">
