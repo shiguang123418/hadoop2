@@ -12,6 +12,7 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
+import org.shiguang.config.SparkContextManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,21 +44,16 @@ public class SparkStreamingService implements Serializable {
     @Value("${kafka.topics.agriculture-sensor-data}")
     private String sensorTopic;
     
-    @Value("${spark.master:local[2]}")
-    private String sparkMaster;
-    
-    @Value("${spark.batch.duration:5}")
-    private int batchDuration;
-    
     @Value("${spark.enabled:true}")
     private boolean sparkEnabled;
     
-    @Autowired(required = false)
+    @Autowired
     private transient SimpMessagingTemplate messagingTemplate;
     
+    @Autowired
+    private transient SparkContextManager sparkContextManager;
+    
     private transient JavaStreamingContext streamingContext;
-    private transient JavaSparkContext sparkContext;
-    private transient SparkSession sparkSession;
     private transient Thread streamingThread;
     private transient AtomicBoolean running = new AtomicBoolean(false);
     
@@ -78,20 +74,19 @@ public class SparkStreamingService implements Serializable {
      */
     private void initSparkStreaming() {
         try {
-            // 创建Spark配置
-            SparkConf conf = new SparkConf()
-                    .setMaster(sparkMaster)
-                    .setAppName("AgricultureDataProcessing")
-                    .set("spark.streaming.stopGracefullyOnShutdown", "true");
+            // 检查SparkContextManager是否已初始化
+            if (!sparkContextManager.isInitialized()) {
+                logger.error("SparkContextManager未初始化，无法创建Spark流处理");
+                return;
+            }
             
-            // 创建Spark Streaming上下文
-            streamingContext = new JavaStreamingContext(conf, Durations.seconds(batchDuration));
-            sparkContext = streamingContext.sparkContext();
+            // 获取共享的JavaStreamingContext
+            streamingContext = sparkContextManager.getStreamingContext();
             
-            // 创建SparkSession (用于SQL操作)
-            sparkSession = SparkSession.builder()
-                    .config(sparkContext.getConf())
-                    .getOrCreate();
+            if (streamingContext == null) {
+                logger.error("获取StreamingContext失败");
+                return;
+            }
             
             // 配置Kafka消费者
             Map<String, Object> kafkaParams = new HashMap<>();
@@ -192,9 +187,10 @@ public class SparkStreamingService implements Serializable {
                 }
             });
             
-            // 启动Spark Streaming
-            start();
-            logger.info("Spark Streaming已初始化并启动");
+            // 不在这里启动Spark Streaming，由SparkContextManager统一管理
+            // 设置运行状态为true
+            running.set(true);
+            logger.info("Spark Streaming传感器数据处理已初始化");
         } catch (Exception e) {
             logger.error("初始化Spark Streaming时出错: {}", e.getMessage(), e);
         }
@@ -211,18 +207,9 @@ public class SparkStreamingService implements Serializable {
      * 启动Spark Streaming
      */
     public void start() {
-        if (running.compareAndSet(false, true)) {
-            streamingThread = new Thread(() -> {
-                try {
-                    streamingContext.start();
-                    streamingContext.awaitTermination();
-                } catch (Exception e) {
-                    logger.error("Spark Streaming运行时出错: {}", e.getMessage(), e);
-                }
-            });
-            
-            streamingThread.setDaemon(true);
-            streamingThread.start();
+        // 不再需要单独启动，由SparkContextManager统一管理
+        if (!running.get()) {
+            logger.info("Spark Streaming传感器数据处理未初始化，无法启动");
         }
     }
     
@@ -231,24 +218,8 @@ public class SparkStreamingService implements Serializable {
      */
     @PreDestroy
     public void shutdown() {
-        if (running.compareAndSet(true, false)) {
-            try {
-                if (streamingContext != null) {
-                    streamingContext.stop(true, true);
-                }
-                
-                if (sparkSession != null) {
-                    sparkSession.close();
-                }
-                
-                if (streamingThread != null) {
-                    streamingThread.interrupt();
-                }
-                
-                logger.info("Spark Streaming已关闭");
-            } catch (Exception e) {
-                logger.error("关闭Spark Streaming时出错: {}", e.getMessage(), e);
-            }
-        }
+        // 不再需要关闭，由SparkContextManager统一管理
+        running.set(false);
+        logger.info("Spark Streaming传感器数据处理已关闭");
     }
 } 

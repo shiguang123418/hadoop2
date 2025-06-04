@@ -12,6 +12,7 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
+import org.shiguang.config.SparkContextManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,17 +44,14 @@ public class StockDataProcessingService implements Serializable {
     @Value("${kafka.topics.stock-data:stock-data}")
     private String stockDataTopic;
     
-    @Value("${spark.master:local[*]}")
-    private String sparkMaster;
-    
-    @Value("${spark.batch.duration:5}")
-    private int batchDuration;
-    
     @Value("${spark.enabled:true}")
     private boolean sparkEnabled;
     
     @Autowired
     private transient SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private transient SparkContextManager sparkContextManager;
     
     private transient JavaStreamingContext streamingContext;
     private transient Thread streamingThread;
@@ -78,14 +76,19 @@ public class StockDataProcessingService implements Serializable {
      */
     private void initSparkStreamingForStockData() {
         try {
-            // 创建Spark配置
-            SparkConf conf = new SparkConf()
-                    .setMaster(sparkMaster)
-                    .setAppName("StockDataProcessing")
-                    .set("spark.streaming.stopGracefullyOnShutdown", "true");
+            // 检查SparkContextManager是否已初始化
+            if (!sparkContextManager.isInitialized()) {
+                logger.error("SparkContextManager未初始化，无法创建股票数据处理流");
+                return;
+            }
             
-            // 创建Spark Streaming上下文
-            streamingContext = new JavaStreamingContext(conf, Durations.seconds(batchDuration));
+            // 获取共享的JavaStreamingContext
+            streamingContext = sparkContextManager.getStreamingContext();
+            
+            if (streamingContext == null) {
+                logger.error("获取StreamingContext失败");
+                return;
+            }
             
             // 配置Kafka消费者
             Map<String, Object> kafkaParams = new HashMap<>();
@@ -110,10 +113,12 @@ public class StockDataProcessingService implements Serializable {
             stockDataJsonStream.foreachRDD(rdd -> {
                 if (!rdd.isEmpty()) {
                     try {
-                        // 获取SparkSession进行SQL操作
-                        SparkSession spark = SparkSession.builder()
-                                .config(rdd.context().getConf())
-                                .getOrCreate();
+                        // 获取SparkSession
+                        SparkSession spark = sparkContextManager.getSparkSession();
+                        if (spark == null) {
+                            logger.error("无法获取SparkSession");
+                            return;
+                        }
                         
                         // 将RDD转换为DataFrame
                         Dataset<Row> stockDataDF = spark.read().json(rdd);
@@ -241,9 +246,10 @@ public class StockDataProcessingService implements Serializable {
                 }
             });
             
-            // 启动Spark Streaming
-            start();
-            logger.info("用于处理股票数据的Spark Streaming已初始化并启动");
+            // 不在这里启动Spark Streaming，由SparkContextManager统一管理
+            // 设置运行状态为true
+            running.set(true);
+            logger.info("股票数据Spark Streaming已初始化");
         } catch (Exception e) {
             logger.error("初始化股票数据Spark Streaming失败: {}", e.getMessage(), e);
         }
@@ -253,22 +259,9 @@ public class StockDataProcessingService implements Serializable {
      * 启动Spark Streaming
      */
     public void start() {
-        if (running.compareAndSet(false, true)) {
-            streamingThread = new Thread(() -> {
-                try {
-                    logger.info("启动股票数据Spark Streaming...");
-                    streamingContext.start();
-                    streamingContext.awaitTermination();
-                } catch (Exception e) {
-                    logger.error("股票数据Spark Streaming运行时发生错误: {}", e.getMessage(), e);
-                } finally {
-                    running.set(false);
-                }
-            });
-            streamingThread.setDaemon(true);
-            streamingThread.start();
-        } else {
-            logger.info("股票数据Spark Streaming已经在运行中");
+        // 不再需要单独启动，由SparkContextManager统一管理
+        if (!running.get()) {
+            logger.info("股票数据Spark Streaming未初始化，无法启动");
         }
     }
     
@@ -277,17 +270,8 @@ public class StockDataProcessingService implements Serializable {
      */
     @PreDestroy
     public void shutdown() {
-        if (running.compareAndSet(true, false) && streamingContext != null) {
-            logger.info("正在关闭股票数据Spark Streaming...");
-            try {
-                streamingContext.stop(true, true);
-            } catch (Exception e) {
-                logger.error("关闭股票数据Spark Streaming时发生错误: {}", e.getMessage(), e);
-            }
-        }
-        if (streamingThread != null && streamingThread.isAlive()) {
-            streamingThread.interrupt();
-        }
+        // 不再需要关闭，由SparkContextManager统一管理
+        running.set(false);
         logger.info("股票数据Spark Streaming已关闭");
     }
     
