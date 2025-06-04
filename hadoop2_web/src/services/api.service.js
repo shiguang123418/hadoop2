@@ -2,6 +2,9 @@ import axios from 'axios';
 import { getServiceConfig } from '../utils/service-helper';
 import logger from '../utils/logger';
 import { handleApiError } from '../utils/error-handler';
+import AuthService from './auth';
+import router from '../router';
+import { ElMessage } from 'element-plus';
 
 /**
  * API服务基类 - 提供统一的API调用方法
@@ -56,6 +59,21 @@ class ApiService {
         return response.data;
       },
       error => {
+        // 检查是否是401错误（未授权，通常表示token已过期）
+        if (error.response && error.response.status === 401) {
+          // 避免在登录页面显示token失效的消息
+          if (router.currentRoute.value.path !== '/login') {
+            logger.warn('Token已过期或无效，执行自动登出操作');
+            ElMessage.error('登录已过期，请重新登录');
+            
+            // 执行登出操作
+            AuthService.logout();
+            
+            // 重定向到登录页
+            router.push('/login');
+          }
+        }
+        
         // 使用统一错误处理工具
         return Promise.reject(error);
       }

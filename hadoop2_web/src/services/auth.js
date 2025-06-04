@@ -1,6 +1,7 @@
 import axios from 'axios';
-
 import ApiService from './api.service';
+import router from '../router';
+import { ElMessage } from 'element-plus';
 
 /**
  * 身份验证服务
@@ -10,6 +11,9 @@ class AuthServiceClass extends ApiService {
     // 使用服务名称
     super('auth');
     // console.log('Auth服务初始化');
+    
+    // 自动启动token有效性检查
+    this.startTokenValidityCheck();
   }
   
   /**
@@ -114,6 +118,9 @@ class AuthServiceClass extends ApiService {
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
         
         // console.log('登录成功，已设置认证头');
+        
+        // 启动token有效性检查
+        this.startTokenValidityCheck();
       } else if (response && response.data && response.data.token) {
         // 处理嵌套在data字段中的情况
         // console.log('从嵌套的data字段中提取登录凭证');
@@ -130,6 +137,9 @@ class AuthServiceClass extends ApiService {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         // console.log('登录成功，已设置认证头');
+        
+        // 启动token有效性检查
+        this.startTokenValidityCheck();
       } else {
         // console.warn('响应中未找到token', response);
         throw new Error('服务器返回数据格式不正确，未找到令牌信息');
@@ -179,6 +189,12 @@ class AuthServiceClass extends ApiService {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
+    
+    // 清除token检查定时器
+    if (this.tokenCheckInterval) {
+      clearInterval(this.tokenCheckInterval);
+      this.tokenCheckInterval = null;
+    }
   }
   
   /**
@@ -191,6 +207,64 @@ class AuthServiceClass extends ApiService {
       return true;
     }
     return false;
+  }
+  
+  /**
+   * 检查JWT令牌是否有效
+   */
+  isTokenValid() {
+    const token = this.getToken();
+    if (!token) return false;
+    
+    try {
+      // 解析JWT token（不需要验证签名）
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const payload = JSON.parse(jsonPayload);
+      
+      // 检查是否过期
+      if (payload.exp) {
+        const current = Math.floor(Date.now() / 1000);
+        return payload.exp > current;
+      }
+      
+      return true;
+    } catch (e) {
+      console.error('解析JWT token失败:', e);
+      return false;
+    }
+  }
+  
+  /**
+   * 开始定期检查token有效性
+   */
+  startTokenValidityCheck() {
+    // 清除现有的检查器
+    if (this.tokenCheckInterval) {
+      clearInterval(this.tokenCheckInterval);
+    }
+    
+    // 每分钟检查一次token有效性
+    this.tokenCheckInterval = setInterval(() => {
+      if (this.isLoggedIn() && !this.isTokenValid()) {
+        console.warn('Token已过期，执行自动登出');
+        
+        // 如果不在登录页，显示提示
+        if (router.currentRoute.value.path !== '/login') {
+          ElMessage.error('登录已过期，请重新登录');
+        }
+        
+        // 执行登出
+        this.logout();
+        
+        // 重定向到登录页
+        router.push('/login');
+      }
+    }, 60000); // 每60秒检查一次
   }
   
   /**
