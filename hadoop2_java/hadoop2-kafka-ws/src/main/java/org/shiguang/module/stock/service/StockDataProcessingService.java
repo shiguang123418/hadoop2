@@ -131,6 +131,34 @@ public class StockDataProcessingService implements Serializable {
                         // 注册为临时视图，以便使用SQL
                         stockDataDF.createOrReplaceTempView("stock_data");
                         
+                        // 提取最新的一条记录，确保实时分析
+                        Dataset<Row> latestDataDF = spark.sql(
+                                "SELECT * FROM stock_data " +
+                                "WHERE realtime = true " +
+                                "ORDER BY tradeDate DESC LIMIT 1"
+                        );
+                        
+                        if (latestDataDF.count() == 0) {
+                            logger.info("未找到实时股票数据，将处理所有可用数据");
+                        } else {
+                            logger.info("已找到实时数据，优先处理最新记录");
+                            // 将最新数据注册为单独的视图
+                            latestDataDF.createOrReplaceTempView("latest_stock_data");
+                        }
+                        
+                        // 记录日志，显示处理的记录数
+                        long recordCount = stockDataDF.count();
+                        if (recordCount > 0) {
+                            logger.info("处理批次包含{}条股票数据记录", recordCount);
+                            // 显示一些样例数据
+                            if (recordCount > 0 && logger.isDebugEnabled()) {
+                                logger.debug("数据样例: \n{}", stockDataDF.showString(3, 20, false));
+                            }
+                        } else {
+                            logger.info("处理批次不包含有效数据");
+                            return;
+                        }
+                        
                         // 执行SQL查询计算统计信息
                         Dataset<Row> statsDF = spark.sql(
                                 "SELECT code, name, " +
@@ -201,97 +229,89 @@ public class StockDataProcessingService implements Serializable {
                         // 构建结果JSON
                         Map<String, Object> resultMap = new HashMap<>();
                         
+                        // 添加详细的日志输出
                         if (!statsRows.isEmpty()) {
-                            Row statsRow = statsRows.get(0);
-                            Map<String, Object> basicStats = new HashMap<>();
-                            basicStats.put("code", statsRow.getString(0));
-                            basicStats.put("name", statsRow.getString(1));
-                            basicStats.put("minPrice", statsRow.getDouble(2));
-                            basicStats.put("maxPrice", statsRow.getDouble(3));
-                            basicStats.put("avgPrice", statsRow.getDouble(4));
-                            basicStats.put("avgVolume", statsRow.getDouble(5));
-                            basicStats.put("avgAmount", statsRow.getDouble(6));
-                            basicStats.put("avgChangePercent", statsRow.getDouble(7));
-                            basicStats.put("totalVolume", statsRow.getLong(8));
-                            basicStats.put("totalAmount", statsRow.getDouble(9));
-                            resultMap.put("basicStats", basicStats);
-                        }
-                        
-                        List<Map<String, Object>> changeDist = new ArrayList<>();
-                        for (Row row : changeDistRows) {
-                            Map<String, Object> item = new HashMap<>();
-                            item.put("range", row.getString(0));
-                            item.put("count", row.getLong(1));
-                            changeDist.add(item);
-                        }
-                        resultMap.put("changePercentDistribution", changeDist);
-                        
-                        // 添加高波动率股票信息
-                        List<Map<String, Object>> volatileStocks = new ArrayList<>();
-                        for (Row row : volatileStocksRows) {
-                            Map<String, Object> stock = new HashMap<>();
-                            stock.put("code", row.getString(0));
-                            stock.put("name", row.getString(1));
-                            stock.put("priceRange", row.getDouble(2));
-                            stock.put("volatilityPercent", row.getDouble(3));
-                            volatileStocks.add(stock);
-                        }
-                        resultMap.put("volatileStocks", volatileStocks);
-                        resultMap.put("volatilityThreshold", stockConfig.getVolatilityThreshold());
-                        
-                        if (!volumeStatRows.isEmpty()) {
-                            Row volumeRow = volumeStatRows.get(0);
-                            Map<String, Object> volumeStats = new HashMap<>();
-                            volumeStats.put("mean", volumeRow.getDouble(0));
-                            volumeStats.put("stdDev", volumeRow.getDouble(1));
-                            resultMap.put("volumeStats", volumeStats);
-                        }
-                        
-                        if (!trendRows.isEmpty()) {
-                            Row trendRow = trendRows.get(0);
-                            Map<String, Object> trend = new HashMap<>();
-                            double firstOpen = trendRow.getDouble(2);
-                            double lastClose = trendRow.getDouble(3);
-                            double change = lastClose - firstOpen;
-                            double changePercent = (change / firstOpen) * 100;
+                            logger.info("共处理了{}支股票的统计信息", statsRows.size());
                             
-                            trend.put("firstOpen", firstOpen);
-                            trend.put("lastClose", lastClose);
-                            trend.put("change", change);
-                            trend.put("changePercent", changePercent);
-                            trend.put("trend", change > 0 ? "上涨" : (change < 0 ? "下跌" : "持平"));
-                            resultMap.put("trend", trend);
-                        }
-                        
-                        // 转换为JSON并发送到WebSocket
-                        ObjectMapper localMapper = new ObjectMapper(); // 创建本地ObjectMapper
-                        String resultJson = localMapper.writeValueAsString(resultMap);
-                        messagingTemplate.convertAndSend("/topic/stock-data-analytics", resultJson);
-                        
-                        processedCount.incrementAndGet();
-                        // 添加更详细的日志输出
-                        if (!statsRows.isEmpty()) {
-                            Row statsRow = statsRows.get(0);
-                            logger.info("处理股票数据 - 代码: {}, 名称: {}, 最低价: {}, 最高价: {}, 平均价: {}, 总量: {}", 
-                                statsRow.getString(0), 
-                                statsRow.getString(1),
-                                statsRow.getDouble(2),
-                                statsRow.getDouble(3),
-                                statsRow.getDouble(4),
-                                statsRow.getLong(8));
-                            
-                            if (!trendRows.isEmpty()) {
-                                Row trendRow = trendRows.get(0);
-                                double firstOpen = trendRow.getDouble(2);
-                                double lastClose = trendRow.getDouble(3);
-                                double change = lastClose - firstOpen;
-                                double changePercent = (change / firstOpen) * 100;
-                                logger.info("股票趋势 - 开盘: {}, 收盘: {}, 变化: {}, 变化率: {}%, 趋势: {}", 
-                                    firstOpen,
-                                    lastClose,
-                                    String.format("%.2f", change),
-                                    String.format("%.2f", changePercent),
-                                    change > 0 ? "上涨" : (change < 0 ? "下跌" : "持平"));
+                            for (Row statsRow : statsRows) {
+                                String code = statsRow.getString(0);
+                                String name = statsRow.getString(1);
+                                double minPrice = statsRow.getDouble(2);
+                                double maxPrice = statsRow.getDouble(3);
+                                double avgPrice = statsRow.getDouble(4);
+                                long totalVolume = statsRow.getLong(8);
+                                
+                                logger.info("处理股票数据 - 代码: {}, 名称: {}, 最低价: {}, 最高价: {}, 平均价: {}, 总量: {}", 
+                                    code, name, minPrice, maxPrice, avgPrice, totalVolume);
+                                
+                                // 查找对应的趋势信息
+                                for (Row trendRow : trendRows) {
+                                    if (trendRow.getString(0).equals(code)) {
+                                        double firstOpen = trendRow.getDouble(2);
+                                        double lastClose = trendRow.getDouble(3);
+                                        double change = lastClose - firstOpen;
+                                        double changePercent = (change / firstOpen) * 100;
+                                        
+                                        // 增加趋势判断
+                                        String trendDirection = change > 0 ? "上涨" : (change < 0 ? "下跌" : "持平");
+                                        String strengthLevel = "";
+                                        if (Math.abs(changePercent) > 3) {
+                                            strengthLevel = "强";
+                                        } else if (Math.abs(changePercent) > 1) {
+                                            strengthLevel = "中";
+                                        } else {
+                                            strengthLevel = "弱";
+                                        }
+                                        
+                                        String trendAnalysis = strengthLevel + trendDirection;
+                                        
+                                        logger.info("股票趋势 - 开盘: {}, 收盘: {}, 变化: {}, 变化率: {}%, 趋势: {} ({})", 
+                                            firstOpen,
+                                            lastClose,
+                                            String.format("%.2f", change),
+                                            String.format("%.2f", changePercent),
+                                            trendDirection,
+                                            trendAnalysis);
+                                            
+                                        // 检查是否是实时数据，添加更多的实时分析
+                                        Dataset<Row> realTimeDF = spark.sql(
+                                            "SELECT * FROM stock_data WHERE realtime = true AND code = '" + code + "' LIMIT 1"
+                                        );
+                                        
+                                        if (!realTimeDF.isEmpty()) {
+                                            logger.info("实时行情分析 - 股票: {} ({}) - 实时更新", name, code);
+                                            
+                                            // 获取最近的成交量变化
+                                            Dataset<Row> volumeChangeDF = spark.sql(
+                                                "SELECT " +
+                                                "(SELECT volume FROM stock_data WHERE code = '" + code + "' ORDER BY tradeDate DESC LIMIT 1) as current_volume, " +
+                                                "AVG(volume) as avg_volume " +
+                                                "FROM stock_data WHERE code = '" + code + "'"
+                                            );
+                                            
+                                            Row volumeRow = volumeChangeDF.first();
+                                            long currentVolume = volumeRow.getLong(0);
+                                            double avgVolume = volumeRow.getDouble(1);
+                                            double volumeChangePercent = ((double)currentVolume - avgVolume) / avgVolume * 100;
+                                            
+                                            logger.info("成交量分析: 当前={}, 平均={}, 变化率={}%, 状态={}", 
+                                                currentVolume, 
+                                                Math.round(avgVolume),
+                                                String.format("%.2f", volumeChangePercent),
+                                                volumeChangePercent > 50 ? "放量" : (volumeChangePercent < -20 ? "缩量" : "正常"));
+                                                
+                                            // 获取短期价格波动情况
+                                            double currentPrice = lastClose;
+                                            double priceVolatility = (maxPrice - minPrice) / minPrice * 100;
+                                            
+                                            logger.info("价格波动分析: 波动率={}%, 状态={}", 
+                                                String.format("%.2f", priceVolatility),
+                                                priceVolatility > stockConfig.getVolatilityThreshold() ? "高波动" : "稳定");
+                                        }
+                                        
+                                        break;
+                                    }
+                                }
                             }
                             
                             // 输出涨跌幅分布
@@ -319,6 +339,12 @@ public class StockDataProcessingService implements Serializable {
                             logger.info("未能解析到股票数据统计信息");
                         }
                         
+                        // 转换为JSON并发送到WebSocket
+                        ObjectMapper localMapper = new ObjectMapper(); // 创建本地ObjectMapper
+                        String resultJson = localMapper.writeValueAsString(resultMap);
+                        messagingTemplate.convertAndSend("/topic/stock-data-analytics", resultJson);
+                        
+                        processedCount.incrementAndGet();
                         logger.debug("已将股票数据分析结果发送到WebSocket: {}", resultJson);
                         
                     } catch (Exception e) {

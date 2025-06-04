@@ -48,7 +48,7 @@ stock:
   # 爬取配置
   crawler:
     enabled: true
-    interval: 10000  # 10秒
+    interval: 5000  # 5秒（提高频率以获取更实时的数据）
     default-code: "002714"  # 牧原股份
   # 处理器配置  
   processor:

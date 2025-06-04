@@ -88,4 +88,9 @@ public class StockData implements Serializable {
      * 换手率 (%)
      */
     private Double turnoverRate;
+    
+    /**
+     * 是否为实时数据
+     */
+    private Boolean realtime;
 } 

@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Random;
 
 /**
  * 股票数据爬虫服务
@@ -83,7 +84,7 @@ public class StockCrawlerService {
      * 定时爬取股票数据并发送到Kafka
      * 间隔由配置控制
      */
-    @Scheduled(fixedRateString = "${stock.crawler.interval:10000}")
+    @Scheduled(fixedRateString = "${stock.crawler.interval:5000}")
     public void scheduledCrawlStockData() {
         // 检查爬取功能是否启用
         if (!stockConfig.isCrawlerEnabled()) {
@@ -91,15 +92,17 @@ public class StockCrawlerService {
             return;
         }
         
-        logger.info("开始定时爬取股票数据");
+        logger.info("开始获取实时股票数据: {}", stockConfig.getDefaultStockCode());
         try {
             List<StockData> stockDataList = crawlStockData(stockConfig.getDefaultStockCode(), 0);
             for (StockData stockData : stockDataList) {
+                // 标记这是实时数据
+                stockData.setRealtime(true);
                 sendToKafka(stockData);
             }
         } catch (Exception e) {
             errorCounter.incrementAndGet();
-            logger.error("定时爬取股票数据失败: {}", e.getMessage(), e);
+            logger.error("获取实时股票数据失败: {}", e.getMessage(), e);
         }
     }
     
@@ -131,11 +134,17 @@ public class StockCrawlerService {
                         // 处理K线数据
                         JsonNode klinesNode = dataNode.path("klines");
                         if (klinesNode.isArray()) {
+                            logger.info("获取到{}条K线数据", klinesNode.size());
+                            
                             for (JsonNode klineNode : klinesNode) {
                                 String klineData = klineNode.asText();
                                 StockData stockData = parseKLineData(klineData, stockCode, stockMarket, stockName);
                                 if (stockData != null) {
                                     result.add(stockData);
+                                    logger.debug("解析K线数据：{} {} 价格: {}，成交量: {}，日期: {}", 
+                                            stockData.getCode(), stockData.getName(),
+                                            stockData.getClosePrice(), stockData.getVolume(),
+                                            stockData.getTradeDate());
                                 }
                             }
                         }
@@ -161,6 +170,8 @@ public class StockCrawlerService {
     private String buildEastMoneyApiUrl(String code, int market) {
         String secid = market + "." + code;
         long timestamp = System.currentTimeMillis();
+        // 添加随机数，避免请求被缓存
+        int random = new Random().nextInt(10000);
         
         return String.format(
                 "https://push2his.eastmoney.com/api/qt/stock/kline/get" +
@@ -169,8 +180,9 @@ public class StockCrawlerService {
                 "&ut=fa5fd1943c7b386f172d6893dbfba10b" +
                 "&fields1=f1,f2,f3,f4,f5,f6" +
                 "&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61" +
-                "&klt=101&fqt=1&end=20500101&lmt=1&_=%d",
-                timestamp - 100, secid, timestamp);
+                // 获取最新的单条记录
+                "&klt=101&fqt=1&end=20500101&lmt=1&_=%d&r=%d",
+                timestamp - 100, secid, timestamp, random);
     }
     
     /**
