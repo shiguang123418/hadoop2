@@ -19,7 +19,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * 模拟东方财富API，在真实API不可用时提供模拟数据
  */
 @RestController
-@RequestMapping("/api/stock-simulation")
+@RequestMapping("/stock-simulation")
 public class StockSimulationController {
 
     private static final Logger logger = LoggerFactory.getLogger(StockSimulationController.class);

@@ -221,7 +221,7 @@ public class StockCrawlerService {
         int random = new Random().nextInt(10000);
         String callback = "jQuery351034703624902167385_" + timestamp;
         
-        return String.format("%s/api/stock-simulation/kline?cb=%s&secid=%s", 
+        return String.format("%s/stock-simulation/kline?cb=%s&secid=%s", 
                 stockConfig.getSimulationApiHost(), callback, secid);
     }
     
