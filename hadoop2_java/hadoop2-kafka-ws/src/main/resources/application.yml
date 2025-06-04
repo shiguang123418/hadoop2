@@ -61,7 +61,7 @@ data:
 stock:
   crawler:
     enabled: true
-    interval: 30000  # 30秒
+    interval: 10000  # 30秒
     default-code: "002714"  # 牧原股份
     default-market: 0  # 深圳市场
 

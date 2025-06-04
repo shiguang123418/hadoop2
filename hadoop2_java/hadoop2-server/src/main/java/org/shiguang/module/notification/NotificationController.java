@@ -1,12 +1,12 @@
 package org.shiguang.module.notification;
 
-import org.shiguang.common.response.PageResponse;
-import org.shiguang.common.response.RestResponse;
+import org.shiguang.module.common.response.PageResponse;
+import org.shiguang.module.common.response.RestResponse;
 import org.shiguang.entity.Notification;
 import org.shiguang.entity.User;
 import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.AuthService;
-import org.shiguang.module.notification.dto.NotificationSearchDTO;
+import org.shiguang.entity.dto.NotificationSearchDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,7 +15,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -23,9 +23,9 @@ import java.util.concurrent.Executor;
 @EnableScheduling
 @EnableAsync
 @ServletComponentScan
-@ComponentScan(basePackages = {"org.shiguang", "com.hadoop2"})
-@EnableJpaRepositories(basePackages = {"org.shiguang.repository", "com.hadoop2.repository"})
-@EntityScan(basePackages = {"org.shiguang.entity", "com.hadoop2.entity"})
+@ComponentScan(basePackages = {"org.shiguang"})
+@EnableJpaRepositories(basePackages = {"org.shiguang.repository"})
+@EntityScan(basePackages = {"org.shiguang.entity"})
 public class HadoopApplication {
 
     public static void main(String[] args) {
