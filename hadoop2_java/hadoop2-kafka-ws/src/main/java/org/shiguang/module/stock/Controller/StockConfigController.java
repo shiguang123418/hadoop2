@@ -49,6 +49,14 @@ public class StockConfigController {
         analysisConfig.put("volatilityThreshold", stockConfig.getVolatilityThreshold());
         config.put("analysis", analysisConfig);
         
+        // 模拟配置
+        Map<String, Object> simulationConfig = new HashMap<>();
+        simulationConfig.put("enabled", stockConfig.isSimulationEnabled());
+        simulationConfig.put("targetCode", stockConfig.getSimulationTargetCode());
+        simulationConfig.put("targetName", stockConfig.getSimulationTargetName());
+        simulationConfig.put("apiHost", stockConfig.getSimulationApiHost());
+        config.put("simulation", simulationConfig);
+        
         return ResponseEntity.ok(config);
     }
     
@@ -113,6 +121,36 @@ public class StockConfigController {
     public ResponseEntity<Map<String, Object>> setVolatilityThreshold(@RequestParam double threshold) {
         stockConfig.setVolatilityThreshold(threshold);
         return createSuccessResponse("波动率阈值更新为: " + threshold + "%");
+    }
+    
+    /**
+     * 修改模拟器启用状态
+     */
+    @PutMapping("/simulation/enabled")
+    public ResponseEntity<Map<String, Object>> setSimulationEnabled(@RequestParam boolean enabled) {
+        stockConfig.setSimulationEnabled(enabled);
+        return createSuccessResponse("模拟器状态更新为: " + (enabled ? "启用" : "禁用"));
+    }
+    
+    /**
+     * 修改模拟目标股票
+     */
+    @PutMapping("/simulation/target")
+    public ResponseEntity<Map<String, Object>> setSimulationTarget(
+            @RequestParam String code,
+            @RequestParam String name) {
+        stockConfig.setSimulationTargetCode(code);
+        stockConfig.setSimulationTargetName(name);
+        return createSuccessResponse(String.format("模拟目标股票更新为: %s (%s)", name, code));
+    }
+    
+    /**
+     * 修改模拟API地址
+     */
+    @PutMapping("/simulation/api-host")
+    public ResponseEntity<Map<String, Object>> setSimulationApiHost(@RequestParam String host) {
+        stockConfig.setSimulationApiHost(host);
+        return createSuccessResponse("模拟API地址更新为: " + host);
     }
     
     /**

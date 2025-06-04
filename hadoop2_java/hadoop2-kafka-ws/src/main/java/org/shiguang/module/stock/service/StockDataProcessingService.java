@@ -247,11 +247,11 @@ public class StockDataProcessingService implements Serializable {
                                 // 查找对应的趋势信息
                                 for (Row trendRow : trendRows) {
                                     if (trendRow.getString(0).equals(code)) {
-                                        double firstOpen = trendRow.getDouble(2);
-                                        double lastClose = trendRow.getDouble(3);
-                                        double change = lastClose - firstOpen;
-                                        double changePercent = (change / firstOpen) * 100;
-                                        
+                            double firstOpen = trendRow.getDouble(2);
+                            double lastClose = trendRow.getDouble(3);
+                            double change = lastClose - firstOpen;
+                            double changePercent = (change / firstOpen) * 100;
+                            
                                         // 增加趋势判断
                                         String trendDirection = change > 0 ? "上涨" : (change < 0 ? "下跌" : "持平");
                                         String strengthLevel = "";

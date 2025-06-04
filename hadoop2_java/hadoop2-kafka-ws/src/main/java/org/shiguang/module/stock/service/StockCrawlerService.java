@@ -43,6 +43,7 @@ public class StockCrawlerService {
     private KafkaProducer<String, String> producer;
     private final AtomicInteger requestCounter = new AtomicInteger(0);
     private final AtomicInteger errorCounter = new AtomicInteger(0);
+    private final AtomicInteger simulatedRequestCounter = new AtomicInteger(0);
     
     @Value("${kafka.bootstrap.servers}")
     private String bootstrapServers;
@@ -91,18 +92,40 @@ public class StockCrawlerService {
             logger.debug("股票数据爬取功能已禁用，跳过本次爬取");
             return;
         }
+
+        boolean useSimulation = stockConfig.isSimulationEnabled();
         
-        logger.info("开始获取实时股票数据: {}", stockConfig.getDefaultStockCode());
-        try {
-            List<StockData> stockDataList = crawlStockData(stockConfig.getDefaultStockCode(), 0);
-            for (StockData stockData : stockDataList) {
-                // 标记这是实时数据
-                stockData.setRealtime(true);
-                sendToKafka(stockData);
+        // 使用模拟数据还是真实API
+        if (useSimulation) {
+            logger.info("使用模拟数据源获取股票数据");
+            // 获取模拟数据
+            String code = stockConfig.getSimulationTargetCode();
+            int market = code.startsWith("6") ? 1 : 0;
+            
+            try {
+                List<StockData> stockDataList = fetchSimulatedStockData(code, market);
+                for (StockData stockData : stockDataList) {
+                    // 标记这是模拟数据
+                    stockData.setRealtime(true);
+                    sendToKafka(stockData);
+                }
+            } catch (Exception e) {
+                errorCounter.incrementAndGet();
+                logger.error("获取模拟股票数据失败: {}", e.getMessage(), e);
             }
-        } catch (Exception e) {
-            errorCounter.incrementAndGet();
-            logger.error("获取实时股票数据失败: {}", e.getMessage(), e);
+        } else {
+            logger.info("开始获取实时股票数据: {}", stockConfig.getDefaultStockCode());
+            try {
+                List<StockData> stockDataList = crawlStockData(stockConfig.getDefaultStockCode(), 0);
+                for (StockData stockData : stockDataList) {
+                    // 标记这是实时数据
+                    stockData.setRealtime(true);
+                    sendToKafka(stockData);
+                }
+            } catch (Exception e) {
+                errorCounter.incrementAndGet();
+                logger.error("获取实时股票数据失败: {}", e.getMessage(), e);
+            }
         }
     }
     
@@ -183,6 +206,78 @@ public class StockCrawlerService {
                 // 获取最新的单条记录
                 "&klt=101&fqt=1&end=20500101&lmt=1&_=%d&r=%d",
                 timestamp - 100, secid, timestamp, random);
+    }
+    
+    /**
+     * 构建模拟API的URL
+     *
+     * @param code   股票代码
+     * @param market 市场代码
+     * @return 模拟API URL
+     */
+    private String buildSimulationApiUrl(String code, int market) {
+        String secid = market + "." + code;
+        long timestamp = System.currentTimeMillis();
+        int random = new Random().nextInt(10000);
+        String callback = "jQuery351034703624902167385_" + timestamp;
+        
+        return String.format("%s/api/stock-simulation/kline?cb=%s&secid=%s", 
+                stockConfig.getSimulationApiHost(), callback, secid);
+    }
+    
+    /**
+     * 从模拟API获取股票数据
+     *
+     * @param code   股票代码
+     * @param market 市场代码
+     * @return 股票数据列表
+     */
+    public List<StockData> fetchSimulatedStockData(String code, int market) {
+        List<StockData> result = new ArrayList<>();
+        String url = buildSimulationApiUrl(code, market);
+        
+        try {
+            simulatedRequestCounter.incrementAndGet();
+            String response = sendHttpRequest(url);
+            if (response != null && !response.isEmpty()) {
+                // 解析返回的JSONP数据
+                String jsonData = extractJsonFromJSONP(response);
+                if (jsonData != null) {
+                    JsonNode rootNode = objectMapper.readTree(jsonData);
+                    JsonNode dataNode = rootNode.path("data");
+                    
+                    if (!dataNode.isMissingNode()) {
+                        String stockCode = dataNode.path("code").asText();
+                        int stockMarket = dataNode.path("market").asInt();
+                        String stockName = dataNode.path("name").asText();
+                        
+                        // 处理K线数据
+                        JsonNode klinesNode = dataNode.path("klines");
+                        if (klinesNode.isArray()) {
+                            logger.info("获取到{}条模拟K线数据", klinesNode.size());
+                            
+                            for (JsonNode klineNode : klinesNode) {
+                                String klineData = klineNode.asText();
+                                StockData stockData = parseKLineData(klineData, stockCode, stockMarket, stockName);
+                                if (stockData != null) {
+                                    result.add(stockData);
+                                    logger.debug("解析模拟K线数据：{} {} 价格: {}，成交量: {}，日期: {}", 
+                                            stockData.getCode(), stockData.getName(),
+                                            stockData.getClosePrice(), stockData.getVolume(),
+                                            stockData.getTradeDate());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            errorCounter.incrementAndGet();
+            logger.error("获取模拟股票数据失败: {}", e.getMessage(), e);
+        }
+        
+        logger.info("获取到{}条模拟股票数据", result.size());
+        return result;
     }
     
     /**
@@ -267,43 +362,35 @@ public class StockCrawlerService {
                     .turnoverRate(Double.parseDouble(parts[10]))
                     .build();
         } catch (Exception e) {
-            logger.error("解析K线数据失败: {}, 原始数据: {}", e.getMessage(), klineData, e);
+            logger.error("解析K线数据失败: {}, 数据: {}", e.getMessage(), klineData, e);
             return null;
         }
     }
     
     /**
      * 将股票数据发送到Kafka
-     *
-     * @param stockData 股票数据对象
      */
     private void sendToKafka(StockData stockData) {
         try {
-            // 转换为JSON字符串
-            String jsonData = objectMapper.writeValueAsString(stockData);
-            
-            // 发送到Kafka
-            producer.send(new ProducerRecord<>(stockDataTopic, stockData.getCode(), jsonData), (metadata, exception) -> {
-                if (exception != null) {
-                    errorCounter.incrementAndGet();
-                    logger.error("发送股票数据到Kafka失败: {}", exception.getMessage(), exception);
-                } else {
-                    logger.debug("股票数据已成功发送到Kafka: topic={}, partition={}, offset={}",
-                            metadata.topic(), metadata.partition(), metadata.offset());
-                }
-            });
-            
+            String json = objectMapper.writeValueAsString(stockData);
+            producer.send(new ProducerRecord<>(stockDataTopic, stockData.getCode(), json));
         } catch (Exception e) {
-            errorCounter.incrementAndGet();
             logger.error("发送股票数据到Kafka失败: {}", e.getMessage(), e);
         }
     }
     
     /**
-     * 获取服务统计信息
+     * 获取服务状态统计
      */
     public String getServiceStats() {
-        return String.format("请求次数: %d, 错误次数: %d", 
-                requestCounter.get(), errorCounter.get());
+        boolean isSimulationMode = stockConfig.isSimulationEnabled();
+        
+        return String.format(
+                "爬取器: %s, 当前模式: %s, 请求次数: %d, 模拟请求: %d, 错误次数: %d", 
+                stockConfig.isCrawlerEnabled() ? "启用" : "禁用",
+                isSimulationMode ? "模拟" : "实时",
+                requestCounter.get(),
+                simulatedRequestCounter.get(),
+                errorCounter.get());
     }
 } 

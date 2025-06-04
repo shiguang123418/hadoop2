@@ -58,3 +58,11 @@ stock:
   analysis:
     enabled: true
     volatility-threshold: 5.0
+  # 模拟配置
+  simulation:
+    enabled: true  # 启用模拟功能
+    api:
+      host: http://shiguang:8001/api  # 模拟API地址
+    target-code: "002714"  # 目标股票代码
+    target-name: "牧原股份"  # 目标股票名称
+

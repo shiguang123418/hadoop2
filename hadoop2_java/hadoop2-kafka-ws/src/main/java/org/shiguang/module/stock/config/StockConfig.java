@@ -35,6 +35,18 @@ public class StockConfig {
     @Value("${stock.analysis.volatility-threshold:5.0}")
     private double volatilityThreshold;
 
+    @Value("${stock.simulation.enabled:true}")
+    private boolean simulationEnabled;
+
+    @Value("${stock.simulation.api.host:http://localhost:8080}")
+    private String simulationApiHost;
+    
+    @Value("${stock.simulation.target-code:002714}")
+    private String simulationTargetCode;
+    
+    @Value("${stock.simulation.target-name:牧原股份}")
+    private String simulationTargetName;
+
     public boolean isCrawlerEnabled() {
         return crawlerEnabled;
     }
@@ -101,5 +113,41 @@ public class StockConfig {
     public void setVolatilityThreshold(double volatilityThreshold) {
         this.volatilityThreshold = volatilityThreshold;
         logger.info("波动率阈值已设置为{}%", volatilityThreshold);
+    }
+    
+    public boolean isSimulationEnabled() {
+        return simulationEnabled;
+    }
+    
+    public void setSimulationEnabled(boolean simulationEnabled) {
+        this.simulationEnabled = simulationEnabled;
+        logger.info("股票数据模拟已{}", simulationEnabled ? "启用" : "禁用");
+    }
+    
+    public String getSimulationApiHost() {
+        return simulationApiHost;
+    }
+    
+    public void setSimulationApiHost(String simulationApiHost) {
+        this.simulationApiHost = simulationApiHost;
+        logger.info("模拟API主机地址已设置为{}", simulationApiHost);
+    }
+    
+    public String getSimulationTargetCode() {
+        return simulationTargetCode;
+    }
+    
+    public void setSimulationTargetCode(String simulationTargetCode) {
+        this.simulationTargetCode = simulationTargetCode;
+        logger.info("模拟目标股票代码已设置为{}", simulationTargetCode);
+    }
+    
+    public String getSimulationTargetName() {
+        return simulationTargetName;
+    }
+    
+    public void setSimulationTargetName(String simulationTargetName) {
+        this.simulationTargetName = simulationTargetName;
+        logger.info("模拟目标股票名称已设置为{}", simulationTargetName);
     }
 } 
