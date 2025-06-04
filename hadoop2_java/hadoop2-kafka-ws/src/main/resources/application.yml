@@ -40,6 +40,7 @@ kafka:
     weather-stats: weather-stats
     product-stats: product-stats
     system-notifications: system-notifications
+    stock-data: stock-data
 
 # Spark配置
 spark:
@@ -55,6 +56,14 @@ data:
   generator:
     enabled: true
     interval: 3000
+
+# 股票数据配置
+stock:
+  crawler:
+    enabled: true
+    interval: 30000  # 30秒
+    default-code: "002714"  # 牧原股份
+    default-market: 0  # 深圳市场
 
 # 日志配置
 logging:
