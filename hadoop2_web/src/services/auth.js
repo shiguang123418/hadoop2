@@ -1,13 +1,9 @@
 import axios from 'axios';
-<<<<<<< HEAD
-import ApiService from './api.service';
 import router from '../router';
 import { ElMessage } from 'element-plus';
-=======
 import LazyApiService from './LazyApiService';
->>>>>>> b0e0a6943b9c974ef7ad351f9cdd89616f735470
 
-/**
+/*
  * 身份验证服务
  */
 class AuthServiceClass extends LazyApiService {

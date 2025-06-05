@@ -77,12 +77,6 @@ const router = createRouter({
       name: 'user-management',
       meta: { requiresAuth: true, requiresAdmin: true }
     },
-    { 
-      path: '/system-settings', 
-      component: () => import('../views/SystemSettings.vue'),
-      name: 'system-settings',
-      meta: { requiresAuth: true, requiresAdmin: true }
-    },
     // 新增审计日志路由
     { 
       path: '/audit-logs', 
@@ -92,17 +86,6 @@ const router = createRouter({
         requiresAuth: true, 
         requiresAdmin: true, 
         title: '系统操作审计日志' 
-      }
-    },
-    // 系统配置管理
-    {
-      path: '/system-config',
-      name: 'system-config',
-      component: () => import('../views/SystemConfigView.vue'),
-      meta: { 
-        requiresAuth: true, 
-        requiresAdmin: true, 
-        title: '系统配置管理' 
       }
     },
     // 农业传感器监控

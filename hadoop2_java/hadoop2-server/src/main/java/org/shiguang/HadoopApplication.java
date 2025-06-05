@@ -23,11 +23,7 @@ import java.util.concurrent.Executor;
 @EnableScheduling
 @EnableAsync
 @ServletComponentScan
-@ComponentScan(basePackages = {"org.shiguang"})
-@EnableJpaRepositories(basePackages = {"org.shiguang.repository"})
-@EntityScan(basePackages = {"org.shiguang.entity"})
 public class HadoopApplication {
-
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(HadoopApplication.class, args);
 
@@ -38,7 +34,6 @@ public class HadoopApplication {
         printApplicationBanner(serverHost, serverPort, apiPath);
 
     }
-
     /**
      * 打印应用启动信息
      */
