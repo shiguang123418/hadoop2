@@ -1,20 +1,21 @@
-import ApiService from './api.service';
+import LazyApiService from './LazyApiService';
 
 /**
  * Spark服务 - 提供与Spark集群交互的功能
  */
-class SparkServiceClass extends ApiService {
+class SparkServiceClass extends LazyApiService {
   constructor() {
     // 使用服务名称
     super('spark');
-    console.log('Spark服务初始化');
+    // console.log('Spark服务初始化');
   }
   
   /**
    * 获取Spark连接状态
    * @returns {Promise} 连接状态信息
    */
-  getStatus() {
+  async getStatus() {
+    await this.ensureInitialized();
     return this.get('/status');
   }
   
@@ -22,7 +23,8 @@ class SparkServiceClass extends ApiService {
    * 获取运行中的Spark应用列表
    * @returns {Promise} 应用列表
    */
-  getApplications() {
+  async getApplications() {
+    await this.ensureInitialized();
     return this.get('/applications');
   }
   
@@ -31,7 +33,8 @@ class SparkServiceClass extends ApiService {
    * @param {string} appId 应用ID
    * @returns {Promise} 应用详情
    */
-  getApplicationInfo(appId) {
+  async getApplicationInfo(appId) {
+    await this.ensureInitialized();
     return this.get(`/applications/${appId}`);
   }
   
@@ -40,7 +43,8 @@ class SparkServiceClass extends ApiService {
    * @param {string} appId 应用ID
    * @returns {Promise} 执行器列表
    */
-  getApplicationExecutors(appId) {
+  async getApplicationExecutors(appId) {
+    await this.ensureInitialized();
     return this.get(`/applications/${appId}/executors`);
   }
   
@@ -49,7 +53,8 @@ class SparkServiceClass extends ApiService {
    * @param {string} appId 应用ID
    * @returns {Promise} 作业列表
    */
-  getApplicationJobs(appId) {
+  async getApplicationJobs(appId) {
+    await this.ensureInitialized();
     return this.get(`/applications/${appId}/jobs`);
   }
   
@@ -57,7 +62,8 @@ class SparkServiceClass extends ApiService {
    * 获取Spark环境信息
    * @returns {Promise} 环境信息
    */
-  getEnvironment() {
+  async getEnvironment() {
+    await this.ensureInitialized();
     return this.get('/environment');
   }
   
@@ -66,7 +72,8 @@ class SparkServiceClass extends ApiService {
    * @param {Object} jobConfig 作业配置
    * @returns {Promise} 提交结果
    */
-  submitJob(jobConfig) {
+  async submitJob(jobConfig) {
+    await this.ensureInitialized();
     return this.post('/jobs/submit', jobConfig);
   }
   
@@ -75,7 +82,8 @@ class SparkServiceClass extends ApiService {
    * @param {string} jobId 作业ID
    * @returns {Promise} 取消结果
    */
-  cancelJob(jobId) {
+  async cancelJob(jobId) {
+    await this.ensureInitialized();
     return this.post(`/jobs/${jobId}/cancel`);
   }
 }

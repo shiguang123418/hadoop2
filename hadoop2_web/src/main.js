@@ -2,7 +2,6 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import axios from 'axios'
 import VueAxios from 'vue-axios'
-import AuthService from './services/auth'
 import router from './router'
 import apiConfig from './config/api.config'
 import { setupApiInterceptor } from './utils/service-helper'
@@ -37,12 +36,14 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 window.SockJS = SockJS
 window.Stomp = Stomp
 
-
 // 设置API请求拦截器，统一添加/api前缀
 setupApiInterceptor();
 
-// 设置认证头
-AuthService.setupAuthHeader();
+// 设置初始认证头 (从localStorage读取token)
+const token = localStorage.getItem('token');
+if (token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
 
 // 创建Vue应用实例
 const app = createApp(App)
@@ -69,3 +70,24 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 // 挂载应用
 app.mount('#app')
+
+// 设置token检查 - 使用延迟导入AuthService以避免循环依赖
+setTimeout(async () => {
+  try {
+    // 动态导入AuthService
+    const { default: AuthService } = await import('./services/auth');
+    
+    // 设置定期检查token
+    const TOKEN_CHECK_INTERVAL = 60000; // 60秒
+    const tokenCheckInterval = setInterval(() => {
+      // 只有当用户已登录时才检查
+      if (localStorage.getItem('token')) {
+        AuthService.getToken(); // 这将自动检查token是否过期并处理登出
+      }
+    }, TOKEN_CHECK_INTERVAL);
+    
+    logger.info('Token有效性检查定时器已设置，间隔：', TOKEN_CHECK_INTERVAL, 'ms');
+  } catch (error) {
+    logger.error('加载AuthService失败，无法设置token检查:', error);
+  }
+}, 2000); // 延迟2秒启动

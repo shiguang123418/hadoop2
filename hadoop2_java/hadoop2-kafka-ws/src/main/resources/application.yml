@@ -40,27 +40,41 @@ spark:
 # 数据生成器配置
 data:
   generator:
-    enabled: false
+    enabled: true
     interval: 3000
+
+# 传感器数据配置
+sensor:
+  # 是否启用传感器模块
+  enabled: true
+  # 数据采集参数
+  data:
+    batch-size: 100
+    interval: 5000
+  # 模拟配置
+  simulation:
+    enabled: false
+  # kafka主题
+  kafka:
+    topic: agriculture-sensor-data
 
 # 股票数据配置
 stock:
+  # 是否启用股票模块
+  enabled: false
   # 爬取配置
   crawler:
-    enabled: true
-    interval: 5000  # 5秒（提高频率以获取更实时的数据）
+    interval: 5000  # 5秒爬取间隔
     default-code: "002714"  # 牧原股份
   # 处理器配置  
   processor:
-    enabled: true
     batch-size: 100
   # 分析配置
   analysis:
-    enabled: true
     volatility-threshold: 5.0
   # 模拟配置
   simulation:
-    enabled: true  # 启用模拟功能
+    enabled: false  # 是否启用模拟功能
     api:
       host: http://shiguang:8001/api  # 模拟API地址
     target-code: "002714"  # 目标股票代码

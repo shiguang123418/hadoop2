@@ -1,21 +1,22 @@
-import ApiService from './api.service';
+import LazyApiService from './LazyApiService';
 import serviceHelper from '../utils/service-helper';
 
 /**
  * Hive服务 - 提供与Hive数据库交互的功能
  */
-class HiveServiceClass extends ApiService {
+class HiveServiceClass extends LazyApiService {
   constructor() {
     // 使用服务名称
     super('hive');
-    console.log('Hive服务初始化');
+    // console.log('Hive服务初始化');
   }
   
   /**
    * 获取Hive连接状态
    * @returns {Promise} 连接状态信息
    */
-  getStatus() {
+  async getStatus() {
+    await this.ensureInitialized();
     return this.get('/status');
   }
   
@@ -23,7 +24,8 @@ class HiveServiceClass extends ApiService {
    * 获取所有数据库列表
    * @returns {Promise} 数据库列表
    */
-  getDatabases() {
+  async getDatabases() {
+    await this.ensureInitialized();
     return this.get('/databases');
   }
   
@@ -32,7 +34,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} database 可选，数据库名称
    * @returns {Promise} 表列表
    */
-  getTables(database) {
+  async getTables(database) {
+    await this.ensureInitialized();
     const params = {};
     if (database) {
       params.database = database;
@@ -45,7 +48,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} sql SQL查询语句
    * @returns {Promise} 查询结果
    */
-  executeQuery(sql) {
+  async executeQuery(sql) {
+    await this.ensureInitialized();
     return this.post('/query', { sql });
   }
   
@@ -54,7 +58,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} sql SQL更新语句
    * @returns {Promise} 更新结果
    */
-  executeUpdate(sql) {
+  async executeUpdate(sql) {
+    await this.ensureInitialized();
     return this.post('/update', { sql });
   }
   
@@ -64,7 +69,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} database 可选，数据库名称
    * @returns {Promise} 表结构信息
    */
-  getTableSchema(table, database) {
+  async getTableSchema(table, database) {
+    await this.ensureInitialized();
     const params = { table };
     if (database) {
       params.database = database;
@@ -81,7 +87,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} tableDefinition.fileFormat 文件格式
    * @returns {Promise} 创建结果
    */
-  createTable(tableDefinition) {
+  async createTable(tableDefinition) {
+    await this.ensureInitialized();
     return this.post('/table', tableDefinition);
   }
   
@@ -90,7 +97,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} tableName 表名
    * @returns {Promise} 删除结果
    */
-  dropTable(tableName) {
+  async dropTable(tableName) {
+    await this.ensureInitialized();
     return this.delete('/table', { name: tableName });
   }
   
@@ -180,7 +188,8 @@ class HiveServiceClass extends ApiService {
    * @param {number} limit 限制数
    * @returns {Promise} 分析结果
    */
-  executeAggregateAnalysis(tableName, aggregateColumn, aggregateFunction, groupByColumn, whereClause, limit) {
+  async executeAggregateAnalysis(tableName, aggregateColumn, aggregateFunction, groupByColumn, whereClause, limit) {
+    await this.ensureInitialized();
     return this.post('/analyze/aggregate', {
       tableName,
       aggregateColumn,
@@ -202,7 +211,8 @@ class HiveServiceClass extends ApiService {
    * @param {number} limit 限制数
    * @returns {Promise} 分析结果
    */
-  executeTimeSeriesAnalysis(tableName, timeColumn, valueColumn, interval, aggregateFunction, whereClause, limit) {
+  async executeTimeSeriesAnalysis(tableName, timeColumn, valueColumn, interval, aggregateFunction, whereClause, limit) {
+    await this.ensureInitialized();
     return this.post('/analyze/timeseries', {
       tableName,
       timeColumn,
@@ -221,7 +231,8 @@ class HiveServiceClass extends ApiService {
    * @param {number} limit 限制数
    * @returns {Promise} 分析结果
    */
-  analyzeColumnDistribution(tableName, columnName, limit) {
+  async analyzeColumnDistribution(tableName, columnName, limit) {
+    await this.ensureInitialized();
     return this.post('/analyze/distribution', {
       tableName,
       columnName,
@@ -235,7 +246,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} columnName 列名
    * @returns {Promise} 统计结果
    */
-  calculateColumnStatistics(tableName, columnName) {
+  async calculateColumnStatistics(tableName, columnName) {
+    await this.ensureInitialized();
     return this.post('/analyze/statistics', {
       tableName,
       columnName
@@ -249,7 +261,8 @@ class HiveServiceClass extends ApiService {
    * @param {string} column2 列2
    * @returns {Promise} 相关性结果
    */
-  calculateCorrelation(tableName, column1, column2) {
+  async calculateCorrelation(tableName, column1, column2) {
+    await this.ensureInitialized();
     return this.post('/analyze/correlation', {
       tableName,
       column1,
@@ -258,13 +271,14 @@ class HiveServiceClass extends ApiService {
   }
   
   /**
-   * 生成直方图数据
+   * 生成直方图
    * @param {string} tableName 表名
    * @param {string} columnName 列名
    * @param {number} numBuckets 桶数
    * @returns {Promise} 直方图数据
    */
-  generateHistogram(tableName, columnName, numBuckets = 10) {
+  async generateHistogram(tableName, columnName, numBuckets = 10) {
+    await this.ensureInitialized();
     return this.post('/analyze/histogram', {
       tableName,
       columnName,
@@ -280,9 +294,10 @@ class HiveServiceClass extends ApiService {
    * @param {string} aggregateColumn 聚合列
    * @param {string} aggregateFunction 聚合函数
    * @param {number} limit 限制数
-   * @returns {Promise} 透视表数据
+   * @returns {Promise} 透视分析结果
    */
-  executePivotAnalysis(tableName, rowDimension, colDimension, aggregateColumn, aggregateFunction, limit) {
+  async executePivotAnalysis(tableName, rowDimension, colDimension, aggregateColumn, aggregateFunction, limit) {
+    await this.ensureInitialized();
     return this.post('/analyze/pivot', {
       tableName,
       rowDimension,

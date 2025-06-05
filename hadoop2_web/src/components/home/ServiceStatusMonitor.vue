@@ -192,11 +192,10 @@ import {
   CircleCloseFilled,
   RefreshRight
 } from '@element-plus/icons-vue'
-import { HDFSService } from '@/services'
-import { HiveService } from '@/services'
-import { SparkService } from '@/services'
-import { KafkaService } from '@/services'
-import ServiceStatusApi from '@/api/service'
+import HDFSService from '@/services/HDFSService';
+import HiveService from '@/services/HiveService';
+import SparkService from '@/services/SparkService';
+import KafkaService from '@/services/KafkaService';
 
 export default {
   name: 'ServiceStatusMonitor',
