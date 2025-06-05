@@ -468,10 +468,6 @@ export default {
           handleSparkStats(data)
         })
         
-        await websocketManager.subscribe('/topic/system-notifications', (data) => {
-          addMessage('system', `系统通知: ${JSON.stringify(data)}`)
-        })
-        
         addMessage('system', '已订阅所有主题')
       } catch (e) {
         addMessage('error', `订阅失败: ${e.message || '未知错误'}`)

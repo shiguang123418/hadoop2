@@ -39,24 +39,10 @@ window.Stomp = Stomp
 // 设置API请求拦截器，统一添加/api前缀
 setupApiInterceptor();
 
-<<<<<<< HEAD
-// 设置认证头，并检查token是否有效
-if (AuthService.isLoggedIn()) {
-  // 设置认证头
-  AuthService.setupAuthHeader();
-  
-  // 立即检查token是否有效
-  if (!AuthService.isTokenValid()) {
-    logger.warn('应用启动时发现过期token，执行自动登出');
-    AuthService.logout();
-    router.push('/login');
-  }
-=======
 // 设置初始认证头 (从localStorage读取token)
 const token = localStorage.getItem('token');
 if (token) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
->>>>>>> b0e0a6943b9c974ef7ad351f9cdd89616f735470
 }
 
 // 创建Vue应用实例

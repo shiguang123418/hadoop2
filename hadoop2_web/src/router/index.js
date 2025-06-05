@@ -83,12 +83,6 @@ const router = createRouter({
       name: 'system-settings',
       meta: { requiresAuth: true, requiresAdmin: true }
     },
-    {
-      path: '/datasource',
-      name: 'DataSource',
-      component: () => import('../views/datasource/DataSourceList.vue'),
-      meta: { title: '数据源管理' }
-    },
     // 新增审计日志路由
     { 
       path: '/audit-logs', 
@@ -131,24 +125,6 @@ const router = createRouter({
       name: 'change-password',
       component: () => import('../views/ChangePassword.vue'),
       meta: { requiresAuth: true, title: '修改密码' }
-    },
-    // 新增路由 - 消息通知中心
-    {
-      path: '/notification',
-      name: 'notification',
-      component: () => import('../views/notification/NotificationList.vue'),
-      meta: { requiresAuth: true, title: '消息通知中心' }
-    },
-    // 新增路由 - 通知管理(管理员)
-    {
-      path: '/notification-manage',
-      name: 'notification-manage',
-      component: () => import('../views/notification/NotificationManage.vue'),
-      meta: { 
-        requiresAuth: true, 
-        requiresAdmin: true, 
-        title: '通知管理' 
-      }
     },
     // 新增大屏展示页面路由
     {

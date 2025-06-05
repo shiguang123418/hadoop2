@@ -62,17 +62,6 @@
             </el-menu-item>
           </el-sub-menu>
           
-          <el-menu-item index="/datasource" class="menu-item">
-            <el-icon><DataLine /></el-icon>
-            <span>数据源管理</span>
-          </el-menu-item>
-          
-          <el-menu-item index="/notification" class="menu-item">
-            <el-icon><Bell /></el-icon>
-            <span>通知中心</span>
-            <el-badge :value="unreadCount" :max="99" class="notification-badge" v-if="unreadCount > 0" />
-          </el-menu-item>
-          
           <el-sub-menu index="3" class="submenu">
             <template #title>
               <el-icon><Setting /></el-icon>
@@ -82,21 +71,9 @@
               <el-icon><User /></el-icon>
               <span>用户管理</span>
             </el-menu-item>
-            <el-menu-item index="/system-settings" class="menu-item">
-              <el-icon><Tools /></el-icon>
-              <span>系统设置</span>
-            </el-menu-item>
-            <el-menu-item index="/system-config" class="menu-item" v-if="isAdmin">
-              <el-icon><Setting /></el-icon>
-              <span>系统配置</span>
-            </el-menu-item>
             <el-menu-item index="/audit-logs" class="menu-item" v-if="isAdmin">
               <el-icon><List /></el-icon>
               <span>审计日志</span>
-            </el-menu-item>
-            <el-menu-item index="/notification-manage" class="menu-item" v-if="isAdmin">
-              <el-icon><Message /></el-icon>
-              <span>通知管理</span>
             </el-menu-item>
           </el-sub-menu>
         </el-menu>
@@ -108,24 +85,6 @@
           <h2 class="header-title">农业数据可视化平台</h2>
         </div>
         <div class="header-right">
-          <el-badge :value="unreadCount" :max="99" class="notification-icon" v-if="unreadCount > 0">
-            <el-button 
-              type="primary" 
-              :icon="Bell" 
-              circle 
-              @click="goToNotification"
-              size="small"
-            ></el-button>
-          </el-badge>
-          <el-button 
-            v-else
-            type="info" 
-            :icon="Bell" 
-            circle 
-            @click="goToNotification"
-            size="small"
-          ></el-button>
-          
           <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-dropdown">
               <el-avatar 
@@ -140,7 +99,6 @@
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人信息</el-dropdown-item>
                 <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
-                <el-dropdown-item command="notification">消息通知</el-dropdown-item>
                 <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -173,8 +131,6 @@ import {
   Crop,
   ArrowDown,
   List,
-  Bell,
-  Message,
   Monitor,
   DataBoard
 } from '@element-plus/icons-vue'
@@ -201,7 +157,6 @@ export default {
     Crop,
     ArrowDown,
     List,
-    Message,
     Monitor,
     DataBoard
   },
@@ -210,8 +165,6 @@ export default {
     const route = useRoute();
     const username = ref('管理员');
     const userAvatar = ref('');
-    const unreadCount = ref(0);
-    let notificationTimer = null;
     
     // 判断是否为全屏路由
     const isFullScreenRoute = computed(() => {
@@ -274,31 +227,6 @@ export default {
       return null;
     };
     
-    // 获取未读通知数量
-    const fetchUnreadCount = async () => {
-      if (!AuthService.isLoggedIn()) return;
-      
-      try {
-        const response = await axios.get('/notifications/unread-count');
-        if (response.data.success) {
-          unreadCount.value = response.data.data;
-        }
-      } catch (error) {
-        console.error('获取未读通知数量失败:', error);
-      }
-    };
-    
-    const startNotificationTimer = () => {
-      // 每隔一分钟检查一次未读通知数量
-      notificationTimer = setInterval(() => {
-        fetchUnreadCount();
-      }, 60000); // 60秒
-    };
-    
-    const goToNotification = () => {
-      router.push('/notification');
-    };
-    
     onMounted(async () => {
       // 尝试从服务器获取最新用户信息
       const serverUser = await fetchCurrentUser();
@@ -324,18 +252,6 @@ export default {
           }
         }
       }
-      
-      // 获取未读通知数量
-      await fetchUnreadCount();
-      // 启动定时器
-      startNotificationTimer();
-    });
-    
-    onUnmounted(() => {
-      // 清除定时器
-      if (notificationTimer) {
-        clearInterval(notificationTimer);
-      }
     });
     
     // 处理下拉菜单命令
@@ -350,11 +266,6 @@ export default {
           // 立即清除用户信息显示
           username.value = '';
           userAvatar.value = '';
-          // 停止通知检查
-          if (notificationTimer) {
-            clearInterval(notificationTimer);
-            notificationTimer = null;
-          }
           router.push('/login');
           ElMessage.success('已成功退出登录');
         }).catch(() => {});
@@ -362,8 +273,6 @@ export default {
         router.push('/profile');
       } else if (command === 'changePassword') {
         router.push('/change-password');
-      } else if (command === 'notification') {
-        router.push('/notification');
       }
     };
     
@@ -396,22 +305,14 @@ export default {
     // 组件卸载时移除事件监听
     onUnmounted(() => {
       window.removeEventListener('user-info-updated', updateUserInfo);
-      
-      // 清除定时器
-      if (notificationTimer) {
-        clearInterval(notificationTimer);
-      }
     });
     
     return {
       username,
       userAvatar,
       isAdmin,
-      unreadCount,
       handleCommand,
       avatarLoadError,
-      goToNotification,
-      Bell,
       updateUserInfo,
       isFullScreenRoute
     };
@@ -565,15 +466,6 @@ body {
   padding: 20px;
   overflow-y: auto;
   height: calc(100% - 60px);
-}
-
-/* 通知样式 */
-.notification-badge {
-  margin-left: 8px;
-}
-
-.notification-icon {
-  margin-right: 10px;
 }
 
 /* 页面过渡动画 */

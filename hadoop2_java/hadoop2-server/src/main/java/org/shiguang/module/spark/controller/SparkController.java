@@ -25,40 +25,11 @@ import java.util.Map;
 public class SparkController extends BaseController {
     private static final Logger logger = LoggerFactory.getLogger(SparkController.class);
 
-    @Autowired
-    private SparkService sparkService;
+//    @Autowired
+//    private SparkService sparkService;
 
     @Value("${spark.master}")
     private String sparkMaster;
-
-
-    /**
-     * 数据集格式转换
-     * @param datasetPath 源数据集路径
-     * @param outputPath 输出路径
-     * @param sourceFormat 源文件格式
-     * @param targetFormat 目标文件格式
-     * @return 转换结果
-     */
-    @PostMapping("/convert")
-    public ApiResponse<Map<String, Object>> convertDataset(
-            @RequestParam("datasetPath") String datasetPath,
-            @RequestParam("outputPath") String outputPath,
-            @RequestParam("sourceFormat") String sourceFormat,
-            @RequestParam("targetFormat") String targetFormat) {
-        
-        logger.info("接收到数据集格式转换请求，源路径: {}, 目标路径: {}, 源格式: {}, 目标格式: {}", 
-                 datasetPath, outputPath, sourceFormat, targetFormat);
-        
-        try {
-            Map<String, Object> result = sparkService.saveDataset(
-                    datasetPath, outputPath, sourceFormat, targetFormat);
-            return success(result);
-        } catch (Exception e) {
-            logger.error("数据集格式转换失败: {}", e.getMessage(), e);
-            return new ApiResponse<>(500, "数据集格式转换失败: " + e.getMessage(), null);
-        }
-    }
 
     /**
      * 获取Spark状态
@@ -111,4 +82,5 @@ public class SparkController extends BaseController {
             return ResponseEntity.ok(new ApiResponse<>(500, "获取应用列表失败: " + e.getMessage(), null));
         }
     }
+
 }

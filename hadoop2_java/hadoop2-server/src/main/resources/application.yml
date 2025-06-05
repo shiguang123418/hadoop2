@@ -3,7 +3,9 @@ server:
   servlet:
     context-path: /api
 
+# 基础配置，可根据环境自动切换
 app:
+  # 默认主机名，将被特定环境配置覆盖
   host: shiguang
   server:
     host: shiguang
@@ -12,6 +14,7 @@ spring:
   application:
     name: hadoop2-kafka-ws
   datasource:
+    # 数据库连接使用统一的app.host变量
     url: jdbc:mysql://${app.host}:3306/agri_big_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 082415
@@ -45,39 +48,21 @@ spring:
     max-text-message-size: 8192
     max-binary-message-size: 8192
 
+
+# Hadoop配置
 hadoop:
   hdfs:
-    block:
-      size: 67108864
-    replication: 3
-    use:
-      datanode:
-        hostname: false
-    buffer:
-      size: 4096
     uri: hdfs://${app.host}:9000
     user: root
-    root-dir: /user/hadoop
     connection:
-      required=false: false
       required: false
-    impl: org.apache.hadoop.hdfs.DistributedFileSystem
 
+# Hive配置
 hive:
-  jdbc:
-    url: jdbc:hive2://${app.host}:10000/default
-    driver: org.apache.hive.jdbc.HiveDriver
-    username: root
-    password: 
   url: jdbc:hive2://${app.host}:10000
   username: root
   password:
-  database: default
   driver: org.apache.hive.jdbc.HiveDriver
-  connection:
-    timeout: 30
-    required: false
-
 
 # JWT配置
 security:
@@ -86,33 +71,17 @@ security:
       secret-key: MzK4xNjQ5MDIzODckMTY0OTAyMzg3Jib20kMTYNDkwMjM4JiYzJDE2NDkwMjM4a27nczNzJiJjb20kMTY0OTAyMzg3QHNzY2jYW4
       expire-length: 86400000 # 24小时，单位：毫秒
 
-debug: false
-
 # Spark 配置
 spark:
-  app:
-    name: HadoopSparkApp
   master: local[*]
-  executor:
-    memory: 512m
-  driver:
-    memory: 512m
-  streaming:
-    stopGracefullyOnShutdown: true
-    checkpointLocation: /tmp/spark-checkpoint
-  ui:
-    enabled: false
 
 # Kafka 配置
 kafka:
   bootstrap:
-    servers: shiguang:9092,nas:9092
-  consumer:
-    group:
-      id: hadoop-consumer-group
-  host: ${app.host}
-  port: 9092
+    # 根据环境配置，可以在环境特定文件中覆盖
+    servers: ${app.host}:9092
 
+# 阿里云OSS配置
 aliyun:
   oss:
     endpoint: oss-cn-hangzhou.aliyuncs.com

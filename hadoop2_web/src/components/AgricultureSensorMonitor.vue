@@ -59,8 +59,7 @@ export default {
     // 可用的主题
     const availableTopics = [
       { label: '传感器数据', value: '/topic/agriculture-sensor-data' },
-      { label: 'Spark统计数据', value: '/topic/spark-stats' },
-      { label: '系统通知', value: '/topic/system-notifications' }
+      { label: 'Spark统计数据', value: '/topic/spark-stats' }
     ]
     
     // 已订阅的主题
@@ -132,9 +131,6 @@ export default {
         // 处理Spark统计数据
         updateSparkStats(data)
         addMessage('received', `Spark统计数据已更新`)
-      } else if (topic === '/topic/system-notifications') {
-        // 处理系统通知
-        addMessage('system', `系统通知: ${JSON.stringify(data)}`)
       }
     }
     

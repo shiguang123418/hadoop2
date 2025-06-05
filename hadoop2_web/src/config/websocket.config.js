@@ -26,10 +26,8 @@ const config = {
     weatherStats: '/topic/weather-stats',
     productStats: '/topic/product-stats',
     generalUpdates: '/topic/updates',
-    notifications: '/topic/notifications',
     agricultureSensorData: '/topic/agriculture-sensor-data',
-    sparkStats: '/topic/spark-stats',
-    systemNotifications: '/topic/system-notifications'
+    sparkStats: '/topic/spark-stats'
   }
 };
 
