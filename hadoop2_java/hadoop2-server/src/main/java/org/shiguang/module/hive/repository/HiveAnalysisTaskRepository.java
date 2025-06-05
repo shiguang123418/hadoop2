@@ -1,4 +1,4 @@
-package org.shiguang.repository;
+package org.shiguang.module.hive.repository;
 
 import org.shiguang.entity.HiveAnalysisTask;
 import org.springframework.data.jpa.repository.JpaRepository;

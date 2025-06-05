@@ -9,7 +9,7 @@ import org.shiguang.entity.dto.LoginResponseDTO;
 import org.shiguang.entity.dto.UserDTO;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.common.security.SecurityConstants;
-import org.shiguang.repository.UserRepository;
+import org.shiguang.module.common.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,9 +27,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
-import java.security.Key;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 认证服务实现类

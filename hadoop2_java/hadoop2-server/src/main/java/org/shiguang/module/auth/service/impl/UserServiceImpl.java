@@ -1,7 +1,7 @@
 package org.shiguang.module.auth.service.impl;
 
 import org.shiguang.entity.User;
-import org.shiguang.repository.UserRepository;
+import org.shiguang.module.common.repository.UserRepository;
 import org.shiguang.module.auth.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

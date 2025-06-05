@@ -5,8 +5,6 @@
 
     <!-- 使用服务状态监控组件 -->
     <ServiceStatusMonitor @service-status-change="handleServiceStatusChange" />
-
-    <ServiceStatus/>
     
     <!-- 使用数据概览组件 -->
     <DataStatsSummary />

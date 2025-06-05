@@ -1,6 +1,6 @@
-package org.shiguang.utils;
+package org.shiguang.utils.init;
 
-import org.shiguang.repository.UserRepository;
+import org.shiguang.module.common.repository.UserRepository;
 import org.shiguang.module.auth.Constants.SecurityConstants;
 import org.shiguang.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;

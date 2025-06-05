@@ -3,7 +3,7 @@ package org.shiguang.module.hive.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.shiguang.entity.HiveAnalysisTask;
-import org.shiguang.repository.HiveAnalysisTaskRepository;
+import org.shiguang.module.hive.repository.HiveAnalysisTaskRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,14 +95,7 @@ public class TaskManagerService {
             throw new RuntimeException("保存任务参数失败", e);
         }
     }
-    
-    /**
-     * 重载方法，兼容旧版调用
-     */
-    public String submitAnalysisTask(String analysisType, String database, String table, Map<String, Object> params) {
-        return submitAnalysisTask(analysisType, database, table, params, "system");
-    }
-    
+
     /**
      * 异步执行分析任务
      */

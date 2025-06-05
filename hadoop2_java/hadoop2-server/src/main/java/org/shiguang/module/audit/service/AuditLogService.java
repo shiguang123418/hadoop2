@@ -1,7 +1,7 @@
-package org.shiguang.module.audit;
+package org.shiguang.module.audit.service;
 
 import org.shiguang.entity.AuditLog;
-import org.shiguang.repository.AuditLogRepository;
+import org.shiguang.module.audit.repository.AuditLogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

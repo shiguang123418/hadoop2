@@ -6,6 +6,7 @@ import org.shiguang.entity.dto.UserDTO;
 import org.shiguang.entity.dto.UserListDTO;
 import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.UserService;
+import org.shiguang.utils.init.DataInitializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class UserController {
     private UserService userService;
 
     @Autowired
-    private org.shiguang.utils.DataInitializer dataInitializer;
+    private DataInitializer dataInitializer;
 
     /**
      * 获取所有用户

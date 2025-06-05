@@ -6,7 +6,7 @@ import org.shiguang.entity.dto.UserDTO;
 import org.shiguang.module.audit.AuditOperation;
 import org.shiguang.module.auth.service.AuthService;
 import org.shiguang.module.auth.service.UserService;
-import org.shiguang.module.oss.service.OssService;
+import org.shiguang.utils.oss.OssUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,9 +34,6 @@ public class UserProfileController {
     
     @Autowired
     private UserService userService;
-    
-    @Autowired
-    private OssService ossService;
 
     /**
      * 获取当前用户个人资料
@@ -141,8 +138,8 @@ public class UserProfileController {
                     currentUser.getUsername(), originalFilename, fileSize, contentType);
             
             try {
-                // 上传到指定目录
-                Map<String, String> result = ossService.uploadFile(file, "avatar/");
+                // 使用OssUtil工具类上传到指定目录
+                Map<String, String> result = OssUtil.uploadFile(file, "avatar/");
                 logger.info("OSS上传成功 - 结果: {}", result);
                 
                 if (result == null) {

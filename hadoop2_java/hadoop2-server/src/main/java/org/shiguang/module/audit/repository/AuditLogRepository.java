@@ -1,4 +1,4 @@
-package org.shiguang.repository;
+package org.shiguang.module.audit.repository;
 
 import org.shiguang.entity.AuditLog;
 import org.springframework.data.domain.Page;
@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * 审计日志仓库

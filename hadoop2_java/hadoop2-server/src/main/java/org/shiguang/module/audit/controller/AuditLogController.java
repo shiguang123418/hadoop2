@@ -1,7 +1,7 @@
-package org.shiguang.controller;
+package org.shiguang.module.audit.controller;
 
 import org.shiguang.entity.AuditLog;
-import org.shiguang.module.audit.AuditLogService;
+import org.shiguang.module.audit.service.AuditLogService;
 import org.shiguang.module.audit.AuditOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * 审计日志控制器

@@ -1,4 +1,4 @@
-package org.shiguang.repository;
+package org.shiguang.module.common.repository;
 
 import org.shiguang.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;

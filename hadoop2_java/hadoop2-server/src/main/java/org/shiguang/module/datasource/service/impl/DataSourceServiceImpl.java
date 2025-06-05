@@ -1,7 +1,7 @@
 package org.shiguang.module.datasource.service.impl;
 
 import org.shiguang.entity.DataSource;
-import org.shiguang.repository.DataSourceRepository;
+import org.shiguang.module.datasource.repository.DataSourceRepository;
 import org.shiguang.module.datasource.service.DataSourceService;
 import org.shiguang.module.datasource.exception.DataSourceException;
 import org.shiguang.module.datasource.exception.DataSourceNotFoundException;
