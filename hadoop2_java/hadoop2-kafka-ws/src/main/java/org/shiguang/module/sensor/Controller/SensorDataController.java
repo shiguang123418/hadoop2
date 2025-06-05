@@ -52,21 +52,7 @@ public class SensorDataController {
             return ResponseEntity.internalServerError().body("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
-    
-    /**
-     * 手动发送测试数据
-     */
-    @PostMapping("/test-data")
-    public ResponseEntity<String> sendTestData() {
-        try {
-            dataGeneratorUtil.sendTestData();
-            return ResponseEntity.ok("{\"status\": \"success\", \"message\": \"测试数据已发送\"}");
-        } catch (Exception e) {
-            logger.error("发送测试数据时出错: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body("{\"error\": \"" + e.getMessage() + "\"}");
-        }
-    }
-    
+
     /**
      * 直接发送WebSocket消息测试
      */

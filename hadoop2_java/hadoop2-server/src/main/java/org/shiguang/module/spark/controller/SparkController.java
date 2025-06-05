@@ -2,10 +2,8 @@ package org.shiguang.module.spark.controller;
 
 import org.shiguang.module.common.controller.BaseController;
 import org.shiguang.module.common.response.ApiResponse;
-import org.shiguang.module.spark.service.SparkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

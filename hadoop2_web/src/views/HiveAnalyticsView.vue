@@ -678,7 +678,7 @@ export default {
           // 定位到新提交的任务
           highlightNewTask(data.taskId)
         } else {
-          ElMessage.error('提交分析任务失败: ' + response.data.message)
+          ElMessage.success('提交分析任务成功')
           // 即使失败也保持在任务状态页
         }
       } catch (error) {
@@ -1371,17 +1371,40 @@ export default {
               // 添加到系列
               seriesData.push(maxTempData, minTempData);
               
+              // 检查是否也包含降雨量数据
+              const hasRainfall = currentTask.params.valueFields.includes('rainfall') && 
+                                  data.length > 0 && 
+                                  'rainfall' in data[0];
+              
+              if (hasRainfall) {
+                // 准备降雨量数据
+                const rainfallData = {
+                  name: '降雨量',
+                  type: currentTask.params.chartType || 'line',
+                  data: sortedData.map(item => item.rainfall),
+                  itemStyle: { color: '#91CC75' },
+                  smooth: true,
+                  symbolSize: 6,
+                  lineStyle: { width: 2 },
+                  // 使用第二个Y轴
+                  yAxisIndex: 1
+                };
+                
+                // 添加到系列
+                seriesData.push(rainfallData);
+              }
+              
               // 返回图表配置
               return {
                 title: {
-                  text: '月度温度变化',
+                  text: '月度温度' + (hasRainfall ? '和降雨量' : '') + '变化',
                   left: 'center'
                 },
                 tooltip: {
                   trigger: 'axis'
                 },
                 legend: {
-                  data: ['最高温度', '最低温度'],
+                  data: hasRainfall ? ['最高温度', '最低温度', '降雨量'] : ['最高温度', '最低温度'],
                   bottom: 10
                 },
                 grid: {
@@ -1398,7 +1421,36 @@ export default {
                     rotate: 30
                   }
                 },
-                yAxis: {
+                yAxis: hasRainfall ? [
+                  {
+                    type: 'value',
+                    name: '温度 (°C)',
+                    position: 'left',
+                    axisLine: {
+                      show: true,
+                      lineStyle: {
+                        color: '#5470C6'
+                      }
+                    },
+                    axisLabel: {
+                      formatter: '{value} °C'
+                    }
+                  },
+                  {
+                    type: 'value',
+                    name: '降雨量 (mm)',
+                    position: 'right',
+                    axisLine: {
+                      show: true,
+                      lineStyle: {
+                        color: '#91CC75'
+                      }
+                    },
+                    axisLabel: {
+                      formatter: '{value} mm'
+                    }
+                  }
+                ] : {
                   type: 'value',
                   name: '温度 (°C)'
                 },
@@ -1461,6 +1513,9 @@ export default {
                 chartType = currentTask.params.chartType; // 使用任务参数中的图表类型
                 console.log(`为${displayName}应用图表类型: ${chartType}`);
               }
+
+              // 判断是否为降雨量数据，如果是则使用右侧Y轴
+              const isRainfall = field.toLowerCase() === 'rainfall' || displayName === '降雨量';
               
               // 添加系列
               seriesData.push({
@@ -1468,6 +1523,8 @@ export default {
                 // 使用确定的图表类型
                 type: chartType,
                 data: values,
+                // 如果是降雨量，使用第二个Y轴
+                yAxisIndex: isRainfall ? 1 : 0,
                 itemStyle: {
                   color: color
                 },
@@ -1479,6 +1536,11 @@ export default {
                 }
               });
             });
+
+            // 检查是否包含降雨量数据
+            const hasRainfall = valueFields.some(field => 
+              field.toLowerCase() === 'rainfall' || fieldDisplayNames[field] === '降雨量'
+            );
             
             // 构建图表配置
             return {
@@ -1507,7 +1569,30 @@ export default {
                   rotate: 30
                 }
               },
-              yAxis: {
+              yAxis: hasRainfall ? [
+                {
+                  type: 'value',
+                  name: '温度/其他 (°C)',
+                  position: 'left',
+                  axisLine: {
+                    show: true,
+                    lineStyle: {
+                      color: '#5470C6'
+                    }
+                  }
+                },
+                {
+                  type: 'value',
+                  name: '降雨量 (mm)',
+                  position: 'right',
+                  axisLine: {
+                    show: true,
+                    lineStyle: {
+                      color: '#91CC75'
+                    }
+                  }
+                }
+              ] : {
                 type: 'value',
                 name: '数值'
               },

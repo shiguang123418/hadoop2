@@ -22,19 +22,8 @@ public class WebSocketMessageController {
     @Autowired
     private DataStreamWebSocketHandler dataStreamWebSocketHandler;
     
-    /**
-     * 处理来自客户端的测试消息
-     * 
-     * @param message 客户端发送的消息
-     * @return 服务器响应
-     */
-    @MessageMapping("/test-message")
-    @SendTo("/topic/test")
-    public String handleTestMessage(String message) {
-        logger.info("收到WebSocket测试消息: {}", message);
-        return "服务器已收到: " + message;
-    }
-    
+
+
     /**
      * 处理客户端订阅请求
      * 
