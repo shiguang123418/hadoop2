@@ -29,16 +29,29 @@ public class StockModeController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> getCurrentMode() {
         Map<String, Object> result = new HashMap<>();
-        boolean isSimulationMode = stockConfig.isSimulationEnabled();
         
-        result.put("mode", isSimulationMode ? "simulation" : "realtime");
+        // 主要状态
+        result.put("enabled", stockConfig.isEnabled());
         result.put("simulation", stockConfig.isSimulationEnabled());
-        result.put("targetStock", Map.of(
-            "code", stockConfig.getSimulationTargetCode(),
-            "name", stockConfig.getSimulationTargetName()
-        ));
+        
+        // 其他参数
+        Map<String, String> targetStockMap = new HashMap<>();
+        targetStockMap.put("code", stockConfig.getSimulationTargetCode());
+        targetStockMap.put("name", stockConfig.getSimulationTargetName());
+        result.put("targetStock", targetStockMap);
         
         return ResponseEntity.ok(result);
+    }
+    
+    /**
+     * 启用/禁用股票模块
+     */
+    @PostMapping("/enabled")
+    public ResponseEntity<Map<String, Object>> setEnabled(
+            @RequestParam(required = true) boolean enabled) {
+        stockConfig.setEnabled(enabled);
+        logger.info("股票模块已{}", enabled ? "启用" : "禁用");
+        return createSimpleResponse("股票模块已" + (enabled ? "启用" : "禁用"), "enabled", enabled);
     }
     
     /**
@@ -76,7 +89,11 @@ public class StockModeController {
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("message", String.format("已设置目标股票: %s (%s)", name, code));
-        result.put("targetStock", Map.of("code", code, "name", name));
+        
+        Map<String, String> targetStockMap = new HashMap<>();
+        targetStockMap.put("code", code);
+        targetStockMap.put("name", name);
+        result.put("targetStock", targetStockMap);
         
         return ResponseEntity.ok(result);
     }
@@ -89,6 +106,17 @@ public class StockModeController {
         result.put("success", true);
         result.put("message", message);
         result.put("mode", isSimulation ? "simulation" : "realtime");
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 创建简单响应
+     */
+    private ResponseEntity<Map<String, Object>> createSimpleResponse(String message, String key, Object value) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("message", message);
+        result.put(key, value);
         return ResponseEntity.ok(result);
     }
 } 

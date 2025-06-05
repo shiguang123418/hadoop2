@@ -1,21 +1,21 @@
-import ApiService from './api.service';
-import serviceHelper from '../utils/service-helper';
+import LazyApiService from './LazyApiService';
 
 /**
  * HDFS服务 - 提供与HDFS文件系统交互的功能
  */
-class HDFSServiceClass extends ApiService {
+class HDFSServiceClass extends LazyApiService {
   constructor() {
-    // 使用服务名称
+    // 使用服务名称初始化基类
     super('hdfs');
-    console.log('HDFS服务初始化');
+    // console.log('HDFS服务初始化');
   }
   
   /**
    * 获取HDFS连接状态
    * @returns {Promise} 连接状态信息
    */
-  getStatus() {
+  async getStatus() {
+    await this.ensureInitialized();
     return this.get('/status');
   }
   
@@ -24,7 +24,8 @@ class HDFSServiceClass extends ApiService {
    * @param {string} path 目录路径
    * @returns {Promise} 文件和目录列表
    */
-  listFiles(path) {
+  async listFiles(path) {
+    await this.ensureInitialized();
     return this.get('/list', { path });
   }
   
@@ -34,7 +35,9 @@ class HDFSServiceClass extends ApiService {
    * @param {string} permission 可选，权限字符串(如"755")
    * @returns {Promise} 创建结果
    */
-  createDirectory(path, permission) {
+  async createDirectory(path, permission) {
+    await this.ensureInitialized();
+    
     // 确保路径开头有斜杠
     if (!path.startsWith('/')) {
       path = '/' + path;
@@ -57,7 +60,9 @@ class HDFSServiceClass extends ApiService {
    * @param {Function} progressCallback 进度回调函数
    * @returns {Promise} 上传结果
    */
-  uploadFile(file, targetPath, progressCallback) {
+  async uploadFile(file, targetPath, progressCallback) {
+    await this.ensureInitialized();
+    
     const formData = new FormData();
     formData.append('file', file);
     
@@ -92,7 +97,9 @@ class HDFSServiceClass extends ApiService {
    * @param {Function} progressCallback 进度回调函数
    * @returns {Promise} 文件内容
    */
-  downloadFile(path, progressCallback) {
+  async downloadFile(path, progressCallback) {
+    await this.ensureInitialized();
+    
     const config = {
       responseType: 'blob'
     };
@@ -114,7 +121,8 @@ class HDFSServiceClass extends ApiService {
    * @param {boolean} recursive 是否递归删除
    * @returns {Promise} 删除结果
    */
-  deleteFile(path, recursive = false) {
+  async deleteFile(path, recursive = false) {
+    await this.ensureInitialized();
     return this.delete('/delete', { path, recursive });
   }
   
@@ -124,7 +132,8 @@ class HDFSServiceClass extends ApiService {
    * @param {string} destination 目标路径
    * @returns {Promise} 操作结果
    */
-  renameFile(source, destination) {
+  async renameFile(source, destination) {
+    await this.ensureInitialized();
     return this.post('/rename', null, {
       params: { src: source, dst: destination }
     });
@@ -135,7 +144,8 @@ class HDFSServiceClass extends ApiService {
    * @param {string} path 路径
    * @returns {Promise} 存在检查结果
    */
-  fileExists(path) {
+  async fileExists(path) {
+    await this.ensureInitialized();
     return this.get('/exists', { path });
   }
   

@@ -4,6 +4,12 @@
 import apiConfig from '../config/api.config';
 import axios from 'axios';
 import logger from './logger';
+// 导入路由，用于在token过期时重定向
+import router from '../router';
+// 移除循环引用，改为动态处理AuthService
+// import AuthService from '../services/auth';
+// 导入Element Plus的消息组件
+import { ElMessage } from 'element-plus';
 
 /**
  * 构建API路径
@@ -63,9 +69,21 @@ export function logRequestPath(method, path) {
 }
 
 /**
+ * 执行登出操作
+ * 移除localStorage中的token和user信息
+ */
+function logout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  delete axios.defaults.headers.common['Authorization'];
+  logger.info('用户已登出');
+}
+
+/**
  * 添加请求拦截器，根据服务名称路由请求到不同的后端服务
  */
 export function setupApiInterceptor() {
+  // 请求拦截器 - 路由不同服务到不同后端服务器
   axios.interceptors.request.use(
     (config) => {
       const url = config.url || '';
@@ -102,8 +120,45 @@ export function setupApiInterceptor() {
       return Promise.reject(error);
     }
   );
+
+  // 响应拦截器 - 处理认证错误（token过期）
+  axios.interceptors.response.use(
+    (response) => {
+      return response;
+    },
+    (error) => {
+      if (error.response) {
+        // 处理401错误（未授权）- 通常表示token已过期或无效
+        if (error.response.status === 401) {
+          logger.warn('收到401未授权响应，可能是令牌过期');
+          
+          // 检查当前路由是否需要认证
+          const currentPath = router.currentRoute.value.path;
+          const needsAuth = router.currentRoute.value.meta.requiresAuth;
+          
+          // 执行登出操作 - 不再直接调用AuthService
+          logout();
+          
+          // 如果当前页面需要认证，则重定向到登录页面
+          if (needsAuth && currentPath !== '/login') {
+            logger.info('重定向到登录页面，当前路径:', currentPath);
+            router.push('/login');
+            
+            // 显示消息提示用户
+            ElMessage.warning({
+              message: '您的登录已过期，请重新登录',
+              duration: 5000
+            });
+          }
+        }
+      }
+      
+      // 继续抛出错误，让调用代码处理
+      return Promise.reject(error);
+    }
+  );
   
-  logger.info('多后端API请求拦截器已设置，将根据服务自动路由请求');
+  logger.info('多后端API请求拦截器和响应拦截器已设置，将自动处理令牌过期情况');
 }
 
 export default {

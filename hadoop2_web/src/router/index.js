@@ -1,9 +1,38 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../views/HomePage.vue'
 import Login from '../views/Login.vue'
-import AuthService from '../services/auth'
 import { ElMessage } from 'element-plus'
 import logger from "@/utils/logger.js";
+
+/**
+ * 检查用户是否已登录
+ * @returns {boolean} 是否已登录
+ */
+function checkLogin() {
+  // 检查localStorage中是否存在token
+  const token = localStorage.getItem('token');
+  return !!token; // 转换为布尔值
+}
+
+/**
+ * 检查用户是否为管理员
+ * @returns {boolean} 是否为管理员
+ */
+function checkAdmin() {
+  // 从localStorage中获取用户信息
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return false;
+    
+    const user = JSON.parse(userStr);
+    // 标准化角色名
+    const role = user.role ? user.role.replace(/^ROLE_/, '').toLowerCase() : '';
+    return role === 'admin';
+  } catch (e) {
+    console.error('解析用户信息失败:', e);
+    return false;
+  }
+}
 
 // 创建路由实例
 const router = createRouter({
@@ -143,12 +172,10 @@ router.beforeEach((to, from, next) => {
   // 检查路由是否需要认证
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth === true);
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin === true);
-  const isLoggedIn = AuthService.isLoggedIn();
-  
-  // 检查用户是否为管理员
-  const isAdmin = AuthService.isAdmin();
-    // 输出调试信息
+  const isLoggedIn = checkLogin();
+  const isAdmin = checkAdmin();
 
+  // 输出调试信息
   console.log('路由守卫检查:', { 
     path: to.path, 
     requiresAuth, 

@@ -1,12 +1,16 @@
 import axios from 'axios';
+<<<<<<< HEAD
 import ApiService from './api.service';
 import router from '../router';
 import { ElMessage } from 'element-plus';
+=======
+import LazyApiService from './LazyApiService';
+>>>>>>> b0e0a6943b9c974ef7ad351f9cdd89616f735470
 
 /**
  * 身份验证服务
  */
-class AuthServiceClass extends ApiService {
+class AuthServiceClass extends LazyApiService {
   constructor() {
     // 使用服务名称
     super('auth');
@@ -33,11 +37,67 @@ class AuthServiceClass extends ApiService {
   }
   
   /**
-   * 获取身份验证令牌
+   * 解析JWT令牌
+   * @param {string} token JWT令牌
+   * @returns {Object|null} 解析后的令牌数据
+   */
+  parseToken(token) {
+    if (!token) return null;
+    
+    try {
+      // JWT的结构是header.payload.signature
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error('解析JWT令牌失败:', e);
+      return null;
+    }
+  }
+  
+  /**
+   * 检查令牌是否已过期
+   * @returns {boolean} 令牌是否已过期
+   */
+  isTokenExpired() {
+    const token = localStorage.getItem('token');
+    if (!token) return true;
+    
+    const parsedToken = this.parseToken(token);
+    if (!parsedToken) return true;
+    
+    // 检查令牌是否有exp字段（过期时间）
+    if (!parsedToken.exp) return false;
+    
+    // 将过期时间转换为毫秒并与当前时间比较
+    const expirationTime = parsedToken.exp * 1000; // 转换为毫秒
+    const currentTime = Date.now();
+    
+    // 添加日志以便调试
+    // console.log('Token过期时间:', new Date(expirationTime).toLocaleString());
+    // console.log('当前时间:', new Date(currentTime).toLocaleString());
+    // console.log('Token是否过期:', currentTime >= expirationTime);
+    
+    return currentTime >= expirationTime;
+  }
+  
+  /**
+   * 获取身份验证令牌，自动检查令牌是否过期
    */
   getToken() {
     const token = localStorage.getItem('token');
-    // console.log('获取Token:', token ? '存在' : '不存在');
+    
+    // 检查令牌是否已过期
+    if (token && this.isTokenExpired()) {
+      // console.warn('令牌已过期，执行自动登出');
+      this.logout();
+      return null;
+    }
+    
     return token;
   }
   
@@ -88,6 +148,8 @@ class AuthServiceClass extends ApiService {
    * @param {string} password 密码
    */
   async login(username, password) {
+    await this.ensureInitialized();
+    
     try {
       // 检查用户名和密码
       if (!username || !password) {
@@ -151,8 +213,8 @@ class AuthServiceClass extends ApiService {
       
       // 详细记录错误信息用于调试
       if (error.response) {
-        console.error('错误状态码:', error.response.status);
-        console.error('错误信息:', error.response.data);
+        // console.error('错误状态码:', error.response.status);
+        // console.error('错误信息:', error.response.data);
         
         // 针对常见HTTP状态码提供更友好的错误消息
         if (error.response.status === 401) {
@@ -178,6 +240,7 @@ class AuthServiceClass extends ApiService {
    * @param {Object} userData 用户数据
    */
   async register(userData) {
+    await this.ensureInitialized();
     // 使用API服务类提供的post方法
     return this.post('/register', userData);
   }
@@ -271,6 +334,7 @@ class AuthServiceClass extends ApiService {
    * 获取所有用户（管理员功能）
    */
   async getUsers() {
+    await this.ensureInitialized();
     return this.get('/users');
   }
   
@@ -279,6 +343,7 @@ class AuthServiceClass extends ApiService {
    * @param {string} userId 用户ID
    */
   async getUser(userId) {
+    await this.ensureInitialized();
     return this.get(`/users/${userId}`);
   }
   
@@ -287,6 +352,7 @@ class AuthServiceClass extends ApiService {
    * @param {Object} userData 用户数据
    */
   async createUser(userData) {
+    await this.ensureInitialized();
     return this.post('/users', userData);
   }
   
@@ -296,6 +362,7 @@ class AuthServiceClass extends ApiService {
    * @param {Object} userData 用户数据
    */
   async updateUser(userId, userData) {
+    await this.ensureInitialized();
     return this.put(`/users/${userId}`, userData);
   }
   
@@ -304,6 +371,7 @@ class AuthServiceClass extends ApiService {
    * @param {string} userId 用户ID
    */
   async deleteUser(userId) {
+    await this.ensureInitialized();
     return this.delete(`/users/${userId}`);
   }
   
@@ -313,6 +381,7 @@ class AuthServiceClass extends ApiService {
    * @param {string} newPassword 新密码
    */
   async changePassword(currentPassword, newPassword) {
+    await this.ensureInitialized();
     return this.post('/change-password', {
       currentPassword,
       newPassword
@@ -324,6 +393,7 @@ class AuthServiceClass extends ApiService {
    * @param {Object} profileData 个人资料数据
    */
   async updateProfile(profileData) {
+    await this.ensureInitialized();
     return this.put('/profile', profileData);
   }
   
@@ -332,6 +402,7 @@ class AuthServiceClass extends ApiService {
    * @param {string} userId 用户ID
    */
   async resetUserPassword(userId) {
+    await this.ensureInitialized();
     return this.post(`/users/${userId}/reset-password`);
   }
 }

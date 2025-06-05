@@ -30,22 +30,22 @@ public class StockConfigController {
     public ResponseEntity<Map<String, Object>> getConfig() {
         Map<String, Object> config = new HashMap<>();
         
+        // 全局开关
+        config.put("enabled", stockConfig.isEnabled());
+        
         // 爬取器配置
         Map<String, Object> crawlerConfig = new HashMap<>();
-        crawlerConfig.put("enabled", stockConfig.isCrawlerEnabled());
         crawlerConfig.put("interval", stockConfig.getCrawlerInterval());
         crawlerConfig.put("defaultCode", stockConfig.getDefaultStockCode());
         config.put("crawler", crawlerConfig);
         
         // 处理器配置
         Map<String, Object> processorConfig = new HashMap<>();
-        processorConfig.put("enabled", stockConfig.isProcessorEnabled());
         processorConfig.put("batchSize", stockConfig.getProcessorBatchSize());
         config.put("processor", processorConfig);
         
         // 分析器配置
         Map<String, Object> analysisConfig = new HashMap<>();
-        analysisConfig.put("enabled", stockConfig.isAnalysisEnabled());
         analysisConfig.put("volatilityThreshold", stockConfig.getVolatilityThreshold());
         config.put("analysis", analysisConfig);
         
@@ -61,12 +61,12 @@ public class StockConfigController {
     }
     
     /**
-     * 修改爬取器启用状态
+     * 修改全局启用状态
      */
-    @PutMapping("/crawler/enabled")
-    public ResponseEntity<Map<String, Object>> setCrawlerEnabled(@RequestParam boolean enabled) {
-        stockConfig.setCrawlerEnabled(enabled);
-        return createSuccessResponse("爬取器状态更新为: " + (enabled ? "启用" : "禁用"));
+    @PutMapping("/enabled")
+    public ResponseEntity<Map<String, Object>> setEnabled(@RequestParam boolean enabled) {
+        stockConfig.setEnabled(enabled);
+        return createSuccessResponse("股票模块状态更新为: " + (enabled ? "启用" : "禁用"));
     }
     
     /**
@@ -88,30 +88,12 @@ public class StockConfigController {
     }
     
     /**
-     * 修改处理器启用状态
-     */
-    @PutMapping("/processor/enabled")
-    public ResponseEntity<Map<String, Object>> setProcessorEnabled(@RequestParam boolean enabled) {
-        stockConfig.setProcessorEnabled(enabled);
-        return createSuccessResponse("处理器状态更新为: " + (enabled ? "启用" : "禁用"));
-    }
-    
-    /**
      * 修改处理批次大小
      */
     @PutMapping("/processor/batch-size")
     public ResponseEntity<Map<String, Object>> setProcessorBatchSize(@RequestParam int size) {
         stockConfig.setProcessorBatchSize(size);
         return createSuccessResponse("处理批次大小更新为: " + size);
-    }
-    
-    /**
-     * 修改分析器启用状态
-     */
-    @PutMapping("/analysis/enabled")
-    public ResponseEntity<Map<String, Object>> setAnalysisEnabled(@RequestParam boolean enabled) {
-        stockConfig.setAnalysisEnabled(enabled);
-        return createSuccessResponse("分析器状态更新为: " + (enabled ? "启用" : "禁用"));
     }
     
     /**

@@ -68,11 +68,11 @@ public class StockDataProcessingService implements Serializable {
      */
     @PostConstruct
     public void init() {
-        if (sparkEnabled && stockConfig.isProcessorEnabled()) {
+        if (sparkEnabled && stockConfig.isEnabled()) {
             initSparkStreamingForStockData();
         } else {
-            logger.info("股票数据Spark Streaming已禁用 (sparkEnabled={}, processorEnabled={})",
-                    sparkEnabled, stockConfig.isProcessorEnabled());
+            logger.info("股票数据Spark Streaming已禁用 (sparkEnabled={}, stockEnabled={})",
+                    sparkEnabled, stockConfig.isEnabled());
         }
     }
     
@@ -367,9 +367,16 @@ public class StockDataProcessingService implements Serializable {
      * 启动Spark Streaming
      */
     public void start() {
-        // 不再需要单独启动，由SparkContextManager统一管理
-        if (!running.get()) {
-            logger.info("股票数据Spark Streaming未初始化，无法启动");
+        // 如果配置变化，重新初始化或关闭
+        if (sparkEnabled && stockConfig.isEnabled() && !running.get()) {
+            initSparkStreamingForStockData();
+            logger.info("股票数据Spark Streaming已启动");
+        } else if ((!sparkEnabled || !stockConfig.isEnabled()) && running.get()) {
+            shutdown();
+            logger.info("股票数据Spark Streaming已停止");
+        } else if (!running.get() && stockConfig.isEnabled() && sparkEnabled) {
+            logger.info("股票数据Spark Streaming未初始化，正在尝试初始化");
+            initSparkStreamingForStockData();
         }
     }
     
@@ -380,7 +387,7 @@ public class StockDataProcessingService implements Serializable {
     public void shutdown() {
         // 不再需要关闭，由SparkContextManager统一管理
         running.set(false);
-        logger.info("股票数据Spark Streaming已关闭");
+        logger.info("股票数据处理Spark Streaming已关闭");
     }
     
     /**

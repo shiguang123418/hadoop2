@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.shiguang.module.sensor.utils.DataGeneratorUtil;
 import org.shiguang.module.sensor.service.KafkaConsumerService;
-import org.shiguang.module.sensor.service.SparkStreamingService;
+import org.shiguang.module.sensor.service.SensorStreamAnalysisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class SystemStatusController {
     private DataGeneratorUtil dataGeneratorUtil;
     
     @Autowired(required = false)
-    private SparkStreamingService sparkStreamingService;
+    private SensorStreamAnalysisService sensorStreamAnalysisService;
     
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -53,7 +53,7 @@ public class SystemStatusController {
             statusNode.put("websocketEnabled", messagingTemplate != null);
             
             // Spark状态
-            statusNode.put("sparkEnabled", sparkStreamingService != null);
+            statusNode.put("sparkEnabled", sensorStreamAnalysisService != null);
             
             // 发送系统状态通知
             String statusJson = objectMapper.writeValueAsString(statusNode);

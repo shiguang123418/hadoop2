@@ -100,7 +100,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { HDFSService, HiveService, SparkService, KafkaService } from '@/services';
+import HDFSService from '@/services/HDFSService';
+import HiveService from '@/services/HiveService';
+import SparkService from '@/services/SparkService';
+import KafkaService from '@/services/KafkaService';
 
 const hdfsStatus = ref(false);
 const hdfsUri = ref('');
@@ -737,7 +740,7 @@ const runDiagnostics = async () => {
 }
 
 .result-error .result-icon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23D32F2F'%3E%3Cpath d='M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23D32F2F'%3E%3Cpath d='M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'/%3E%3C/svg%3E");
 }
 
 .result-info .result-icon {

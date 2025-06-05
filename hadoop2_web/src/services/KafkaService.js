@@ -1,20 +1,21 @@
-import ApiService from './api.service';
+import LazyApiService from './LazyApiService';
 
 /**
  * Kafka服务 - 提供与Kafka消息系统交互的功能
  */
-class KafkaServiceClass extends ApiService {
+class KafkaServiceClass extends LazyApiService {
   constructor() {
-    // 使用服务名称
+    // 使用服务名称初始化基类
     super('kafka');
-    console.log('Kafka服务初始化');
+    // console.log('Kafka服务初始化');
   }
   
   /**
    * 获取Kafka连接状态
    * @returns {Promise} 连接状态信息
    */
-  getStatus() {
+  async getStatus() {
+    await this.ensureInitialized();
     return this.get('/status');
   }
   
@@ -22,7 +23,8 @@ class KafkaServiceClass extends ApiService {
    * 获取所有主题列表
    * @returns {Promise} 主题列表
    */
-  getTopics() {
+  async getTopics() {
+    await this.ensureInitialized();
     return this.get('/topics');
   }
   
@@ -33,7 +35,8 @@ class KafkaServiceClass extends ApiService {
    * @param {number} replicationFactor 复制因子
    * @returns {Promise} 创建结果
    */
-  createTopic(topicName, partitions = 1, replicationFactor = 1) {
+  async createTopic(topicName, partitions = 1, replicationFactor = 1) {
+    await this.ensureInitialized();
     return this.post('/topics', {
       name: topicName,
       partitions,
@@ -46,7 +49,8 @@ class KafkaServiceClass extends ApiService {
    * @param {string} topicName 主题名称
    * @returns {Promise} 删除结果
    */
-  deleteTopic(topicName) {
+  async deleteTopic(topicName) {
+    await this.ensureInitialized();
     return this.delete(`/topics/${topicName}`);
   }
   
@@ -55,7 +59,8 @@ class KafkaServiceClass extends ApiService {
    * @param {string} topicName 主题名称
    * @returns {Promise} 主题详细信息
    */
-  getTopicInfo(topicName) {
+  async getTopicInfo(topicName) {
+    await this.ensureInitialized();
     return this.get(`/topics/${topicName}`);
   }
   
@@ -64,7 +69,8 @@ class KafkaServiceClass extends ApiService {
    * @param {string} topicName 主题名称
    * @returns {Promise} 消费者组列表
    */
-  getTopicConsumerGroups(topicName) {
+  async getTopicConsumerGroups(topicName) {
+    await this.ensureInitialized();
     return this.get(`/topics/${topicName}/consumer-groups`);
   }
   
@@ -74,7 +80,8 @@ class KafkaServiceClass extends ApiService {
    * @param {Object} message 消息对象
    * @returns {Promise} 发送结果
    */
-  produceMessage(topicName, message) {
+  async produceMessage(topicName, message) {
+    await this.ensureInitialized();
     return this.post(`/topics/${topicName}/messages`, message);
   }
   
@@ -85,7 +92,8 @@ class KafkaServiceClass extends ApiService {
    * @param {number} maxMessages 最大消息数
    * @returns {Promise} 消息列表
    */
-  consumeMessages(topicName, groupId, maxMessages = 100) {
+  async consumeMessages(topicName, groupId, maxMessages = 100) {
+    await this.ensureInitialized();
     return this.get(`/topics/${topicName}/messages`, {
       groupId,
       maxMessages
@@ -96,7 +104,8 @@ class KafkaServiceClass extends ApiService {
    * 获取所有消费者组列表
    * @returns {Promise} 消费者组列表
    */
-  getConsumerGroups() {
+  async getConsumerGroups() {
+    await this.ensureInitialized();
     return this.get('/consumer-groups');
   }
   
@@ -105,7 +114,8 @@ class KafkaServiceClass extends ApiService {
    * @param {string} groupId 消费者组ID
    * @returns {Promise} 消费者组详情
    */
-  getConsumerGroupInfo(groupId) {
+  async getConsumerGroupInfo(groupId) {
+    await this.ensureInitialized();
     return this.get(`/consumer-groups/${groupId}`);
   }
   
@@ -113,7 +123,8 @@ class KafkaServiceClass extends ApiService {
    * 获取Kafka集群节点信息
    * @returns {Promise} 集群节点列表
    */
-  getClusterInfo() {
+  async getClusterInfo() {
+    await this.ensureInitialized();
     return this.get('/cluster/info');
   }
 }

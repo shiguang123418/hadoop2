@@ -2,17 +2,13 @@ package org.shiguang.module.sensor.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
-import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.shiguang.config.SparkContextManager;
+import org.shiguang.module.sensor.config.SensorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,20 +28,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 使用Spark Streaming处理从Kafka接收的数据并计算统计信息
  */
 @Service
-public class SparkStreamingService implements Serializable {
+public class SensorStreamAnalysisService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private static final Logger logger = LoggerFactory.getLogger(SparkStreamingService.class);
+    private static final Logger logger = LoggerFactory.getLogger(SensorStreamAnalysisService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Value("${kafka.bootstrap.servers}")
     private String bootstrapServers;
     
-    @Value("${kafka.topics.agriculture-sensor-data}")
-    private String sensorTopic;
-    
-    @Value("${spark.enabled:true}")
-    private boolean sparkEnabled;
+    @Autowired
+    private transient SensorConfig sensorConfig;
     
     @Autowired
     private transient SimpMessagingTemplate messagingTemplate;
@@ -62,10 +55,10 @@ public class SparkStreamingService implements Serializable {
      */
     @PostConstruct
     public void init() {
-        if (sparkEnabled) {
+        if (sensorConfig.isEnabled()) {
             initSparkStreaming();
         } else {
-            logger.info("Spark Streaming已禁用");
+            logger.info("传感器 Spark Streaming 已禁用");
         }
     }
     
@@ -97,12 +90,15 @@ public class SparkStreamingService implements Serializable {
             kafkaParams.put("auto.offset.reset", "latest");
             kafkaParams.put("enable.auto.commit", "true");
             
+            // 使用配置中的Kafka主题
+            String kafkaTopic = sensorConfig.getKafkaTopic();
+            
             // 创建Kafka流
             JavaDStream<org.apache.kafka.clients.consumer.ConsumerRecord<String, String>> stream =
                     KafkaUtils.createDirectStream(
                             streamingContext,
                             LocationStrategies.PreferConsistent(),
-                            ConsumerStrategies.Subscribe(Collections.singletonList(sensorTopic), kafkaParams)
+                            ConsumerStrategies.Subscribe(Collections.singletonList(kafkaTopic), kafkaParams)
                     );
             
             // 处理接收到的记录
@@ -207,9 +203,13 @@ public class SparkStreamingService implements Serializable {
      * 启动Spark Streaming
      */
     public void start() {
-        // 不再需要单独启动，由SparkContextManager统一管理
-        if (!running.get()) {
-            logger.info("Spark Streaming传感器数据处理未初始化，无法启动");
+        // 如果配置变化，进行相应处理
+        if (sensorConfig.isEnabled() && !running.get()) {
+            initSparkStreaming();
+        } else if (!sensorConfig.isEnabled() && running.get()) {
+            shutdown();
+        } else if (!running.get()) {
+            logger.info("传感器 Spark Streaming 未初始化，无法启动");
         }
     }
     

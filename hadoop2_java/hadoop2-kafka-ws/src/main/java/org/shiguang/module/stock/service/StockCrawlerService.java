@@ -67,7 +67,6 @@ public class StockCrawlerService {
         
         // 创建Kafka生产者
         producer = new KafkaProducer<>(props);
-        logger.info("股票数据爬虫服务已初始化，爬取功能状态: {}", stockConfig.isCrawlerEnabled() ? "已启用" : "已禁用");
     }
     
     /**
@@ -88,7 +87,7 @@ public class StockCrawlerService {
     @Scheduled(fixedRateString = "${stock.crawler.interval:5000}")
     public void scheduledCrawlStockData() {
         // 检查爬取功能是否启用
-        if (!stockConfig.isCrawlerEnabled()) {
+        if (!stockConfig.isEnabled()) {
             logger.debug("股票数据爬取功能已禁用，跳过本次爬取");
             return;
         }
@@ -387,7 +386,7 @@ public class StockCrawlerService {
         
         return String.format(
                 "爬取器: %s, 当前模式: %s, 请求次数: %d, 模拟请求: %d, 错误次数: %d", 
-                stockConfig.isCrawlerEnabled() ? "启用" : "禁用",
+                stockConfig.isEnabled() ? "启用" : "禁用",
                 isSimulationMode ? "模拟" : "实时",
                 requestCounter.get(),
                 simulatedRequestCounter.get(),

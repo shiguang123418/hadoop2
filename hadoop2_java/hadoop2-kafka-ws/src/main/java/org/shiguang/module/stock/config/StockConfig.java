@@ -14,8 +14,8 @@ public class StockConfig {
     
     private static final Logger logger = LoggerFactory.getLogger(StockConfig.class);
     
-    @Value("${stock.crawler.enabled:false}")
-    private boolean crawlerEnabled;
+    @Value("${stock.enabled:true}")
+    private boolean enabled;
     
     @Value("${stock.crawler.interval:10000}")
     private int crawlerInterval;
@@ -23,19 +23,13 @@ public class StockConfig {
     @Value("${stock.crawler.default-code:000001}")
     private String defaultStockCode;
     
-    @Value("${stock.processor.enabled:true}")
-    private boolean processorEnabled;
-    
     @Value("${stock.processor.batch-size:100}")
     private int processorBatchSize;
-    
-    @Value("${stock.analysis.enabled:true}")
-    private boolean analysisEnabled;
     
     @Value("${stock.analysis.volatility-threshold:5.0}")
     private double volatilityThreshold;
 
-    @Value("${stock.simulation.enabled:true}")
+    @Value("${stock.simulation.enabled:false}")
     private boolean simulationEnabled;
 
     @Value("${stock.simulation.api.host:http://localhost:8080}")
@@ -47,13 +41,19 @@ public class StockConfig {
     @Value("${stock.simulation.target-name:牧原股份}")
     private String simulationTargetName;
 
-    public boolean isCrawlerEnabled() {
-        return crawlerEnabled;
+    /**
+     * 检查股票模块是否全局启用
+     */
+    public boolean isEnabled() {
+        return enabled;
     }
-
-    public void setCrawlerEnabled(boolean crawlerEnabled) {
-        this.crawlerEnabled = crawlerEnabled;
-        logger.info("股票爬取已{}", crawlerEnabled ? "启用" : "禁用");
+    
+    /**
+     * 设置股票模块是否全局启用
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        logger.info("股票模块已{}", enabled ? "启用" : "禁用");
     }
 
     public int getCrawlerInterval() {
@@ -79,15 +79,6 @@ public class StockConfig {
         logger.info("默认股票代码已设置为{}", defaultStockCode);
     }
 
-    public boolean isProcessorEnabled() {
-        return processorEnabled;
-    }
-
-    public void setProcessorEnabled(boolean processorEnabled) {
-        this.processorEnabled = processorEnabled;
-        logger.info("股票处理器已{}", processorEnabled ? "启用" : "禁用");
-    }
-
     public int getProcessorBatchSize() {
         return processorBatchSize;
     }
@@ -95,15 +86,6 @@ public class StockConfig {
     public void setProcessorBatchSize(int processorBatchSize) {
         this.processorBatchSize = processorBatchSize;
         logger.info("处理器批处理大小已设置为{}", processorBatchSize);
-    }
-
-    public boolean isAnalysisEnabled() {
-        return analysisEnabled;
-    }
-
-    public void setAnalysisEnabled(boolean analysisEnabled) {
-        this.analysisEnabled = analysisEnabled;
-        logger.info("股票分析已{}", analysisEnabled ? "启用" : "禁用");
     }
 
     public double getVolatilityThreshold() {

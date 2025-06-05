@@ -131,7 +131,7 @@
 
 <script>
 import { ref, onMounted, computed } from 'vue';
-import { HDFSService } from '@/services';
+import HDFSService from '@/services/HDFSService';
 
 export default {
   name: 'HDFSExplorer',
