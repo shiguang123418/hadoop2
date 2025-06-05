@@ -54,38 +54,6 @@ public class SensorDataController {
     }
 
     /**
-     * 直接发送WebSocket消息测试
-     */
-    @GetMapping("/direct-test")
-    public ResponseEntity<String> sendDirectTestMessage() {
-        try {
-            // 创建一个简单的测试消息
-            ObjectNode dataNode = objectMapper.createObjectNode();
-            dataNode.put("sensorId", "direct-test-001");
-            dataNode.put("sensorType", "temperature");
-            dataNode.put("value", 26.5);
-            dataNode.put("unit", "°C");
-            dataNode.put("timestamp", System.currentTimeMillis());
-            dataNode.put("location", "测试区域");
-            dataNode.put("batteryLevel", 100);
-            
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
-            dataNode.put("readableTime", dateFormat.format(new Date()));
-            
-            // 直接发送到WebSocket
-            String jsonData = objectMapper.writeValueAsString(dataNode);
-            messagingTemplate.convertAndSend("/topic/agriculture-sensor-data", jsonData);
-            logger.info("直接测试数据已发送到WebSocket: {}", jsonData);
-            
-            return ResponseEntity.ok("{\"status\": \"success\", \"message\": \"WebSocket测试消息已直接发送\"}");
-        } catch (Exception e) {
-            logger.error("直接发送WebSocket测试消息时出错: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body("{\"error\": \"" + e.getMessage() + "\"}");
-        }
-    }
-    
-    /**
      * 健康检查API
      */
     @GetMapping("/health")

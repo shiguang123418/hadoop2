@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class DataProcessingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataProcessingService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     // 存储传感器数据的历史值，用于计算移动平均和异常检测

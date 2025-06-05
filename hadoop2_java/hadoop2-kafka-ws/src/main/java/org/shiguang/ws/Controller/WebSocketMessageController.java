@@ -21,8 +21,6 @@ public class WebSocketMessageController {
     
     @Autowired
     private DataStreamWebSocketHandler dataStreamWebSocketHandler;
-    
-
 
     /**
      * 处理客户端订阅请求
