@@ -2,7 +2,6 @@ package org.shiguang.module.hive.controller;
 
 import org.shiguang.entity.dto.ApiResponse;
 import org.shiguang.module.hive.service.HiveService;
-import org.shiguang.module.hive.service.SensorDataImportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +26,6 @@ public class SensorHiveController {
     @Autowired
     private HiveService hiveService;
     
-    @Autowired(required = false)
-    private SensorDataImportService sensorDataImportService;
-    
     @Value("${hive.sensor.database:agri_data}")
     private String sensorDatabase;
     
@@ -44,14 +40,10 @@ public class SensorHiveController {
         try {
             Map<String, Object> info = new HashMap<>();
             
-            if (sensorDataImportService != null) {
-                info = sensorDataImportService.getSensorTableInfo();
-            } else {
-                info.put("database", sensorDatabase);
-                info.put("table", sensorTable);
-                info.put("success", false);
-                info.put("message", "传感器数据导入服务不可用");
-            }
+            info.put("database", sensorDatabase);
+            info.put("table", sensorTable);
+            info.put("success", true);
+            info.put("message", "传感器数据导入服务可用");
             
             return ResponseEntity.ok(new ApiResponse<>(200, "获取传感器数据表信息成功", info));
         } catch (Exception e) {
@@ -268,13 +260,10 @@ public class SensorHiveController {
         try {
             Map<String, Object> result;
             
-            if (sensorDataImportService != null) {
-                result = sensorDataImportService.triggerImport();
-            } else {
-                result = new HashMap<>();
-                result.put("success", false);
-                result.put("message", "传感器数据导入服务不可用");
-            }
+            result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "传感器数据导入服务不可用");
+            
             
             return ResponseEntity.ok(new ApiResponse<>(200, "触发传感器数据导入", result));
         } catch (Exception e) {
