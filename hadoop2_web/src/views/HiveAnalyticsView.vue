@@ -23,32 +23,66 @@
       </div>
     </el-card>
     
-    <el-row :gutter="20" class="filter-row">
-      <el-col :span="10">
-        <el-select 
-          v-model="selectedDatabase" 
-          placeholder="选择数据库" 
-          class="full-width"
-          @change="handleDatabaseChange"
-          :loading="loadingDatabases">
-          <el-option v-for="db in databases" :key="db" :label="db" :value="db" />
-        </el-select>
-      </el-col>
-      <el-col :span="10">
-        <el-select 
-          v-model="selectedTable" 
-          placeholder="选择表" 
-          class="full-width"
-          @change="handleTableChange"
-          :loading="loadingTables"
-          :disabled="!selectedDatabase">
-          <el-option v-for="table in tables" :key="table" :label="table" :value="table" />
-        </el-select>
-      </el-col>
-      <el-col :span="4">
-        <el-button type="primary" class="full-width" @click="refreshData">刷新</el-button>
-      </el-col>
-    </el-row>
+    <!-- 数据源选择 -->
+    <el-card class="source-card" shadow="hover">
+      <template #header>
+        <div class="source-header">
+          <span>数据源选择</span>
+          <el-switch
+            v-model="useSensorData"
+            active-text="传感器数据"
+            inactive-text="标准Hive表"
+            @change="toggleDataSource"
+          />
+        </div>
+      </template>
+      
+      <div v-if="useSensorData" class="sensor-data-info">
+        <el-alert
+          title="使用农业传感器数据进行分析"
+          type="success"
+          :closable="false"
+          description="农业传感器数据包含温度、湿度、土壤湿度、光照和CO2浓度等环境指标，可用于统计分析、相关性分析和时间序列分析。"
+          show-icon
+        />
+        
+        <div v-if="sensorTableInfo.success" class="sensor-info-summary">
+          <p>数据库: <strong>{{ sensorTableInfo.database }}</strong></p>
+          <p>数据表: <strong>{{ sensorTableInfo.table }}</strong></p>
+          <p v-if="sensorTableInfo.rowCount">数据量: <strong>{{ sensorTableInfo.rowCount }} 条</strong></p>
+          <p v-if="sensorTableInfo.latestTime">最新数据时间: <strong>{{ sensorTableInfo.latestTime }}</strong></p>
+        </div>
+      </div>
+      
+      <div v-else class="standard-data-info">
+        <el-row :gutter="20" class="filter-row">
+          <el-col :span="10">
+            <el-select 
+              v-model="selectedDatabase" 
+              placeholder="选择数据库" 
+              class="full-width"
+              @change="handleDatabaseChange"
+              :loading="loadingDatabases">
+              <el-option v-for="db in databases" :key="db" :label="db" :value="db" />
+            </el-select>
+          </el-col>
+          <el-col :span="10">
+            <el-select 
+              v-model="selectedTable" 
+              placeholder="选择表" 
+              class="full-width"
+              @change="handleTableChange"
+              :loading="loadingTables"
+              :disabled="!selectedDatabase">
+              <el-option v-for="table in tables" :key="table" :label="table" :value="table" />
+            </el-select>
+          </el-col>
+          <el-col :span="4">
+            <el-button type="primary" class="full-width" @click="refreshData">刷新</el-button>
+          </el-col>
+        </el-row>
+      </div>
+    </el-card>
     
     <el-tabs v-model="activeTabName" class="main-tabs">
       <el-tab-pane label="分析配置" name="config">
@@ -64,8 +98,8 @@
             <el-radio label="distribution">列值分布</el-radio>
             <el-radio label="time_series">时间序列</el-radio>
             <el-radio label="correlation">相关性分析</el-radio>
-            <el-radio label="clustering">聚类分析</el-radio>
-            <el-radio label="regression">回归分析</el-radio>
+            <el-radio label="clustering" :disabled="useSensorData">聚类分析</el-radio>
+            <el-radio label="regression" :disabled="useSensorData">回归分析</el-radio>
           </el-radio-group>
           
           <div v-if="analysisType" class="analysis-config-form">
@@ -80,8 +114,39 @@
                 </el-radio-group>
               </el-form-item>
               
+              <!-- 传感器数据分析配置 -->
+              <template v-if="useSensorData">
+                <el-form-item label="传感器类型">
+                  <el-select v-model="sensorAnalysisConfig.sensorType" placeholder="选择传感器类型" class="field-select" @change="handleSensorTypeChange">
+                    <el-option 
+                      v-for="type in sensorTypes" 
+                      :key="type" 
+                      :label="type" 
+                      :value="type" />
+                  </el-select>
+                </el-form-item>
+                
+                <el-form-item label="位置">
+                  <el-select v-model="sensorAnalysisConfig.location" placeholder="选择位置(可选)" class="field-select" @change="handleLocationChange" clearable>
+                    <el-option 
+                      v-for="location in sensorLocations" 
+                      :key="location" 
+                      :label="location" 
+                      :value="location" />
+                  </el-select>
+                </el-form-item>
+                
+                <el-form-item label="时间单位" v-if="analysisType === 'time_series'">
+                  <el-radio-group v-model="sensorAnalysisConfig.timeUnit">
+                    <el-radio label="month">月份</el-radio>
+                    <el-radio label="day">日期</el-radio>
+                    <el-radio label="year_month">年月</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+              </template>
+              
               <!-- 特定配置 -->
-              <div v-if="analysisType === 'time_series'">
+              <div v-if="!useSensorData && analysisType === 'time_series'">
                 <el-form-item label="时间字段">
                   <el-select v-model="analysisConfig.timeField" placeholder="选择时间字段" class="field-select">
                     <el-option 
@@ -104,7 +169,8 @@
                 </el-form-item>
               </div>
               
-              <el-form-item label="数据字段">
+              <!-- 标准Hive表数据字段选择 -->
+              <el-form-item label="数据字段" v-if="!useSensorData">
                 <el-transfer 
                   v-model="analysisConfig.fields" 
                   :data="tableFields.map(field => ({
@@ -307,6 +373,7 @@ import { DataAnalysis, Connection, Download, Check, Refresh } from '@element-plu
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import * as echarts from 'echarts'
+import SensorHiveApi from '../api/sensorHive.js'
 
 export default {
   name: 'HiveAnalyticsView',
@@ -353,12 +420,32 @@ export default {
     const refreshInterval = ref(30000)
     const nextRefreshTime = ref(0)
     
+    // 添加传感器数据相关的状态
+    const useSensorData = ref(false)  // 是否使用传感器数据
+    const sensorTableInfo = ref({})   // 传感器数据表信息
+    const sensorTypes = ref([])       // 传感器类型列表
+    const sensorLocations = ref([])   // 传感器位置列表
+    const selectedSensorType = ref('') // 选择的传感器类型
+    const selectedLocation = ref('')   // 选择的位置
+    
+    // 传感器数据分析配置
+    const sensorAnalysisConfig = reactive({
+      sensorType: '',
+      location: '',
+      timeUnit: 'month'
+    })
+    
     // 重置分析表单
     const resetAnalysisForm = () => {
       analysisConfig.fields = []
       analysisConfig.timeField = ''
       analysisConfig.chartType = 'bar'
       analysisConfig.valueFields = []
+      
+      // 重置传感器配置
+      sensorAnalysisConfig.sensorType = ''
+      sensorAnalysisConfig.location = ''
+      sensorAnalysisConfig.timeUnit = 'month'
     }
     
     // 分析类型变更处理
@@ -567,8 +654,89 @@ export default {
       });
     })
     
+    // 切换数据源
+    const toggleDataSource = (value) => {
+      useSensorData.value = value
+      resetAnalysisForm()
+      
+      if (useSensorData.value) {
+        fetchSensorInfo()
+      }
+    }
+    
+    // 获取传感器数据表信息
+    const fetchSensorInfo = async () => {
+      try {
+        const response = await SensorHiveApi.getSensorTableInfo()
+        if (response.data.code === 200) {
+          sensorTableInfo.value = response.data.data || {}
+          
+          // 更新数据库和表选择
+          if (sensorTableInfo.value.database) {
+            selectedDatabase.value = sensorTableInfo.value.database
+          }
+          
+          if (sensorTableInfo.value.table) {
+            selectedTable.value = sensorTableInfo.value.table
+          }
+          
+          // 获取传感器类型和位置
+          fetchSensorTypes()
+          fetchSensorLocations()
+        } else {
+          ElMessage.warning('获取传感器数据表信息失败')
+        }
+      } catch (error) {
+        ElMessage.error(`获取传感器数据表信息异常: ${error.message}`)
+      }
+    }
+    
+    // 获取传感器类型
+    const fetchSensorTypes = async () => {
+      try {
+        const response = await SensorHiveApi.getSensorTypes()
+        if (response.data.code === 200) {
+          sensorTypes.value = response.data.data || []
+        } else {
+          ElMessage.warning('获取传感器类型失败')
+        }
+      } catch (error) {
+        ElMessage.error(`获取传感器类型异常: ${error.message}`)
+      }
+    }
+    
+    // 获取传感器位置
+    const fetchSensorLocations = async () => {
+      try {
+        const response = await SensorHiveApi.getSensorLocations()
+        if (response.data.code === 200) {
+          sensorLocations.value = response.data.data || []
+        } else {
+          ElMessage.warning('获取传感器位置失败')
+        }
+      } catch (error) {
+        ElMessage.error(`获取传感器位置异常: ${error.message}`)
+      }
+    }
+    
+    // 处理传感器类型变化
+    const handleSensorTypeChange = (value) => {
+      sensorAnalysisConfig.sensorType = value
+    }
+    
+    // 处理位置变化
+    const handleLocationChange = (value) => {
+      sensorAnalysisConfig.location = value
+    }
+    
     // 运行分析
     const runAnalysis = async () => {
+      if (useSensorData.value) {
+        // 使用传感器数据进行分析
+        return runSensorAnalysis()
+      }
+      
+      // 原有分析逻辑
       if (!selectedDatabase.value || !selectedTable.value || !analysisType.value) {
         ElMessage.warning('请选择数据库、表和分析类型')
         return
@@ -686,6 +854,165 @@ export default {
         // 即使出现异常也保持在任务状态页
       } finally {
         loading.value = false
+      }
+    }
+    
+    // 运行传感器数据分析
+    const runSensorAnalysis = async () => {
+      if (!analysisType.value) {
+        ElMessage.warning('请选择分析类型')
+        return
+      }
+      
+      if (analysisType.value === 'time_series' && !sensorAnalysisConfig.sensorType) {
+        ElMessage.warning('请选择传感器类型')
+        return
+      }
+      
+      if (analysisType.value === 'correlation' && (!sensorAnalysisConfig.sensorType || sensorTypes.value.length < 2)) {
+        ElMessage.warning('相关性分析需要至少两种不同的传感器类型')
+        return
+      }
+      
+      // 先切换到任务状态标签页，让用户知道任务将在后台运行
+      activeTabName.value = 'tasks'
+      
+      loading.value = true
+      try {
+        // 构建基本请求参数
+        const request = {
+          analysisType: analysisType.value,
+          useSensorData: true,
+          sensorType: sensorAnalysisConfig.sensorType,
+          location: sensorAnalysisConfig.location,
+          timeUnit: sensorAnalysisConfig.timeUnit,
+          chartType: analysisConfig.chartType
+        }
+        
+        let response
+        
+        // 根据分析类型执行不同的API调用
+        switch (analysisType.value) {
+          case 'distribution':
+            // 分布分析 - 获取传感器值的分布
+            response = await SensorHiveApi.getSensorStats({
+              sensorType: sensorAnalysisConfig.sensorType,
+              location: sensorAnalysisConfig.location
+            })
+            break
+            
+          case 'time_series':
+            // 时间序列分析 - 获取传感器值随时间的变化
+            response = await SensorHiveApi.getTimeSeries({
+              sensorType: sensorAnalysisConfig.sensorType,
+              location: sensorAnalysisConfig.location,
+              timeUnit: sensorAnalysisConfig.timeUnit
+            })
+            break
+            
+          case 'correlation':
+            // 相关性分析 - 获取两种传感器之间的相关性
+            // 选择另一种不同的传感器类型
+            const otherTypes = sensorTypes.value.filter(type => type !== sensorAnalysisConfig.sensorType)
+            const typeB = otherTypes.length > 0 ? otherTypes[0] : ''
+            
+            if (!typeB) {
+              ElMessage.warning('没有足够的传感器类型进行相关性分析')
+              loading.value = false
+              return
+            }
+            
+            response = await SensorHiveApi.getCorrelation({
+              typeA: sensorAnalysisConfig.sensorType,
+              typeB: typeB,
+              location: sensorAnalysisConfig.location
+            })
+            break
+            
+          default:
+            ElMessage.warning('暂不支持此类型的传感器数据分析')
+            loading.value = false
+            return
+        }
+        
+        if (response.data.code === 200) {
+          // 创建一个模拟的任务结果对象
+          const taskResult = {
+            taskId: 'sensor-' + Date.now(),
+            analysisType: analysisType.value,
+            status: 'COMPLETED',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            database: sensorTableInfo.value.database || 'sensor_data',
+            table: sensorTableInfo.value.table || 'sensor_data',
+            params: request,
+            result: processApiResponseToResults(response.data.data, analysisType.value)
+          }
+          
+          // 将任务添加到任务列表
+          tasks.value = [taskResult, ...tasks.value]
+          
+          // 自动打开结果对话框
+          selectedTask.value = taskResult
+          showResult.value = true
+          
+          // 使用nextTick确保DOM已更新
+          await nextTick()
+          
+          // 渲染图表
+          renderTaskChart(taskResult)
+          
+          ElMessage.success('传感器数据分析完成')
+        } else {
+          ElMessage.error('传感器数据分析失败: ' + response.data.message)
+        }
+      } catch (error) {
+        ElMessage.error('传感器数据分析异常: ' + error.message)
+      } finally {
+        loading.value = false
+      }
+    }
+    
+    // 处理API响应转换为结果数组
+    const processApiResponseToResults = (data, analysisType) => {
+      switch (analysisType) {
+        case 'distribution':
+          // 转换统计数据为分布结果
+          if (data.stats && Array.isArray(data.stats)) {
+            return data.stats.map(item => ({
+              category: item.sensorType,
+              count: item.count,
+              avgValue: item.avgValue,
+              maxValue: item.maxValue,
+              minValue: item.minValue,
+              stdDev: item.stdDev
+            }))
+          }
+          return []
+          
+        case 'time_series':
+          // 直接使用时间序列数据
+          if (data.data && Array.isArray(data.data)) {
+            return data.data.map(item => {
+              // 确保月份是字符串形式
+              const month = item.month ? String(item.month) : ''
+              return {
+                month: month,
+                value: item.value
+              }
+            })
+          }
+          return []
+          
+        case 'correlation':
+          // 直接使用相关性数据
+          if (data.data && Array.isArray(data.data)) {
+            return data.data
+          }
+          return []
+          
+        default:
+          return []
       }
     }
     
@@ -912,33 +1239,47 @@ export default {
         }
       }
       
+      // 检查是否为传感器数据分析
+      const isSensorData = currentTask && currentTask.params && currentTask.params.useSensorData;
+      
       // 根据不同的分析类型返回不同的图表配置
       switch (analysisType) {
         case 'distribution':
           // 检查数据格式并提取正确的字段
           let categories = []
           let counts = []
+          let valueField = 'count'
+          let title = '数据分布分析'
           
           // 尝试从数据中提取类别和计数值
           try {
             // 输出调试信息
             console.log('分布分析数据样本:', data[0])
             
-            // 先尝试查找标准的category和count字段
-            if (data[0].category !== undefined && data[0].count !== undefined) {
-              categories = data.map(item => item.category)
-              counts = data.map(item => item.count)
+            if (isSensorData) {
+              // 传感器数据分布
+              categories = data.map(item => item.category || item.sensorType || '未知')
+              counts = data.map(item => item.avgValue !== undefined ? Number(item.avgValue) : 0)
+              valueField = 'avgValue'
+              title = '传感器平均值分布'
             } else {
-              // 如果没有标准字段，尝试识别其他格式
-              const keys = Object.keys(data[0])
-              console.log('可用字段:', keys)
-              
-              // 找到可能的类别字段（非count字段）
-              const categoryKey = keys.find(k => k.toLowerCase() !== 'count') || keys[0]
-              const countKey = keys.find(k => k.toLowerCase() === 'count') || keys[1]
-              
-              categories = data.map(item => item[categoryKey] !== null ? String(item[categoryKey]) : '未知')
-              counts = data.map(item => item[countKey] !== undefined ? Number(item[countKey]) : 0)
+              // 标准分布
+              // 先尝试查找标准的category和count字段
+              if (data[0].category !== undefined && data[0].count !== undefined) {
+                categories = data.map(item => item.category)
+                counts = data.map(item => item.count)
+              } else {
+                // 如果没有标准字段，尝试识别其他格式
+                const keys = Object.keys(data[0])
+                console.log('可用字段:', keys)
+                
+                // 找到可能的类别字段（非count字段）
+                const categoryKey = keys.find(k => k.toLowerCase() !== 'count') || keys[0]
+                const countKey = keys.find(k => k.toLowerCase() === 'count') || keys[1]
+                
+                categories = data.map(item => item[categoryKey] !== null ? String(item[categoryKey]) : '未知')
+                counts = data.map(item => item[countKey] !== undefined ? Number(item[countKey]) : 0)
+              }
             }
           } catch (error) {
             console.error('解析分布数据出错:', error)
@@ -959,7 +1300,7 @@ export default {
           
           return {
             title: {
-              text: '数据分布分析'
+              text: title
             },
             tooltip: {
               trigger: 'axis',
@@ -978,11 +1319,11 @@ export default {
             },
             yAxis: {
               type: 'value',
-              name: '计数'
+              name: isSensorData ? '平均值' : '计数'
             },
             series: [
               {
-                name: '计数',
+                name: isSensorData ? '平均值' : '计数',
                 type: chartType, // 使用确定的图表类型
                 data: counts,
                 itemStyle: {
@@ -997,6 +1338,7 @@ export default {
               }
             ]
           }
+          
         case 'time_series':
           try {
             // 检查基本数据有效性
@@ -1625,28 +1967,55 @@ export default {
           // 相关性分析需要散点图
           if (data.length > 0 && Object.keys(data[0]).length >= 2) {
             const keys = Object.keys(data[0])
+            let xField = 'valueA'
+            let yField = 'valueB'
+            let xTitle = ''
+            let yTitle = ''
+            
+            if (isSensorData) {
+              // 传感器相关性分析
+              xField = 'valueA'
+              yField = 'valueB'
+              xTitle = currentTask.params.typeA || '传感器A'
+              yTitle = currentTask.params.typeB || '传感器B'
+            } else if (keys.length >= 2) {
+              // 标准相关性分析
+              xField = keys[0]
+              yField = keys[1]
+              xTitle = xField
+              yTitle = yField
+            }
+            
             return {
               title: {
-                text: `${keys[0]} 与 ${keys[1]} 相关性分析`
+                text: `${xTitle} 与 ${yTitle} 相关性分析`
               },
               tooltip: {
-                trigger: 'item'
+                trigger: 'item',
+                formatter: function(params) {
+                  return `${xTitle}: ${params.data[0]}<br/>${yTitle}: ${params.data[1]}`
+                }
               },
               xAxis: {
                 type: 'value',
-                name: keys[0]
+                name: xTitle
               },
               yAxis: {
                 type: 'value',
-                name: keys[1]
+                name: yTitle
               },
               series: [
                 {
                   type: 'scatter',
                   data: data.map(item => [
-                    parseFloat(item[keys[0]]) || 0,
-                    parseFloat(item[keys[1]]) || 0
-                  ])
+                    parseFloat(item[xField]) || 0,
+                    parseFloat(item[yField]) || 0
+                  ]),
+                  symbolSize: 8,
+                  itemStyle: {
+                    color: '#5470C6',
+                    opacity: 0.7
+                  }
                 }
               ]
             }
@@ -1972,7 +2341,20 @@ export default {
       autoRefresh,
       refreshInterval,
       nextRefreshTime,
-      toggleAutoRefresh
+      toggleAutoRefresh,
+      
+      // 传感器数据相关
+      useSensorData,
+      sensorTableInfo,
+      sensorTypes,
+      sensorLocations,
+      selectedSensorType,
+      selectedLocation,
+      sensorAnalysisConfig,
+      toggleDataSource,
+      fetchSensorInfo,
+      handleSensorTypeChange,
+      handleLocationChange
     }
   }
 }
@@ -2198,5 +2580,32 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.source-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.source-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sensor-data-info {
+  padding: 10px 0;
+}
+
+.sensor-info-summary {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.standard-data-info {
+  padding: 10px 0;
 }
 </style> 
