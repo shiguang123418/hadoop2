@@ -5,6 +5,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.shiguang.module.hive.service.SensorDataImportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,11 +46,15 @@ public class KafkaConsumerService {
 
     @Autowired
     private DataProcessingService dataProcessingService;
+    
+    @Autowired(required = false)
+    private SensorDataImportService sensorDataImportService;
 
     private ExecutorService executorService;
     private AtomicBoolean running = new AtomicBoolean(false);
     private AtomicInteger messageCounter = new AtomicInteger(0);
     private AtomicInteger errorCounter = new AtomicInteger(0);
+    private AtomicInteger hiveImportCounter = new AtomicInteger(0);
 
     /**
      * 初始化并启动Kafka消费者
@@ -126,6 +131,21 @@ public class KafkaConsumerService {
                                 messagingTemplate.convertAndSend("/topic/agriculture-sensor-data", processedData);
                                 messageCounter.incrementAndGet();
                                 logger.debug("已将处理后的数据发送到WebSocket: {}", processedData);
+                                
+                                // 导入数据到Hive
+                                if (sensorDataImportService != null) {
+                                    try {
+                                        boolean imported = sensorDataImportService.importSensorData(value);
+                                        if (imported) {
+                                            hiveImportCounter.incrementAndGet();
+                                            logger.debug("已将数据导入到Hive");
+                                        }
+                                    } catch (Exception e) {
+                                        logger.error("导入数据到Hive时发生错误: {}", e.getMessage(), e);
+                                    }
+                                } else {
+                                    logger.debug("Hive导入服务不可用，跳过数据导入");
+                                }
                             } catch (Exception e) {
                                 errorCounter.incrementAndGet();
                                 logger.error("处理消息时发生错误: {}", e.getMessage(), e);
@@ -136,8 +156,8 @@ public class KafkaConsumerService {
                     // 每分钟报告一次统计信息
                     long now = System.currentTimeMillis();
                     if (now - lastReportTime > 60000) {
-                        logger.info("Kafka消费者统计: 处理消息 {} 条, 错误 {} 条", 
-                                messageCounter.get(), errorCounter.get());
+                        logger.info("Kafka消费者统计: 处理消息 {} 条, 错误 {} 条, Hive导入 {} 条", 
+                                messageCounter.get(), errorCounter.get(), hiveImportCounter.get());
                         lastReportTime = now;
                     }
                 } catch (Exception e) {
@@ -164,6 +184,7 @@ public class KafkaConsumerService {
      * 获取消费者统计信息
      */
     public String getConsumerStats() {
-        return String.format("处理消息: %d, 错误: %d", messageCounter.get(), errorCounter.get());
+        return String.format("处理消息: %d, 错误: %d, Hive导入: %d", 
+                messageCounter.get(), errorCounter.get(), hiveImportCounter.get());
     }
 } 
