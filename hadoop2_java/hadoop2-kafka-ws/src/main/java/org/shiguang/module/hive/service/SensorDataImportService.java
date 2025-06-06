@@ -73,7 +73,7 @@ public class SensorDataImportService {
                         "sensorType STRING, " +
                         "value DOUBLE, " +
                         "unit STRING, " +
-                        "timestamp BIGINT, " +
+                        "event_time BIGINT, " +
                         "readableTime STRING, " +
                         "location STRING, " +
                         "batteryLevel INT, " +

@@ -1,0 +1,1 @@
+docker-compose down && cd .. && git pull gh_hadoop2 master && cd hadoop2_java && mvn clean package && docker-compose up -d

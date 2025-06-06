@@ -272,7 +272,7 @@ public class SensorHiveController {
             StringBuilder sql = new StringBuilder();
             sql.append("SELECT a.value as valueA, b.value as valueB FROM ")
                .append(sensorDatabase).append(".").append(sensorTable).append(" a JOIN ")
-               .append(sensorDatabase).append(".").append(sensorTable).append(" b ON a.timestamp = b.timestamp ");
+               .append(sensorDatabase).append(".").append(sensorTable).append(" b ON a.event_time = b.event_time ");
             
             List<String> whereConditions = new ArrayList<>();
             whereConditions.add("a.sensorType = '" + typeA + "'");
