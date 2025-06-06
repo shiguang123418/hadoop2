@@ -55,38 +55,48 @@ public class SensorDataImportService {
             // 创建数据库（如果不存在）
             logger.info("正在创建Hive数据库(如果不存在): {}", sensorDatabase);
             String createDbSql = "CREATE DATABASE IF NOT EXISTS " + sensorDatabase;
-            hiveService.executeUpdate(createDbSql);
-            logger.info("数据库创建或已存在: {}", sensorDatabase);
+            boolean dbCreated = hiveService.executeUpdate(createDbSql);
             
-            // 检查表是否存在
-            logger.info("检查表是否存在: {}.{}", sensorDatabase, sensorTable);
-            String checkTableSql = "SHOW TABLES IN " + sensorDatabase + " LIKE '" + sensorTable + "'";
-            List<Map<String, Object>> tableResult = hiveService.executeQuery(checkTableSql);
-            
-            if (tableResult.isEmpty()) {
-                logger.info("表不存在，开始创建表: {}.{}", sensorDatabase, sensorTable);
+            if (dbCreated) {
+                logger.info("数据库创建或已存在: {}", sensorDatabase);
                 
-                // 创建传感器数据表
-                String createTableSQL = "CREATE TABLE " + sensorDatabase + "." + sensorTable + " (" +
-                        "id STRING, " +
-                        "sensorId STRING, " +
-                        "sensorType STRING, " +
-                        "value DOUBLE, " +
-                        "unit STRING, " +
-                        "event_time BIGINT, " +
-                        "readableTime STRING, " +
-                        "location STRING, " +
-                        "batteryLevel INT, " +
-                        "month STRING, " +
-                        "year INT, " +
-                        "day STRING" +
-                        ") ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE";
+                // 检查表是否存在
+                logger.info("检查表是否存在: {}.{}", sensorDatabase, sensorTable);
+                String checkTableSql = "SHOW TABLES IN " + sensorDatabase + " LIKE '" + sensorTable + "'";
+                List<Map<String, Object>> tableResult = hiveService.executeQuery(checkTableSql);
                 
-                logger.info("执行创建表SQL: {}", createTableSQL);
-                hiveService.executeUpdate(createTableSQL);
-                logger.info("表创建成功: {}.{}", sensorDatabase, sensorTable);
+                if (tableResult.isEmpty()) {
+                    logger.info("表不存在，开始创建表: {}.{}", sensorDatabase, sensorTable);
+                    
+                    // 创建传感器数据表
+                    String createTableSQL = "CREATE TABLE " + sensorDatabase + "." + sensorTable + " (" +
+                            "id STRING, " +
+                            "sensorId STRING, " +
+                            "sensorType STRING, " +
+                            "value DOUBLE, " +
+                            "unit STRING, " +
+                            "event_time BIGINT, " +
+                            "readableTime STRING, " +
+                            "location STRING, " +
+                            "batteryLevel INT, " +
+                            "month STRING, " +
+                            "year INT, " +
+                            "day STRING" +
+                            ") ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE";
+                    
+                    logger.info("执行创建表SQL: {}", createTableSQL);
+                    boolean tableCreated = hiveService.executeUpdate(createTableSQL);
+                    
+                    if (tableCreated) {
+                        logger.info("表创建成功: {}.{}", sensorDatabase, sensorTable);
+                    } else {
+                        logger.error("表创建失败: {}.{}", sensorDatabase, sensorTable);
+                    }
+                } else {
+                    logger.info("表已存在: {}.{}", sensorDatabase, sensorTable);
+                }
             } else {
-                logger.info("表已存在: {}.{}", sensorDatabase, sensorTable);
+                logger.error("数据库创建失败: {}", sensorDatabase);
             }
         } catch (Exception e) {
             logger.error("创建数据库或表时出错: {}", e.getMessage(), e);

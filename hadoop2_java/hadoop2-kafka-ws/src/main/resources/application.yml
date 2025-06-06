@@ -59,5 +59,12 @@ sensor:
   kafka:
     topic: agriculture-sensor-data
 
+# Hive配置
+hive:
+  url: jdbc:hive2://shiguang:10000
+  driver: org.apache.hive.jdbc.HiveDriver
+  username: root
+  password: 
+
 
 
