@@ -488,4 +488,172 @@ public class MySQLSensorService {
             }
         }
     }
+
+    /**
+     * 获取按时间排序的传感器数据
+     * 
+     * @param sensorType 传感器类型（可选）
+     * @param location 位置（可选）
+     * @param limit 限制返回记录数量
+     * @param ascending 是否按时间升序排列，true为升序，false为降序
+     * @return 传感器数据列表
+     */
+    public List<Map<String, Object>> getSensorDataByTime(String sensorType, String location, int limit, boolean ascending) {
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        
+        sql.append("SELECT * FROM ").append(sensorTable);
+        
+        List<String> whereConditions = new ArrayList<>();
+        
+        if (sensorType != null && !sensorType.isEmpty()) {
+            whereConditions.add("sensor_type = ?");
+            params.add(sensorType);
+        }
+        
+        if (location != null && !location.isEmpty()) {
+            whereConditions.add("location = ?");
+            params.add(location);
+        }
+        
+        if (!whereConditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", whereConditions));
+        }
+        
+        // 按时间排序
+        sql.append(" ORDER BY event_time ").append(ascending ? "ASC" : "DESC");
+        
+        // 限制返回记录数
+        if (limit > 0) {
+            sql.append(" LIMIT ").append(limit);
+        }
+        
+        logger.info("执行按时间排序查询: {}", sql.toString());
+        return executeQuery(sql.toString(), params.toArray());
+    }
+
+    /**
+     * 获取最近的传感器数据
+     * 
+     * @param limit 限制返回记录数量
+     * @return 最近的传感器数据列表
+     */
+    public List<Map<String, Object>> getRecentSensorData(int limit) {
+        return getSensorDataByTime(null, null, limit, false);
+    }
+
+    /**
+     * 获取特定类型的最近传感器数据
+     * 
+     * @param sensorType 传感器类型
+     * @param limit 限制返回记录数量
+     * @return 特定类型的最近传感器数据列表
+     */
+    public List<Map<String, Object>> getRecentSensorDataByType(String sensorType, int limit) {
+        return getSensorDataByTime(sensorType, null, limit, false);
+    }
+
+    /**
+     * 获取传感器数据的时间序列统计
+     * 
+     * @param sensorType 传感器类型
+     * @param timeUnit 时间单位 (hour, day, month)
+     * @param startTime 开始时间 (yyyy-MM-dd HH:mm:ss)
+     * @param endTime 结束时间 (yyyy-MM-dd HH:mm:ss)
+     * @return 时间序列统计结果
+     */
+    public List<Map<String, Object>> getTimeSeriesStats(String sensorType, String timeUnit, String startTime, String endTime) {
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        
+        String timeFormat;
+        String groupBy;
+        
+        if ("hour".equals(timeUnit)) {
+            timeFormat = "DATE_FORMAT(readable_time, '%Y-%m-%d %H:00:00')";
+            groupBy = "DATE_FORMAT(readable_time, '%Y-%m-%d %H:00:00')";
+        } else if ("day".equals(timeUnit)) {
+            timeFormat = "DATE_FORMAT(readable_time, '%Y-%m-%d')";
+            groupBy = "DATE_FORMAT(readable_time, '%Y-%m-%d')";
+        } else {
+            // 默认为月
+            timeFormat = "DATE_FORMAT(readable_time, '%Y-%m')";
+            groupBy = "DATE_FORMAT(readable_time, '%Y-%m')";
+        }
+        
+        sql.append("SELECT ").append(timeFormat).append(" as time_period, ")
+           .append("AVG(value) as avg_value, ")
+           .append("MAX(value) as max_value, ")
+           .append("MIN(value) as min_value, ")
+           .append("COUNT(*) as sample_count ")
+           .append("FROM ").append(sensorTable);
+        
+        List<String> whereConditions = new ArrayList<>();
+        
+        if (sensorType != null && !sensorType.isEmpty()) {
+            whereConditions.add("sensor_type = ?");
+            params.add(sensorType);
+        }
+        
+        if (startTime != null && !startTime.isEmpty()) {
+            whereConditions.add("readable_time >= ?");
+            params.add(startTime);
+        }
+        
+        if (endTime != null && !endTime.isEmpty()) {
+            whereConditions.add("readable_time <= ?");
+            params.add(endTime);
+        }
+        
+        if (!whereConditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", whereConditions));
+        }
+        
+        sql.append(" GROUP BY ").append(groupBy)
+           .append(" ORDER BY time_period ASC");
+        
+        logger.info("执行时间序列统计查询: {}", sql.toString());
+        return executeQuery(sql.toString(), params.toArray());
+    }
+    
+    /**
+     * 获取传感器数据的日内变化统计
+     * 
+     * @param sensorType 传感器类型
+     * @param days 统计最近几天的数据
+     * @return 日内变化统计结果
+     */
+    public List<Map<String, Object>> getDailyPatternStats(String sensorType, int days) {
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        
+        sql.append("SELECT HOUR(readable_time) as hour_of_day, ")
+           .append("AVG(value) as avg_value, ")
+           .append("MAX(value) as max_value, ")
+           .append("MIN(value) as min_value, ")
+           .append("COUNT(*) as sample_count ")
+           .append("FROM ").append(sensorTable);
+        
+        List<String> whereConditions = new ArrayList<>();
+        
+        if (sensorType != null && !sensorType.isEmpty()) {
+            whereConditions.add("sensor_type = ?");
+            params.add(sensorType);
+        }
+        
+        if (days > 0) {
+            whereConditions.add("readable_time >= DATE_SUB(NOW(), INTERVAL ? DAY)");
+            params.add(days);
+        }
+        
+        if (!whereConditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", whereConditions));
+        }
+        
+        sql.append(" GROUP BY HOUR(readable_time)")
+           .append(" ORDER BY hour_of_day ASC");
+        
+        logger.info("执行日内变化统计查询: {}", sql.toString());
+        return executeQuery(sql.toString(), params.toArray());
+    }
 } 
