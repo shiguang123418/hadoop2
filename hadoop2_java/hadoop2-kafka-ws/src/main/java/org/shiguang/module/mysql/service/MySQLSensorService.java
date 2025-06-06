@@ -43,7 +43,12 @@ public class MySQLSensorService {
         }
 
         logger.info("初始化MySQL传感器数据服务...");
-        createTableIfNotExists();
+        try {
+            createTableIfNotExists();
+            logger.info("MySQL传感器数据服务初始化完成");
+        } catch (Exception e) {
+            logger.error("MySQL传感器数据服务初始化失败: {}", e.getMessage(), e);
+        }
     }
 
     /**
@@ -51,7 +56,10 @@ public class MySQLSensorService {
      */
     private void createTableIfNotExists() {
         try {
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS " + sensorTable + " (" +
+            // 确保表名不包含路径分隔符或特殊字符
+            String safeTableName = sensorTable.replace(".", "_").replace("-", "_");
+            
+            String createTableSQL = "CREATE TABLE IF NOT EXISTS " + safeTableName + " (" +
                     "id VARCHAR(36) PRIMARY KEY, " +
                     "sensor_id VARCHAR(36) NOT NULL, " +
                     "sensor_type VARCHAR(50) NOT NULL, " +
@@ -71,10 +79,15 @@ public class MySQLSensorService {
                     "INDEX idx_readable_time (readable_time)" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+            logger.info("创建MySQL表SQL: {}", createTableSQL);
             jdbcTemplate.execute(createTableSQL);
-            logger.info("MySQL传感器数据表创建成功或已存在: {}", sensorTable);
+            logger.info("MySQL传感器数据表创建成功或已存在: {}", safeTableName);
+            
+            // 更新内部使用的表名
+            sensorTable = safeTableName;
         } catch (Exception e) {
             logger.error("创建MySQL传感器数据表时出错: {}", e.getMessage(), e);
+            throw e;
         }
     }
 

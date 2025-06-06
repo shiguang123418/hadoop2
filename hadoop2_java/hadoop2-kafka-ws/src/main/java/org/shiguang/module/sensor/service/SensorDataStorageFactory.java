@@ -35,8 +35,21 @@ public class SensorDataStorageFactory {
 
     @PostConstruct
     public void init() {
-        logger.info("初始化传感器数据存储工厂...");
-        logger.info("存储目标: {}, Hive启用: {}, MySQL启用: {}", storageTarget, hiveEnabled, mysqlEnabled);
+        try {
+            logger.info("初始化传感器数据存储工厂...");
+            logger.info("存储目标: {}, Hive启用: {}, MySQL启用: {}", storageTarget, hiveEnabled, mysqlEnabled);
+            
+            // 检查存储服务可用性
+            if (mysqlEnabled && mysqlService == null) {
+                logger.warn("MySQL存储已启用，但MySQL服务不可用");
+            }
+            
+            if (hiveEnabled && hiveService == null) {
+                logger.warn("Hive存储已启用，但Hive服务不可用");
+            }
+        } catch (Exception e) {
+            logger.error("初始化传感器数据存储工厂出错: {}", e.getMessage(), e);
+        }
     }
 
     /**
