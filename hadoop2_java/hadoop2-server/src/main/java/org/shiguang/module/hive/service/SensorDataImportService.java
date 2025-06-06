@@ -33,6 +33,7 @@ public class SensorDataImportService {
 
     @PostConstruct
     public void init() {
+        logger.info("初始化传感器数据导入服务...");
         if (importEnabled) {
             logger.info("传感器数据导入服务已启用，目标数据库: {}, 表: {}", sensorDatabase, sensorTable);
             ensureDatabaseAndTableExist();
@@ -49,28 +50,43 @@ public class SensorDataImportService {
     private void ensureDatabaseAndTableExist() {
         try {
             // 创建数据库（如果不存在）
-            hiveService.executeUpdate("CREATE DATABASE IF NOT EXISTS " + sensorDatabase);
+            logger.info("正在创建Hive数据库(如果不存在): {}", sensorDatabase);
+            String createDbSql = "CREATE DATABASE IF NOT EXISTS " + sensorDatabase;
+            hiveService.executeUpdate(createDbSql);
+            logger.info("数据库创建或已存在: {}", sensorDatabase);
             
-            // 创建传感器数据表（如果不存在）
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS " + sensorDatabase + "." + sensorTable + " (" +
-                    "id STRING, " +
-                    "sensorId STRING, " +
-                    "sensorType STRING, " +
-                    "value DOUBLE, " +
-                    "unit STRING, " +
-                    "timestamp BIGINT, " +
-                    "readableTime STRING, " +
-                    "location STRING, " +
-                    "batteryLevel INT, " +
-                    "month STRING, " +
-                    "year INT, " +
-                    "day STRING" +
-                    ") STORED AS PARQUET";
+            // 检查表是否存在
+            logger.info("检查表是否存在: {}.{}", sensorDatabase, sensorTable);
+            String checkTableSql = "SHOW TABLES IN " + sensorDatabase + " LIKE '" + sensorTable + "'";
+            List<Map<String, Object>> tableResult = hiveService.executeQuery(checkTableSql);
             
-            hiveService.executeUpdate(createTableSQL);
-            logger.info("已确保传感器数据表存在: {}.{}", sensorDatabase, sensorTable);
+            if (tableResult.isEmpty()) {
+                logger.info("表不存在，开始创建表: {}.{}", sensorDatabase, sensorTable);
+                
+                // 创建传感器数据表
+                String createTableSQL = "CREATE TABLE " + sensorDatabase + "." + sensorTable + " (" +
+                        "id STRING, " +
+                        "sensorId STRING, " +
+                        "sensorType STRING, " +
+                        "value DOUBLE, " +
+                        "unit STRING, " +
+                        "timestamp BIGINT, " +
+                        "readableTime STRING, " +
+                        "location STRING, " +
+                        "batteryLevel INT, " +
+                        "month STRING, " +
+                        "year INT, " +
+                        "day STRING" +
+                        ") ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE";
+                
+                logger.info("执行创建表SQL: {}", createTableSQL);
+                hiveService.executeUpdate(createTableSQL);
+                logger.info("表创建成功: {}.{}", sensorDatabase, sensorTable);
+            } else {
+                logger.info("表已存在: {}.{}", sensorDatabase, sensorTable);
+            }
         } catch (Exception e) {
-            logger.error("创建数据库或表时出错", e);
+            logger.error("创建数据库或表时出错: {}", e.getMessage(), e);
         }
     }
 
@@ -80,6 +96,7 @@ public class SensorDataImportService {
     private void importSampleSensorData() {
         try {
             // 检查表是否有数据
+            logger.info("检查表中是否已有数据...");
             String countSql = "SELECT COUNT(*) AS count FROM " + sensorDatabase + "." + sensorTable;
             List<Map<String, Object>> countResult = hiveService.executeQuery(countSql);
             long count = 0;
@@ -161,104 +178,104 @@ public class SensorDataImportService {
             int batchSize = 0;
             StringBuilder insertSQL = new StringBuilder();
             
-            // 生成6个月的数据
-            for (int month = 0; month < 6; month++) {
-                // 每月生成数据
-                for (int day = 1; day <= 30; day++) {
-                    calendar.set(Calendar.DAY_OF_MONTH, day);
-                    
-                    // 调整当前日期
-                    if (day > calendar.getActualMaximum(Calendar.DAY_OF_MONTH)) {
-                        continue; // 跳过超出当月最大天数的日期
-                    }
-                    
-                    // 每个传感器每天生成3条记录
-                    for (Map.Entry<String, String> sensor : sensorTypeMap.entrySet()) {
-                        String sensorId = sensor.getKey();
-                        String sensorType = sensor.getValue();
-                        Map<String, Object> typeInfo = sensorTypes.get(sensorType);
-                        String location = locations.get(random.nextInt(locations.size()));
-                        
-                        for (int i = 0; i < 3; i++) {
-                            // 设置时间
-                            calendar.set(Calendar.HOUR_OF_DAY, 8 + i * 6); // 8点、14点、20点
-                            calendar.set(Calendar.MINUTE, random.nextInt(60));
-                            calendar.set(Calendar.SECOND, random.nextInt(60));
-                            
-                            Date timestamp = calendar.getTime();
-                            String readableTime = sdf.format(timestamp);
-                            String monthStr = String.format("%02d", calendar.get(Calendar.MONTH) + 1);
-                            String dayStr = String.format("%02d", calendar.get(Calendar.DAY_OF_MONTH));
-                            int year = calendar.get(Calendar.YEAR);
-                            
-                            // 生成传感器值
-                            double min = (double) typeInfo.get("min");
-                            double max = (double) typeInfo.get("max");
-                            double value = min + (max - min) * random.nextDouble();
-                            value = Math.round(value * 100) / 100.0; // 保留两位小数
-                            
-                            String unit = (String) typeInfo.get("unit");
-                            int batteryLevel = 50 + random.nextInt(50);
-                            
-                            // 生成UUID作为ID
-                            String id = UUID.randomUUID().toString();
-                            
-                            // 构建插入SQL
-                            if (batchSize == 0) {
-                                insertSQL = new StringBuilder();
-                                insertSQL.append("INSERT INTO ").append(sensorDatabase).append(".").append(sensorTable)
-                                        .append(" VALUES ");
-                            } else {
-                                insertSQL.append(", ");
-                            }
-                            
-                            insertSQL.append("('").append(id).append("', '")
-                                    .append(sensorId).append("', '")
-                                    .append(sensorType).append("', ")
-                                    .append(value).append(", '")
-                                    .append(unit).append("', ")
-                                    .append(timestamp.getTime()).append(", '")
-                                    .append(readableTime).append("', '")
-                                    .append(location).append("', ")
-                                    .append(batteryLevel).append(", '")
-                                    .append(monthStr).append("', ")
-                                    .append(year).append(", '")
-                                    .append(dayStr).append("')");
-                            
-                            batchSize++;
-                            
-                            // 每100条执行一次插入
-                            if (batchSize >= 100) {
-                                hiveService.executeUpdate(insertSQL.toString());
-                                totalInserted += batchSize;
-                                batchSize = 0;
-                                logger.info("已导入 {} 条示例传感器数据", totalInserted);
-                            }
-                        }
-                    }
-                }
+            // 一次只生成少量数据用于测试（每种传感器1条数据）
+            for (Map.Entry<String, String> sensor : sensorTypeMap.entrySet()) {
+                String sensorId = sensor.getKey();
+                String sensorType = sensor.getValue();
+                Map<String, Object> typeInfo = sensorTypes.get(sensorType);
+                String location = locations.get(random.nextInt(locations.size()));
                 
-                // 下个月
-                calendar.add(Calendar.MONTH, 1);
-            }
-            
-            // 插入剩余的数据
-            if (batchSize > 0) {
-                hiveService.executeUpdate(insertSQL.toString());
-                totalInserted += batchSize;
+                // 设置时间
+                calendar.set(Calendar.HOUR_OF_DAY, 8);
+                calendar.set(Calendar.MINUTE, random.nextInt(60));
+                calendar.set(Calendar.SECOND, random.nextInt(60));
+                
+                Date timestamp = calendar.getTime();
+                String readableTime = sdf.format(timestamp);
+                String monthStr = String.format("%02d", calendar.get(Calendar.MONTH) + 1);
+                String dayStr = String.format("%02d", calendar.get(Calendar.DAY_OF_MONTH));
+                int year = calendar.get(Calendar.YEAR);
+                
+                // 生成传感器值
+                double min = (double) typeInfo.get("min");
+                double max = (double) typeInfo.get("max");
+                double value = min + (max - min) * random.nextDouble();
+                value = Math.round(value * 100) / 100.0; // 保留两位小数
+                
+                String unit = (String) typeInfo.get("unit");
+                int batteryLevel = 50 + random.nextInt(50);
+                
+                // 生成UUID作为ID
+                String id = UUID.randomUUID().toString();
+                
+                // 使用单行插入方式，这样更容易跟踪问题
+                String singleInsertSQL = "INSERT INTO " + sensorDatabase + "." + sensorTable + 
+                    " VALUES ('" + id + "', '" + 
+                    sensorId + "', '" + 
+                    sensorType + "', " + 
+                    value + ", '" + 
+                    unit + "', " + 
+                    timestamp.getTime() + ", '" + 
+                    readableTime + "', '" + 
+                    location + "', " + 
+                    batteryLevel + ", '" + 
+                    monthStr + "', " + 
+                    year + ", '" + 
+                    dayStr + "')";
+                
+                logger.info("执行插入SQL: {}", singleInsertSQL);
+                hiveService.executeUpdate(singleInsertSQL);
+                
+                totalInserted++;
+                logger.info("成功插入第 {} 条数据", totalInserted);
             }
             
             logger.info("示例传感器数据导入完成，共导入 {} 条数据", totalInserted);
+            
+            // 确认数据已插入
+            checkDataImported();
         } catch (Exception e) {
-            logger.error("导入示例传感器数据时出错", e);
+            logger.error("导入示例传感器数据时出错: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 检查数据是否已成功导入
+     */
+    private void checkDataImported() {
+        try {
+            logger.info("检查数据是否已成功导入...");
+            String countSql = "SELECT COUNT(*) AS count FROM " + sensorDatabase + "." + sensorTable;
+            List<Map<String, Object>> countResult = hiveService.executeQuery(countSql);
+            
+            if (!countResult.isEmpty()) {
+                Object countObj = countResult.get(0).get("count");
+                if (countObj != null) {
+                    long count = Long.parseLong(countObj.toString());
+                    logger.info("当前表中有 {} 条数据", count);
+                    
+                    if (count > 0) {
+                        // 查询一些示例数据
+                        String sampleSql = "SELECT * FROM " + sensorDatabase + "." + sensorTable + " LIMIT 3";
+                        List<Map<String, Object>> sampleResult = hiveService.executeQuery(sampleSql);
+                        
+                        logger.info("示例数据（{}条）:", sampleResult.size());
+                        for (Map<String, Object> row : sampleResult) {
+                            logger.info("数据行: {}", row);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("检查数据导入时出错: {}", e.getMessage(), e);
         }
     }
 
     /**
      * 定时导入传感器数据到Hive（模拟）
-     * 每天执行一次
+     * 每小时执行一次
      */
-    @Scheduled(cron = "0 0 0 * * ?") // 每天零点执行
+    @Scheduled(fixedRate = 3600000) // 每小时执行一次
     public void scheduledDataImport() {
         if (!importEnabled) {
             return;
@@ -268,7 +285,7 @@ public class SensorDataImportService {
             logger.info("执行计划任务：导入传感器数据");
             importTodaySensorData();
         } catch (Exception e) {
-            logger.error("计划任务执行失败", e);
+            logger.error("计划任务执行失败: {}", e.getMessage(), e);
         }
     }
     
@@ -277,6 +294,8 @@ public class SensorDataImportService {
      */
     private void importTodaySensorData() {
         try {
+            logger.info("开始导入今日传感器数据...");
+            
             Calendar today = Calendar.getInstance();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Random random = new Random();
@@ -332,12 +351,7 @@ public class SensorDataImportService {
                 "北京农场", "上海农场", "广州农场", "深圳农场", "成都农场"
             );
             
-            StringBuilder insertSQL = new StringBuilder();
-            insertSQL.append("INSERT INTO ").append(sensorDatabase).append(".").append(sensorTable)
-                    .append(" VALUES ");
-            
             int recordCount = 0;
-            boolean firstRecord = true;
             
             // 为每个传感器生成当天的数据
             for (Map.Entry<String, String> sensor : sensorTypeMap.entrySet()) {
@@ -368,35 +382,33 @@ public class SensorDataImportService {
                 // 生成UUID作为ID
                 String id = UUID.randomUUID().toString();
                 
-                // 添加到SQL
-                if (!firstRecord) {
-                    insertSQL.append(", ");
-                }
+                // 执行单行插入
+                String insertSQL = "INSERT INTO " + sensorDatabase + "." + sensorTable + 
+                    " VALUES ('" + id + "', '" + 
+                    sensorId + "', '" + 
+                    sensorType + "', " + 
+                    value + ", '" + 
+                    unit + "', " + 
+                    timestamp.getTime() + ", '" + 
+                    readableTime + "', '" + 
+                    location + "', " + 
+                    batteryLevel + ", '" + 
+                    monthStr + "', " + 
+                    year + ", '" + 
+                    dayStr + "')";
                 
-                insertSQL.append("('").append(id).append("', '")
-                        .append(sensorId).append("', '")
-                        .append(sensorType).append("', ")
-                        .append(value).append(", '")
-                        .append(unit).append("', ")
-                        .append(timestamp.getTime()).append(", '")
-                        .append(readableTime).append("', '")
-                        .append(location).append("', ")
-                        .append(batteryLevel).append(", '")
-                        .append(monthStr).append("', ")
-                        .append(year).append(", '")
-                        .append(dayStr).append("')");
+                logger.info("执行插入SQL: {}", insertSQL);
+                hiveService.executeUpdate(insertSQL);
                 
-                firstRecord = false;
                 recordCount++;
             }
             
-            // 执行插入
-            if (recordCount > 0) {
-                hiveService.executeUpdate(insertSQL.toString());
-                logger.info("成功导入今日传感器数据，共 {} 条记录", recordCount);
-            }
+            logger.info("成功导入今日传感器数据，共 {} 条记录", recordCount);
+            
+            // 验证数据已插入
+            checkDataImported();
         } catch (Exception e) {
-            logger.error("导入今日传感器数据时出错", e);
+            logger.error("导入今日传感器数据时出错: {}", e.getMessage(), e);
         }
     }
     
@@ -413,13 +425,14 @@ public class SensorDataImportService {
         }
         
         try {
+            logger.info("手动触发传感器数据导入");
             importTodaySensorData();
             result.put("success", true);
             result.put("message", "已触发传感器数据导入");
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "导入失败: " + e.getMessage());
-            logger.error("手动触发导入传感器数据时出错", e);
+            logger.error("手动触发导入传感器数据时出错: {}", e.getMessage(), e);
         }
         
         return result;
@@ -434,23 +447,46 @@ public class SensorDataImportService {
         info.put("table", sensorTable);
         
         try {
+            logger.info("获取传感器数据表信息");
+            
+            // 检查表是否存在
+            String checkTableSql = "SHOW TABLES IN " + sensorDatabase + " LIKE '" + sensorTable + "'";
+            List<Map<String, Object>> tableResult = hiveService.executeQuery(checkTableSql);
+            
+            if (tableResult.isEmpty()) {
+                logger.info("表不存在: {}.{}", sensorDatabase, sensorTable);
+                info.put("exists", false);
+                info.put("success", false);
+                info.put("message", "表不存在");
+                return info;
+            }
+            
+            info.put("exists", true);
+            
             // 获取数据表行数
             String countSql = "SELECT COUNT(*) AS count FROM " + sensorDatabase + "." + sensorTable;
             hiveService.executeQuery(countSql).stream().findFirst().ifPresent(row -> {
                 info.put("rowCount", row.get("count"));
+                logger.info("表行数: {}", row.get("count"));
             });
             
             // 获取最新数据时间
             String latestTimeSql = "SELECT MAX(readableTime) AS latestTime FROM " + sensorDatabase + "." + sensorTable;
             hiveService.executeQuery(latestTimeSql).stream().findFirst().ifPresent(row -> {
                 info.put("latestTime", row.get("latestTime"));
+                logger.info("最新数据时间: {}", row.get("latestTime"));
             });
+            
+            // 获取表结构信息
+            String descTableSql = "DESCRIBE " + sensorDatabase + "." + sensorTable;
+            List<Map<String, Object>> tableSchema = hiveService.executeQuery(descTableSql);
+            info.put("schema", tableSchema);
             
             info.put("success", true);
         } catch (Exception e) {
             info.put("success", false);
             info.put("error", e.getMessage());
-            logger.error("获取传感器数据表信息时出错", e);
+            logger.error("获取传感器数据表信息时出错: {}", e.getMessage(), e);
         }
         
         return info;
