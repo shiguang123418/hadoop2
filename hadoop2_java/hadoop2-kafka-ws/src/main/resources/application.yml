@@ -16,6 +16,17 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
+  # MySQL数据源配置
+  datasource:
+    url: jdbc:mysql://nas:3306/agri_data?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 082415
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      maximum-pool-size: 10
 
 
 # Kafka配置
@@ -52,6 +63,14 @@ sensor:
   data:
     batch-size: 100
     interval: 5000
+    # 数据存储配置
+    storage:
+      # 存储目标: mysql, hive, both
+      target: mysql
+      # 是否启用Hive存储
+      hive-enabled: false
+      # 是否启用MySQL存储
+      mysql-enabled: true
   # 模拟配置
   simulation:
     enabled: false
@@ -65,6 +84,9 @@ hive:
   driver: org.apache.hive.jdbc.HiveDriver
   username: root
   password: 
+  sensor:
+    database: agri_data
+    table: sensor_data
 
 
 
