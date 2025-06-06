@@ -5,7 +5,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.shiguang.module.hive.service.SensorDataImportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Kafka消费者服务
- * 用于从Kafka接收传感器数据并转发到WebSocket
+ * 用于从Kafka接收传感器数据并转发到WebSocket和MySQL
  */
 @Service
 public class KafkaConsumerService {
@@ -46,9 +45,6 @@ public class KafkaConsumerService {
 
     @Autowired
     private DataProcessingService dataProcessingService;
-    
-    @Autowired(required = false)
-    private SensorDataImportService sensorDataImportService;
     
     @Autowired
     private SensorDataStorageFactory storageFactory;
@@ -135,12 +131,14 @@ public class KafkaConsumerService {
                                 messageCounter.incrementAndGet();
                                 logger.debug("已将处理后的数据发送到WebSocket: {}", processedData);
                                 
-                                // 使用存储工厂保存数据
+                                // 将原始数据存储到MySQL
                                 try {
                                     boolean stored = storageFactory.storeSensorData(value);
                                     if (stored) {
                                         dataStorageCounter.incrementAndGet();
-                                        logger.debug("已将数据存储到数据库");
+                                        logger.info("已将数据存储到MySQL数据库: {}", value);
+                                    } else {
+                                        logger.error("存储数据到MySQL数据库失败");
                                     }
                                 } catch (Exception e) {
                                     logger.error("存储数据时发生错误: {}", e.getMessage(), e);

@@ -1,6 +1,9 @@
 package org.shiguang.module.mysql.controller;
 
 import org.shiguang.module.mysql.service.MySQLSensorService;
+import org.shiguang.module.sensor.service.DataProcessingService;
+import org.shiguang.module.sensor.service.KafkaConsumerService;
+import org.shiguang.module.sensor.service.SensorDataStorageFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,341 +17,81 @@ import java.util.Map;
 
 /**
  * MySQL传感器数据控制器
- * 提供对MySQL存储的传感器数据的查询接口
+ * 用于测试和查询MySQL中的传感器数据
  */
 @RestController
 @RequestMapping("/mysql/sensor")
-@CrossOrigin
 public class MySQLSensorController {
+    
     private static final Logger logger = LoggerFactory.getLogger(MySQLSensorController.class);
     
     @Autowired
     private MySQLSensorService mysqlSensorService;
     
+    @Autowired
+    private KafkaConsumerService kafkaConsumerService;
+    
+    @Autowired
+    private SensorDataStorageFactory storageFactory;
+    
+    @Autowired
+    private DataProcessingService dataProcessingService;
+    
     /**
-     * 获取传感器数据表信息
+     * 健康检查API
      */
-    @GetMapping("/info")
-    public ResponseEntity<Map<String, Object>> getSensorTableInfo() {
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("status", "UP");
+        status.put("message", "MySQL传感器服务运行正常");
+        return ResponseEntity.ok(status);
+    }
+    
+    /**
+     * 获取MySQL存储状态
+     */
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getStatus() {
+        Map<String, Object> status = new HashMap<>();
         try {
-            Map<String, Object> response = new HashMap<>();
-            Map<String, Object> info = mysqlSensorService.getSensorTableInfo();
+            status.put("kafkaStatus", kafkaConsumerService.getConsumerStats());
+            status.put("storageStats", storageFactory.getStorageStatistics());
             
-            response.put("code", 200);
-            response.put("message", "获取MySQL传感器数据表信息成功");
-            response.put("data", info);
+            Map<String, Object> tableInfo = mysqlSensorService.getSensorTableInfo();
+            status.put("tableInfo", tableInfo);
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(status);
         } catch (Exception e) {
-            logger.error("获取MySQL传感器数据表信息失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取MySQL传感器数据表信息失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
+            logger.error("获取MySQL存储状态时出错: {}", e.getMessage(), e);
+            status.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(status);
         }
     }
     
     /**
-     * 获取传感器类型列表
+     * 重建数据库表
      */
-    @GetMapping("/types")
-    public ResponseEntity<Map<String, Object>> getSensorTypes() {
+    @PostMapping("/rebuild-table")
+    public ResponseEntity<Map<String, Object>> rebuildTable() {
+        Map<String, Object> result = new HashMap<>();
         try {
-            String tableName = mysqlSensorService.getSensorTableInfo().get("table").toString();
-            String sql = "SELECT DISTINCT sensor_type FROM " + tableName;
-            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql);
+            logger.info("开始重建传感器数据表...");
+            boolean success = mysqlSensorService.rebuildTable();
             
-            List<String> types = new ArrayList<>();
-            for (Map<String, Object> row : results) {
-                types.add((String) row.get("sensor_type"));
-            }
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "获取MySQL传感器类型成功");
-            response.put("data", types);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("获取MySQL传感器类型失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取MySQL传感器类型失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
-        }
-    }
-    
-    /**
-     * 获取传感器位置列表
-     */
-    @GetMapping("/locations")
-    public ResponseEntity<Map<String, Object>> getSensorLocations() {
-        try {
-            String tableName = mysqlSensorService.getSensorTableInfo().get("table").toString();
-            String sql = "SELECT DISTINCT location FROM " + tableName;
-            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql);
-            
-            List<String> locations = new ArrayList<>();
-            for (Map<String, Object> row : results) {
-                locations.add((String) row.get("location"));
-            }
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "获取MySQL传感器位置成功");
-            response.put("data", locations);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("获取MySQL传感器位置失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取MySQL传感器位置失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
-        }
-    }
-    
-    /**
-     * 获取传感器数据统计信息
-     */
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getSensorStats(
-            @RequestParam(required = false) String sensorType,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false) String timeRange) {
-        try {
-            String tableName = mysqlSensorService.getSensorTableInfo().get("table").toString();
-            
-            StringBuilder sql = new StringBuilder();
-            sql.append("SELECT sensor_type, COUNT(*) as count, AVG(value) as avgValue, MAX(value) as maxValue, MIN(value) as minValue, STDDEV(value) as stdDev FROM ")
-               .append(tableName);
-            
-            List<String> whereConditions = new ArrayList<>();
-            List<Object> params = new ArrayList<>();
-            
-            if (sensorType != null && !sensorType.isEmpty()) {
-                whereConditions.add("sensor_type = ?");
-                params.add(sensorType);
-            }
-            
-            if (location != null && !location.isEmpty()) {
-                whereConditions.add("location = ?");
-                params.add(location);
-            }
-            
-            if (timeRange != null && !timeRange.isEmpty()) {
-                // 简单处理，假设timeRange格式为"yyyy-MM-dd,yyyy-MM-dd"
-                String[] dates = timeRange.split(",");
-                if (dates.length == 2) {
-                    whereConditions.add("readable_time >= ?");
-                    params.add(dates[0] + " 00:00:00");
-                    whereConditions.add("readable_time <= ?");
-                    params.add(dates[1] + " 23:59:59");
-                }
-            }
-            
-            if (!whereConditions.isEmpty()) {
-                sql.append(" WHERE ").append(String.join(" AND ", whereConditions));
-            }
-            
-            sql.append(" GROUP BY sensor_type");
-            
-            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql.toString(), params.toArray());
-            
-            Map<String, Object> data = new HashMap<>();
-            data.put("stats", results);
-            data.put("query", sql.toString());
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "获取MySQL传感器数据统计信息成功");
-            response.put("data", data);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("获取MySQL传感器数据统计信息失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取MySQL传感器数据统计信息失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
-        }
-    }
-    
-    /**
-     * 获取传感器时间序列数据
-     */
-    @GetMapping("/time-series")
-    public ResponseEntity<Map<String, Object>> getTimeSeries(
-            @RequestParam String sensorType,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false, defaultValue = "month") String timeUnit) {
-        try {
-            String tableName = mysqlSensorService.getSensorTableInfo().get("table").toString();
-            
-            StringBuilder sql = new StringBuilder();
-            List<Object> params = new ArrayList<>();
-            
-            // 根据时间单位选择查询
-            if ("month".equals(timeUnit)) {
-                sql.append("SELECT month, AVG(value) as value FROM ")
-                   .append(tableName);
-            } else if ("day".equals(timeUnit)) {
-                sql.append("SELECT day, AVG(value) as value FROM ")
-                   .append(tableName);
+            result.put("success", success);
+            if (success) {
+                result.put("message", "传感器数据表重建成功");
+                return ResponseEntity.ok(result);
             } else {
-                sql.append("SELECT year, month, AVG(value) as value FROM ")
-                   .append(tableName);
+                result.put("message", "传感器数据表重建失败");
+                return ResponseEntity.badRequest().body(result);
             }
-            
-            List<String> whereConditions = new ArrayList<>();
-            
-            if (sensorType != null && !sensorType.isEmpty()) {
-                whereConditions.add("sensor_type = ?");
-                params.add(sensorType);
-            }
-            
-            if (location != null && !location.isEmpty()) {
-                whereConditions.add("location = ?");
-                params.add(location);
-            }
-            
-            if (!whereConditions.isEmpty()) {
-                sql.append(" WHERE ").append(String.join(" AND ", whereConditions));
-            }
-            
-            if ("month".equals(timeUnit)) {
-                sql.append(" GROUP BY month ORDER BY month");
-            } else if ("day".equals(timeUnit)) {
-                sql.append(" GROUP BY day ORDER BY day");
-            } else {
-                sql.append(" GROUP BY year, month ORDER BY year, month");
-            }
-            
-            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql.toString(), params.toArray());
-            
-            Map<String, Object> data = new HashMap<>();
-            data.put("data", results);
-            data.put("query", sql.toString());
-            data.put("sensorType", sensorType);
-            data.put("timeUnit", timeUnit);
-            if (location != null && !location.isEmpty()) {
-                data.put("location", location);
-            }
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "获取MySQL传感器时间序列数据成功");
-            response.put("data", data);
-            
-            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("获取MySQL传感器时间序列数据失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取MySQL传感器时间序列数据失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
-        }
-    }
-    
-    /**
-     * 获取传感器相关性数据
-     */
-    @GetMapping("/correlation")
-    public ResponseEntity<Map<String, Object>> getCorrelation(
-            @RequestParam String typeA,
-            @RequestParam String typeB,
-            @RequestParam(required = false) String location) {
-        try {
-            String tableName = mysqlSensorService.getSensorTableInfo().get("table").toString();
-            
-            StringBuilder sql = new StringBuilder();
-            List<Object> params = new ArrayList<>();
-            
-            sql.append("SELECT a.value as valueA, b.value as valueB FROM ")
-               .append(tableName).append(" a JOIN ")
-               .append(tableName).append(" b ON a.event_time = b.event_time ");
-            
-            List<String> whereConditions = new ArrayList<>();
-            whereConditions.add("a.sensor_type = ?");
-            params.add(typeA);
-            whereConditions.add("b.sensor_type = ?");
-            params.add(typeB);
-            
-            if (location != null && !location.isEmpty()) {
-                whereConditions.add("a.location = ?");
-                params.add(location);
-                whereConditions.add("b.location = ?");
-                params.add(location);
-            }
-            
-            sql.append(" WHERE ").append(String.join(" AND ", whereConditions));
-            sql.append(" LIMIT 1000");
-            
-            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql.toString(), params.toArray());
-            
-            Map<String, Object> data = new HashMap<>();
-            data.put("data", results);
-            data.put("query", sql.toString());
-            data.put("typeA", typeA);
-            data.put("typeB", typeB);
-            if (location != null && !location.isEmpty()) {
-                data.put("location", location);
-            }
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "获取MySQL传感器相关性数据成功");
-            response.put("data", data);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("获取MySQL传感器相关性数据失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取MySQL传感器相关性数据失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
-        }
-    }
-    
-    /**
-     * 按时间顺序获取传感器数据
-     */
-    @GetMapping("/data")
-    public ResponseEntity<Map<String, Object>> getSensorDataByTime(
-            @RequestParam(required = false) String sensorType,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false, defaultValue = "100") int limit,
-            @RequestParam(required = false, defaultValue = "false") boolean ascending) {
-        try {
-            List<Map<String, Object>> data = mysqlSensorService.getSensorDataByTime(sensorType, location, limit, ascending);
-            
-            Map<String, Object> response = new HashMap<>();
-            Map<String, Object> result = new HashMap<>();
-            
-            result.put("data", data);
-            result.put("count", data.size());
-            result.put("sensorType", sensorType);
-            result.put("location", location);
-            result.put("sortOrder", ascending ? "ascending" : "descending");
-            
-            response.put("code", 200);
-            response.put("message", "获取传感器数据成功");
-            response.put("data", result);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("获取传感器数据失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取传感器数据失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
+            logger.error("重建数据表时出错: {}", e.getMessage(), e);
+            result.put("success", false);
+            result.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(result);
         }
     }
     
@@ -356,131 +99,80 @@ public class MySQLSensorController {
      * 获取最近的传感器数据
      */
     @GetMapping("/recent")
-    public ResponseEntity<Map<String, Object>> getRecentData(
-            @RequestParam(required = false, defaultValue = "20") int limit) {
+    public ResponseEntity<List<Map<String, Object>>> getRecentData(
+            @RequestParam(defaultValue = "10") int limit) {
         try {
             List<Map<String, Object>> data = mysqlSensorService.getRecentSensorData(limit);
-            
-            Map<String, Object> response = new HashMap<>();
-            Map<String, Object> result = new HashMap<>();
-            
-            result.put("data", data);
-            result.put("count", data.size());
-            
-            response.put("code", 200);
-            response.put("message", "获取最近传感器数据成功");
-            response.put("data", result);
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(data);
         } catch (Exception e) {
-            logger.error("获取最近传感器数据失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取最近传感器数据失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
+            logger.error("获取最近传感器数据时出错: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
     
     /**
-     * 获取特定类型的最近传感器数据
+     * 根据传感器类型获取最近的传感器数据
      */
     @GetMapping("/recent/{sensorType}")
-    public ResponseEntity<Map<String, Object>> getRecentDataByType(
+    public ResponseEntity<List<Map<String, Object>>> getRecentDataByType(
             @PathVariable String sensorType,
-            @RequestParam(required = false, defaultValue = "20") int limit) {
+            @RequestParam(defaultValue = "10") int limit) {
         try {
             List<Map<String, Object>> data = mysqlSensorService.getRecentSensorDataByType(sensorType, limit);
-            
-            Map<String, Object> response = new HashMap<>();
-            Map<String, Object> result = new HashMap<>();
-            
-            result.put("data", data);
-            result.put("count", data.size());
-            result.put("sensorType", sensorType);
-            
-            response.put("code", 200);
-            response.put("message", "获取最近" + sensorType + "传感器数据成功");
-            response.put("data", result);
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(data);
         } catch (Exception e) {
-            logger.error("获取最近{}传感器数据失败", sensorType, e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取最近" + sensorType + "传感器数据失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
+            logger.error("获取最近传感器数据时出错: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
     
     /**
-     * 获取传感器数据的时间序列统计
+     * 获取时间序列统计数据
      */
     @GetMapping("/timeseries")
-    public ResponseEntity<Map<String, Object>> getTimeSeriesStats(
+    public ResponseEntity<List<Map<String, Object>>> getTimeSeriesStats(
             @RequestParam String sensorType,
-            @RequestParam(required = false, defaultValue = "day") String timeUnit,
+            @RequestParam(defaultValue = "day") String timeUnit,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime) {
         try {
-            List<Map<String, Object>> data = mysqlSensorService.getTimeSeriesStats(sensorType, timeUnit, startTime, endTime);
-            
-            Map<String, Object> response = new HashMap<>();
-            Map<String, Object> result = new HashMap<>();
-            
-            result.put("data", data);
-            result.put("count", data.size());
-            result.put("sensorType", sensorType);
-            result.put("timeUnit", timeUnit);
-            result.put("startTime", startTime);
-            result.put("endTime", endTime);
-            
-            response.put("code", 200);
-            response.put("message", "获取传感器时间序列统计数据成功");
-            response.put("data", result);
-            
-            return ResponseEntity.ok(response);
+            List<Map<String, Object>> data = mysqlSensorService.getTimeSeriesStats(
+                    sensorType, timeUnit, startTime, endTime);
+            return ResponseEntity.ok(data);
         } catch (Exception e) {
-            logger.error("获取传感器时间序列统计数据失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取传感器时间序列统计数据失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
+            logger.error("获取时间序列统计数据时出错: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
     
     /**
-     * 获取传感器数据的日内变化统计
+     * 手动保存传感器数据（用于测试）
      */
-    @GetMapping("/daily-pattern")
-    public ResponseEntity<Map<String, Object>> getDailyPatternStats(
-            @RequestParam String sensorType,
-            @RequestParam(required = false, defaultValue = "7") int days) {
+    @PostMapping("/save")
+    public ResponseEntity<Map<String, Object>> saveSensorData(@RequestBody String sensorDataJson) {
+        Map<String, Object> result = new HashMap<>();
         try {
-            List<Map<String, Object>> data = mysqlSensorService.getDailyPatternStats(sensorType, days);
+            logger.info("收到手动保存传感器数据请求: {}", sensorDataJson);
             
-            Map<String, Object> response = new HashMap<>();
-            Map<String, Object> result = new HashMap<>();
+            // 处理数据
+            String processedData = dataProcessingService.processRawData(sensorDataJson);
+            result.put("processedData", processedData);
             
-            result.put("data", data);
-            result.put("count", data.size());
-            result.put("sensorType", sensorType);
-            result.put("days", days);
+            // 存储数据
+            boolean stored = storageFactory.storeSensorData(sensorDataJson);
+            result.put("stored", stored);
             
-            response.put("code", 200);
-            response.put("message", "获取传感器日内变化统计数据成功");
-            response.put("data", result);
-            
-            return ResponseEntity.ok(response);
+            if (stored) {
+                result.put("message", "数据成功保存到MySQL");
+                return ResponseEntity.ok(result);
+            } else {
+                result.put("message", "数据保存失败");
+                return ResponseEntity.badRequest().body(result);
+            }
         } catch (Exception e) {
-            logger.error("获取传感器日内变化统计数据失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "获取传感器日内变化统计数据失败: " + e.getMessage());
-            errorResponse.put("data", null);
-            return ResponseEntity.ok(errorResponse);
+            logger.error("手动保存传感器数据时出错: {}", e.getMessage(), e);
+            result.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(result);
         }
     }
 } 

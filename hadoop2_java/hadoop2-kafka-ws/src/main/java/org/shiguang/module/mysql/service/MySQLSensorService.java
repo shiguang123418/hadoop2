@@ -120,7 +120,7 @@ public class MySQLSensorService {
             String safeTableName = sensorTable.replace(".", "_").replace("-", "_");
             
             String createTableSQL = "CREATE TABLE IF NOT EXISTS " + safeTableName + " (" +
-                    "id VARCHAR(36) PRIMARY KEY, " +
+                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
                     "sensor_id VARCHAR(36) NOT NULL, " +
                     "sensor_type VARCHAR(50) NOT NULL, " +
                     "value DOUBLE NOT NULL, " +
@@ -197,33 +197,35 @@ public class MySQLSensorService {
             SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy");
             int year = Integer.parseInt(yearFormat.format(date));
 
-            // 生成UUID作为ID
-            String id = UUID.randomUUID().toString();
-
-            // 构建插入SQL
+            // 构建插入SQL，不再需要指定ID
             String insertSQL = "INSERT INTO " + sensorTable + " (" +
-                    "id, sensor_id, sensor_type, value, unit, event_time, readable_time, " +
-                    "location, battery_level, month, year, day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "sensor_id, sensor_type, value, unit, event_time, readable_time, " +
+                    "location, battery_level, month, year, day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             conn = getConnection();
-            pstmt = conn.prepareStatement(insertSQL);
-            pstmt.setString(1, id);
-            pstmt.setString(2, sensorId);
-            pstmt.setString(3, sensorType);
-            pstmt.setDouble(4, value);
-            pstmt.setString(5, unit);
-            pstmt.setLong(6, timestamp);
-            pstmt.setString(7, readableTime);
-            pstmt.setString(8, location);
-            pstmt.setInt(9, batteryLevel);
-            pstmt.setString(10, month);
-            pstmt.setInt(11, year);
-            pstmt.setString(12, day);
+            pstmt = conn.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS);
+            pstmt.setString(1, sensorId);
+            pstmt.setString(2, sensorType);
+            pstmt.setDouble(3, value);
+            pstmt.setString(4, unit);
+            pstmt.setLong(5, timestamp);
+            pstmt.setString(6, readableTime);
+            pstmt.setString(7, location);
+            pstmt.setInt(8, batteryLevel);
+            pstmt.setString(9, month);
+            pstmt.setInt(10, year);
+            pstmt.setString(11, day);
             
             int rowsAffected = pstmt.executeUpdate();
             boolean success = rowsAffected > 0;
             
             if (success) {
+                // 获取自动生成的ID
+                int id = 0;
+                ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    id = generatedKeys.getInt(1);
+                }
                 logger.info("传感器数据导入MySQL成功: id={}, sensorId={}, type={}", id, sensorId, sensorType);
             } else {
                 logger.error("传感器数据导入MySQL失败: sensorId={}, type={}", sensorId, sensorType);
@@ -655,5 +657,64 @@ public class MySQLSensorService {
         
         logger.info("执行日内变化统计查询: {}", sql.toString());
         return executeQuery(sql.toString(), params.toArray());
+    }
+
+    /**
+     * 重建传感器数据表
+     * 删除现有表并重新创建
+     * @return 是否成功重建
+     */
+    public boolean rebuildTable() {
+        try {
+            logger.info("开始重建MySQL传感器数据表...");
+            
+            // 确保表名不包含路径分隔符或特殊字符
+            String safeTableName = sensorTable.replace(".", "_").replace("-", "_");
+            
+            // 1. 删除现有表（如果存在）
+            String dropTableSQL = "DROP TABLE IF EXISTS " + safeTableName;
+            logger.info("执行删除表SQL: {}", dropTableSQL);
+            
+            try (Statement stmt = getConnection().createStatement()) {
+                stmt.execute(dropTableSQL);
+            }
+            logger.info("表删除成功（如果存在）: {}", safeTableName);
+            
+            // 2. 创建新表
+            String createTableSQL = "CREATE TABLE " + safeTableName + " (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "sensor_id VARCHAR(36) NOT NULL, " +
+                    "sensor_type VARCHAR(50) NOT NULL, " +
+                    "value DOUBLE NOT NULL, " +
+                    "unit VARCHAR(20), " +
+                    "event_time BIGINT NOT NULL, " +
+                    "readable_time DATETIME, " +
+                    "location VARCHAR(100), " +
+                    "battery_level INT, " +
+                    "month VARCHAR(2), " +
+                    "year INT, " +
+                    "day VARCHAR(2), " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "INDEX idx_sensor_type (sensor_type), " +
+                    "INDEX idx_event_time (event_time), " +
+                    "INDEX idx_location (location), " +
+                    "INDEX idx_readable_time (readable_time)" +
+                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+            logger.info("执行创建表SQL: {}", createTableSQL);
+            
+            try (Statement stmt = getConnection().createStatement()) {
+                stmt.execute(createTableSQL);
+            }
+            
+            logger.info("MySQL传感器数据表重建成功: {}", safeTableName);
+            
+            // 更新内部使用的表名
+            sensorTable = safeTableName;
+            return true;
+        } catch (Exception e) {
+            logger.error("重建MySQL传感器数据表时出错: {}", e.getMessage(), e);
+            return false;
+        }
     }
 } 

@@ -70,10 +70,6 @@ sensor:
     interval: 5000
     # 数据存储配置
     storage:
-      # 存储目标: mysql, hive, both
-      target: mysql
-      # 是否启用Hive存储
-      hive-enabled: false
       # 是否启用MySQL存储
       mysql-enabled: true
   # 模拟配置
@@ -82,16 +78,6 @@ sensor:
   # kafka主题
   kafka:
     topic: agriculture-sensor-data
-
-# Hive配置
-hive:
-  url: jdbc:hive2://shiguang:10000
-  driver: org.apache.hive.jdbc.HiveDriver
-  username: root
-  password: 
-  sensor:
-    database: agri_data
-    table: sensor_data
 
 
 

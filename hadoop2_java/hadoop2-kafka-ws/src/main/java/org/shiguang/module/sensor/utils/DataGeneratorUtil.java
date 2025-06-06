@@ -195,13 +195,13 @@ public class DataGeneratorUtil {
                 double value = min + (max - min) * random.nextDouble();
                 
                 // 有5%的概率生成异常值
-                // if (random.nextDouble() < 0.05) {
-                //     if (random.nextBoolean()) {
-                //         value = max + (max * 0.2 * random.nextDouble());
-                //     } else {
-                //         value = min - (min * 0.2 * random.nextDouble());
-                //     }
-                // }
+                if (random.nextDouble() < 0.05) {
+                    if (random.nextBoolean()) {
+                        value = max + (max * 0.2 * random.nextDouble());
+                    } else {
+                        value = min - (min * 0.2 * random.nextDouble());
+                    }
+                }
                 
                 // 格式化值，保留两位小数
                 value = Math.round(value * 100) / 100.0;
