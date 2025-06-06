@@ -28,6 +28,12 @@ spring:
       max-lifetime: 1800000
       maximum-pool-size: 10
 
+# MySQL传感器配置
+mysql:
+  sensor:
+    database: agri_data
+    table: sensor_data
+
 # Kafka配置
 kafka:
   bootstrap:

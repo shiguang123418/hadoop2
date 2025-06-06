@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -25,9 +24,6 @@ public class MySQLSensorController {
     
     @Autowired
     private MySQLSensorService mysqlSensorService;
-    
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
     
     /**
      * 获取传感器数据表信息
@@ -61,7 +57,12 @@ public class MySQLSensorController {
         try {
             String tableName = mysqlSensorService.getSensorTableInfo().get("table").toString();
             String sql = "SELECT DISTINCT sensor_type FROM " + tableName;
-            List<String> types = jdbcTemplate.queryForList(sql, String.class);
+            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql);
+            
+            List<String> types = new ArrayList<>();
+            for (Map<String, Object> row : results) {
+                types.add((String) row.get("sensor_type"));
+            }
             
             Map<String, Object> response = new HashMap<>();
             response.put("code", 200);
@@ -87,7 +88,12 @@ public class MySQLSensorController {
         try {
             String tableName = mysqlSensorService.getSensorTableInfo().get("table").toString();
             String sql = "SELECT DISTINCT location FROM " + tableName;
-            List<String> locations = jdbcTemplate.queryForList(sql, String.class);
+            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql);
+            
+            List<String> locations = new ArrayList<>();
+            for (Map<String, Object> row : results) {
+                locations.add((String) row.get("location"));
+            }
             
             Map<String, Object> response = new HashMap<>();
             response.put("code", 200);
@@ -150,7 +156,7 @@ public class MySQLSensorController {
             
             sql.append(" GROUP BY sensor_type");
             
-            List<Map<String, Object>> results = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql.toString(), params.toArray());
             
             Map<String, Object> data = new HashMap<>();
             data.put("stats", results);
@@ -222,7 +228,7 @@ public class MySQLSensorController {
                 sql.append(" GROUP BY year, month ORDER BY year, month");
             }
             
-            List<Map<String, Object>> results = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql.toString(), params.toArray());
             
             Map<String, Object> data = new HashMap<>();
             data.put("data", results);
@@ -283,7 +289,7 @@ public class MySQLSensorController {
             sql.append(" WHERE ").append(String.join(" AND ", whereConditions));
             sql.append(" LIMIT 1000");
             
-            List<Map<String, Object>> results = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+            List<Map<String, Object>> results = mysqlSensorService.executeQuery(sql.toString(), params.toArray());
             
             Map<String, Object> data = new HashMap<>();
             data.put("data", results);
