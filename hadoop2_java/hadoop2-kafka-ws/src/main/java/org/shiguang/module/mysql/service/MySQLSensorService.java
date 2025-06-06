@@ -226,7 +226,7 @@ public class MySQLSensorService {
                 if (generatedKeys.next()) {
                     id = generatedKeys.getInt(1);
                 }
-                logger.info("传感器数据导入MySQL成功: id={}, sensorId={}, type={}", id, sensorId, sensorType);
+
             } else {
                 logger.error("传感器数据导入MySQL失败: sensorId={}, type={}", sensorId, sensorType);
             }

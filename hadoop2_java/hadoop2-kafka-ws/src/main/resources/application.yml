@@ -58,7 +58,7 @@ spark:
 data:
   generator:
     enabled: true
-    interval: 3000
+    interval: 5000
 
 # 传感器数据配置
 sensor:

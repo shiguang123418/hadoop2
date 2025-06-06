@@ -136,7 +136,6 @@ public class KafkaConsumerService {
                                     boolean stored = storageFactory.storeSensorData(value);
                                     if (stored) {
                                         dataStorageCounter.incrementAndGet();
-                                        logger.info("已将数据存储到MySQL数据库: {}", value);
                                     } else {
                                         logger.error("存储数据到MySQL数据库失败");
                                     }
