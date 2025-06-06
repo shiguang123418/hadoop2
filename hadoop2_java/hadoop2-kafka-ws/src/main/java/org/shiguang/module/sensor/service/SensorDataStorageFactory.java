@@ -55,19 +55,30 @@ public class SensorDataStorageFactory {
         boolean success = false;
         
         try {
-            if (mysqlEnabled && mysqlService != null) {
-                logger.debug("开始将传感器数据存储到MySQL...");
-                success = mysqlService.importSensorData(sensorDataJson);
-                
-                if (success) {
-                    logger.debug("传感器数据成功存储到MySQL");
-                    successCount.incrementAndGet();
-                } else {
-                    logger.error("传感器数据存储到MySQL失败");
-                    failureCount.incrementAndGet();
-                }
+            // 检查MySQL是否启用
+            if (!mysqlEnabled) {
+                // MySQL已禁用，使用DEBUG级别记录日志而不是WARN
+                logger.debug("MySQL存储已禁用，不尝试存储传感器数据");
+                // 不增加失败计数器，因为这是预期行为，不是失败
+                return false;
+            }
+            
+            // MySQL已启用但服务不可用
+            if (mysqlService == null) {
+                logger.warn("MySQL服务不可用，无法存储传感器数据");
+                failureCount.incrementAndGet();
+                return false;
+            }
+            
+            // 正常存储逻辑
+            logger.debug("开始将传感器数据存储到MySQL...");
+            success = mysqlService.importSensorData(sensorDataJson);
+            
+            if (success) {
+                logger.debug("传感器数据成功存储到MySQL");
+                successCount.incrementAndGet();
             } else {
-                logger.warn("MySQL存储已禁用或服务不可用，无法存储传感器数据");
+                logger.error("传感器数据存储到MySQL失败");
                 failureCount.incrementAndGet();
             }
         } catch (Exception e) {

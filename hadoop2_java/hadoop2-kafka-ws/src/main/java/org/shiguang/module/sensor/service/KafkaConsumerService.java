@@ -39,6 +39,9 @@ public class KafkaConsumerService {
 
     @Value("${kafka.topics.agriculture-sensor-data}")
     private String sensorTopic;
+    
+    @Value("${sensor.data.storage.mysql-enabled:true}")
+    private boolean mysqlEnabled;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -62,6 +65,7 @@ public class KafkaConsumerService {
     public void init() {
         logger.info("初始化Kafka消费者服务，服务器: {}, 分组ID: {}, 主题: {}", 
                 bootstrapServers, groupId, sensorTopic);
+        logger.info("MySQL存储已{}启用", mysqlEnabled ? "" : "未");
         executorService = Executors.newSingleThreadExecutor();
         start();
     }
@@ -132,15 +136,18 @@ public class KafkaConsumerService {
                                 logger.debug("已将处理后的数据发送到WebSocket: {}", processedData);
                                 
                                 // 将原始数据存储到MySQL
-                                try {
-                                    boolean stored = storageFactory.storeSensorData(value);
-                                    if (stored) {
-                                        dataStorageCounter.incrementAndGet();
-                                    } else {
-                                        logger.error("存储数据到MySQL数据库失败");
+                                if (mysqlEnabled) {
+                                    try {
+                                        boolean stored = storageFactory.storeSensorData(value);
+                                        if (stored) {
+                                            dataStorageCounter.incrementAndGet();
+                                        }
+                                    } catch (Exception e) {
+                                        logger.error("存储数据时发生错误: {}", e.getMessage(), e);
                                     }
-                                } catch (Exception e) {
-                                    logger.error("存储数据时发生错误: {}", e.getMessage(), e);
+                                } else {
+                                    // MySQL存储已禁用，不进行存储操作，也不记录错误
+                                    logger.debug("MySQL存储已禁用，跳过数据存储");
                                 }
                             } catch (Exception e) {
                                 errorCounter.incrementAndGet();
