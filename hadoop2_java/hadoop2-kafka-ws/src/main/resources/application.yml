@@ -18,7 +18,7 @@ spring:
       matching-strategy: ANT_PATH_MATCHER
   # MySQL数据源配置
   datasource:
-    url: jdbc:mysql://nas:3306/agri_data?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://nas:3306/agri_data?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 082415
     driver-class-name: com.mysql.cj.jdbc.Driver
