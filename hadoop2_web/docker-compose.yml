@@ -4,7 +4,7 @@ services:
     container_name: hadoop2_web
     working_dir: /app
     volumes:
-      - /develop/workspare/projects/hadoop2/hadoop2_web:/app
+      - /develop/workspace/projects/hadoop2/hadoop2_web:/app
     command: bash -c "npm install && npm run dev"
     ports:
       - "5173:5173"
