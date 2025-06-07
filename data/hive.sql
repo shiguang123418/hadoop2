@@ -31,13 +31,40 @@ STORED AS TEXTFILE
 LOCATION '/user/hive/warehouse/agriculture_data.db/crop_production'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
+-- 创建传感器数据表
+CREATE EXTERNAL TABLE IF NOT EXISTS sensor_data (
+  id INT,
+  sensor_id STRING,
+  sensor_type STRING,
+  value DOUBLE,
+  unit STRING,
+  event_time BIGINT,
+  readable_time STRING,
+  location STRING,
+  battery_level INT,
+  month STRING,
+  year STRING,
+  day STRING,
+  created_at STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+LOCATION '/user/hive/warehouse/sensor_db.db/sensor_data'
+TBLPROPERTIES ('skip.header.line.count'='1');
+
 -- 加载数据到表中
 -- 注意: 实际执行时需确认HDFS路径正确
-LOAD DATA INPATH '/data/temprainfall.csv' 
+LOAD DATA INPATH '/data/weather_data.csv' 
 OVERWRITE INTO TABLE weather_data;
 
-LOAD DATA INPATH '/data/product_regressiondb.csv' 
+LOAD DATA INPATH '/data/crop_production.csv' 
 OVERWRITE INTO TABLE crop_production;
+
+-- 
+LOAD DATA INPATH '/data/sensor_data.csv' 
+OVERWRITE INTO TABLE sensor_data;
+
 
 -- 验证数据加载
 SELECT COUNT(*) FROM weather_data;

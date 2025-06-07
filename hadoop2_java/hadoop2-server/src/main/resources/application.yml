@@ -78,8 +78,7 @@ spark:
 # Kafka 配置
 kafka:
   bootstrap:
-    # 根据环境配置，可以在环境特定文件中覆盖
-    servers: ${app.host}:9092
+    servers: shiguang:9092
 
 # 阿里云OSS配置
 aliyun:

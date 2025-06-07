@@ -45,7 +45,7 @@ mysql:
 # Kafka配置
 kafka:
   bootstrap:
-    servers: shiguang:9092,nas:9092
+    servers: shiguang:9092
   consumer:
     group:
       id: agriculture-data-group
