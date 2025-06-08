@@ -30,8 +30,6 @@ const CURRENT_LOG_LEVEL = process.env.NODE_ENV === 'production'
 // 是否启用远程日志收集（仅在生产环境中）
 const ENABLE_REMOTE_LOGGING = process.env.NODE_ENV === 'production';
 
-// 远程日志收集的URL（根据实际情况修改）
-const REMOTE_LOG_URL = '/api1/logs';
 
 // 最大缓存日志数量（批量发送）
 const MAX_CACHED_LOGS = 10;
@@ -56,22 +54,6 @@ class Logger {
     if (Object.values(LOG_LEVELS).includes(level)) {
       this.level = level;
     }
-  }
-
-  /**
-   * 启用或禁用远程日志收集
-   * @param {boolean} enabled 是否启用
-   */
-  enableRemoteLogging(enabled) {
-    this.remoteLoggingEnabled = enabled;
-  }
-
-  /**
-   * 设置用户信息，用于日志关联
-   * @param {Object} userInfo 用户信息
-   */
-  setUserInfo(userInfo) {
-    this.userInfo = userInfo;
   }
 
   /**
@@ -208,52 +190,14 @@ class Logger {
    */
   _addToRemoteLogQueue(logEntry) {
     this.cachedLogs.push(logEntry);
-    
-    if (this.cachedLogs.length >= MAX_CACHED_LOGS) {
-      this._sendRemoteLogs();
-    }
-  }
-
-  /**
-   * 发送远程日志
-   * @private
-   */
-  _sendRemoteLogs() {
-    if (this.cachedLogs.length === 0) {
-      return;
-    }
-
-    const logs = [...this.cachedLogs];
-    this.cachedLogs = [];
-
-    // 避免在发送日志时产生的错误再次触发日志
-    try {
-      axios.post(REMOTE_LOG_URL, {
-        logs,
-        source: 'frontend',
-        batchSize: logs.length,
-        clientTime: new Date().toISOString()
-      }, {
-        // 确保不触发拦截器的错误处理
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Log-Request': 'true'
-        }
-      }).catch(() => {
-        // 忽略错误，避免循环
-      });
-    } catch (e) {
-      // 忽略错误，避免循环
-    }
+  
   }
 
   /**
    * 立即发送所有缓存的日志
    */
   flush() {
-    if (this.remoteLoggingEnabled && this.cachedLogs.length > 0) {
-      this._sendRemoteLogs();
-    }
+
   }
 }
 

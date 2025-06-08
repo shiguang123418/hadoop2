@@ -264,16 +264,56 @@ export default {
       Object.keys(data).forEach(sensorType => {
           // 验证数据有效性
           if (data[sensorType] && typeof data[sensorType] === 'object') {
-            // 验证统计值
-            const stats = { ...data[sensorType] }
+            // 新的数据结构包含currentStats, windowedStats和correlations
+            const sensorData = data[sensorType]
             
-            // 确保数值在合理范围内
-            if (stats.min !== undefined) stats.min = validateSensorValue(stats.min, sensorType)
-            if (stats.max !== undefined) stats.max = validateSensorValue(stats.max, sensorType)
-            if (stats.avg !== undefined) stats.avg = validateSensorValue(stats.avg, sensorType)
-            if (stats.count !== undefined) stats.count = Math.max(0, Number(stats.count) || 0)
+            // 初始化或清空原有数据
+            if (!sparkStats[sensorType]) {
+              sparkStats[sensorType] = {}
+            }
             
-            sparkStats[sensorType] = stats
+            // 处理当前统计数据
+            if (sensorData.currentStats && typeof sensorData.currentStats === 'object') {
+              const currentStats = { ...sensorData.currentStats }
+              
+              // 确保数值在合理范围内
+              if (currentStats.min !== undefined) currentStats.min = validateSensorValue(currentStats.min, sensorType)
+              if (currentStats.max !== undefined) currentStats.max = validateSensorValue(currentStats.max, sensorType)
+              if (currentStats.avg !== undefined) currentStats.avg = validateSensorValue(currentStats.avg, sensorType)
+              if (currentStats.count !== undefined) currentStats.count = Math.max(0, Number(currentStats.count) || 0)
+              
+              // 更新基本统计数据（为了兼容现有UI组件）
+              Object.assign(sparkStats[sensorType], currentStats)
+            }
+            
+            // 处理时间窗口数据
+            if (sensorData.windowedStats && typeof sensorData.windowedStats === 'object') {
+              sparkStats[sensorType].windowedStats = sensorData.windowedStats
+            }
+            
+            // 处理相关性数据
+            if (sensorData.correlations && typeof sensorData.correlations === 'object') {
+              sparkStats[sensorType].correlations = sensorData.correlations
+            }
+            
+            // 处理分类数据
+            if (sparkStats[sensorType].low !== undefined) {
+              sparkStats[sensorType].classifications = {
+                low: sparkStats[sensorType].low,
+                normal: sparkStats[sensorType].normal,
+                high: sparkStats[sensorType].high,
+                critical: sparkStats[sensorType].critical
+              }
+            }
+            
+            // 处理趋势数据
+            if (sparkStats[sensorType].trend !== undefined) {
+              sparkStats[sensorType].trendAnalysis = {
+                trend: sparkStats[sensorType].trend,
+                normalizedTrend: sparkStats[sensorType].normalizedTrend,
+                prediction: sparkStats[sensorType].prediction
+              }
+            }
           }
       })
       } catch (error) {
